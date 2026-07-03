@@ -1,5 +1,6 @@
 // One store holds the model. Edits go through commands; every applied
-// command persists the model through the storage port.
+// command persists the model through the storage port. CV binary and consent
+// live outside the JSON model (IndexedDB and a localStorage flag).
 
 import { create } from 'zustand'
 import type { Job } from '../model/types'
@@ -7,17 +8,29 @@ import { SCHEMA_VERSION } from '../model/serialization'
 import type { PersistedModel } from '../model/serialization'
 import { createLocalStorage } from '../services/storage'
 import type { StoragePort } from '../services/storage'
+import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
+import type { CvMeta, FileStore } from '../services/fileStore'
 import type { Command, ModelState } from './commands'
+import { setProfileCommand } from './commands'
+
+const CONSENT_KEY = 'sokt.consent.v1'
 
 export interface SoktStore extends ModelState {
   hydrated: boolean
+  consent: boolean
   history: Command[]
   jobs: Job[]
   jobsTotal: number
+  cv: CvMeta | null
   execute(command: Command): void
   undo(): void
-  hydrate(model: PersistedModel | null): void
+  hydrate(model: PersistedModel | null, cv: CvMeta | null, consent: boolean): void
   setJobs(jobs: Job[], total: number): void
+  setConsent(consent: boolean): void
+  uploadCv(file: File): Promise<void>
+  removeCv(): Promise<void>
+  exportData(): string
+  deleteAll(): Promise<void>
 }
 
 function defaultStorage(): StoragePort {
@@ -32,14 +45,16 @@ export function toPersistedModel(state: ModelState): PersistedModel {
   }
 }
 
-export function createSoktStore(storage: StoragePort) {
+export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
   const store = create<SoktStore>((set, get) => ({
     profile: null,
     applications: [],
     hydrated: false,
+    consent: false,
     history: [],
     jobs: [],
     jobsTotal: 0,
+    cv: null,
 
     execute(command) {
       const { profile, applications, history } = get()
@@ -57,10 +72,12 @@ export function createSoktStore(storage: StoragePort) {
       void storage.save(toPersistedModel(next))
     },
 
-    hydrate(model) {
+    hydrate(model, cv, consent) {
       set({
         profile: model?.profile ?? null,
         applications: model?.applications ?? [],
+        cv,
+        consent,
         hydrated: true,
       })
     },
@@ -68,14 +85,73 @@ export function createSoktStore(storage: StoragePort) {
     setJobs(jobs, total) {
       set({ jobs, jobsTotal: total })
     },
+
+    setConsent(consent) {
+      set({ consent })
+      if (consent) window.localStorage.setItem(CONSENT_KEY, 'true')
+      else window.localStorage.removeItem(CONSENT_KEY)
+    },
+
+    async uploadCv(file) {
+      // pdfjs is large; load it only when a CV is actually uploaded.
+      const { extractPdfText } = await import('../services/cvParser')
+      const text = await extractPdfText(file).catch(() => '')
+      const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
+      await fileStore.saveCv({ ...meta, blob: file })
+      set({ cv: meta })
+      const { profile } = get()
+      if (profile && profile.cvFileRef !== CV_REF) {
+        get().execute(setProfileCommand({ ...profile, cvFileRef: CV_REF }))
+      }
+    },
+
+    async removeCv() {
+      await fileStore.clearCv()
+      set({ cv: null })
+      const { profile } = get()
+      if (profile?.cvFileRef) {
+        get().execute(setProfileCommand({ ...profile, cvFileRef: undefined }))
+      }
+    },
+
+    exportData() {
+      const { profile, applications, cv } = get()
+      return JSON.stringify(
+        { schemaVersion: SCHEMA_VERSION, profile, applications, cv },
+        null,
+        2,
+      )
+    },
+
+    async deleteAll() {
+      await storage.clear()
+      await fileStore.clearCv()
+      window.localStorage.removeItem(CONSENT_KEY)
+      set({
+        profile: null,
+        applications: [],
+        cv: null,
+        consent: false,
+        history: [],
+      })
+    },
   }))
 
-  void storage
-    .load()
-    .then((model) => store.getState().hydrate(model))
-    .catch(() => store.getState().hydrate(null))
+  async function boot() {
+    const [model, cv] = await Promise.all([
+      storage.load().catch(() => null),
+      fileStore.loadCv().catch(() => null),
+    ])
+    const consent = window.localStorage.getItem(CONSENT_KEY) === 'true'
+    const cvMeta: CvMeta | null = cv
+      ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize }
+      : null
+    store.getState().hydrate(model, cvMeta, consent)
+  }
+  void boot()
 
   return store
 }
 
-export const useSoktStore = createSoktStore(defaultStorage())
+export const fileStore = createIndexedDbFileStore()
+export const useSoktStore = createSoktStore(defaultStorage(), fileStore)
