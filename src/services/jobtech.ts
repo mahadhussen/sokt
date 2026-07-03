@@ -9,7 +9,8 @@ const BASE_URL = 'https://jobsearch.api.jobtechdev.se'
 
 export interface JobSearchParams {
   q?: string
-  municipality?: string // free text ort, matched via the q parameter
+  municipalityId?: string // JobTech municipality concept id
+  worktimeExtentId?: string // JobTech worktime-extent concept id
   limit?: number
   offset?: number
 }
@@ -19,14 +20,21 @@ export interface JobSearchResult {
   jobs: Job[]
 }
 
-export async function searchJobs(params: JobSearchParams): Promise<JobSearchResult> {
-  const query = [params.q, params.municipality].filter(Boolean).join(' ')
+// Exposed for testing: builds the request URL from the filter params.
+export function buildSearchUrl(params: JobSearchParams): string {
   const url = new URL('/search', BASE_URL)
-  if (query) url.searchParams.set('q', query)
+  if (params.q) url.searchParams.set('q', params.q)
+  if (params.municipalityId) url.searchParams.set('municipality', params.municipalityId)
+  if (params.worktimeExtentId) url.searchParams.set('worktime-extent', params.worktimeExtentId)
   url.searchParams.set('limit', String(params.limit ?? 25))
   if (params.offset) url.searchParams.set('offset', String(params.offset))
+  return url.toString()
+}
 
-  const response = await fetch(url, { headers: { accept: 'application/json' } })
+export async function searchJobs(params: JobSearchParams): Promise<JobSearchResult> {
+  const response = await fetch(buildSearchUrl(params), {
+    headers: { accept: 'application/json' },
+  })
   if (!response.ok) {
     throw new Error(`JobTech-sökningen misslyckades: ${response.status}`)
   }
