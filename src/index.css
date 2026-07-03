@@ -62,7 +62,8 @@ header h1 {
 button[type='submit'],
 .period-row button,
 .job-actions button,
-.search-form button {
+.search-form button,
+.button-row button {
   background: var(--accent);
   color: white;
   border: none;
@@ -75,6 +76,65 @@ button[type='submit'],
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.button-row button.ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.button-row button.danger {
+  background: #b91c1c;
+}
+
+.danger-text {
+  color: #b91c1c;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.card p {
+  margin: 0;
+}
+
+.card input[type='file'] {
+  width: auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 input,

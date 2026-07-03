@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
 import { employmentTypeLabel } from '../report/activityReport'
 import { buildApplication } from '../apply/buildApplication'
 import { searchJobs } from '../services/jobtech'
+import { MUNICIPALITIES } from '../jobs/municipalities'
+import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
 
@@ -13,6 +15,8 @@ function todayIso(): string {
 
 function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
+  const profile = useSoktStore((s) => s.profile)
+  const cv = useSoktStore((s) => s.cv)
   const [appliedAt, setAppliedAt] = useState(todayIso())
   const [surveyAnswered, setSurveyAnswered] = useState(false)
   const [employmentType, setEmploymentType] = useState<EmploymentType | ''>(
@@ -48,7 +52,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </a>
         )}
         {channel.kind === 'email' && (
-          <a href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}`}>
+          <a href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${profile ? `&body=${encodeURIComponent(profile.baseLetter)}` : ''}`}>
             Skicka ansökan via e-post ({channel.value})
           </a>
         )}
@@ -58,6 +62,11 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </a>
         )}
       </p>
+      {cv ? (
+        <p className="muted">CV redo att bifoga: {cv.fileName}. Bifoga det i kanalen ovan.</p>
+      ) : (
+        <p className="muted">Tips: ladda upp ditt CV under Profil så har du det redo att bifoga.</p>
+      )}
       <div className="apply-fields">
         <label>
           Datum
@@ -100,18 +109,31 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
 export function JobsView() {
   const { jobs, jobsTotal, setJobs } = useSoktStore()
   const [q, setQ] = useState('')
-  const [ort, setOrt] = useState('')
+  const [municipalityId, setMunicipalityId] = useState('')
+  const [worktimeExtentId, setWorktimeExtentId] = useState('')
   const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
+
+  const municipalityOptions = useMemo(
+    () => MUNICIPALITIES.map((m) => ({ id: m.id, name: m.name })),
+    [],
+  )
 
   async function search(event: FormEvent) {
     event.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const result = await searchJobs({ q, municipality: ort, limit: 25 })
+      const result = await searchJobs({
+        q,
+        municipalityId: municipalityId || undefined,
+        worktimeExtentId: worktimeExtentId || undefined,
+        limit: 25,
+      })
       setJobs(result.jobs, result.total)
+      setSearched(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -127,13 +149,35 @@ export function JobsView() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <input placeholder="Ort, t.ex. Uppsala" value={ort} onChange={(e) => setOrt(e.target.value)} />
+        <select value={municipalityId} onChange={(e) => setMunicipalityId(e.target.value)}>
+          <option value="">Alla orter</option>
+          {municipalityOptions.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <select value={worktimeExtentId} onChange={(e) => setWorktimeExtentId(e.target.value)}>
+          <option value="">All omfattning</option>
+          {WORKTIME_EXTENTS.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.label}
+            </option>
+          ))}
+        </select>
         <button type="submit" disabled={loading}>
           {loading ? 'Söker…' : 'Sök jobb'}
         </button>
       </form>
       {error && <p className="error">{error}</p>}
-      {jobs.length > 0 && <p className="muted">{jobsTotal} annonser hittade, visar {jobs.length}.</p>}
+      {jobs.length > 0 && (
+        <p className="muted">
+          {jobsTotal} annonser hittade, visar {jobs.length}.
+        </p>
+      )}
+      {searched && !loading && jobs.length === 0 && !error && (
+        <p className="muted">Inga annonser matchade sökningen. Prova andra filter.</p>
+      )}
       <ul className="job-list">
         {jobs.map((job) => (
           <li key={job.id} className="job-card">
