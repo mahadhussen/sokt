@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Application, Profile } from '../model/types'
-import { addApplicationCommand, setProfileCommand } from './commands'
+import { addApplicationCommand, removeApplicationCommand, setProfileCommand } from './commands'
 import type { ModelState } from './commands'
 
 const profile: Profile = {
@@ -45,5 +45,16 @@ describe('commands', () => {
     const before: ModelState = { profile: null, applications: [] }
     addApplicationCommand(application).apply(before)
     expect(before.applications).toEqual([])
+  })
+
+  it('removeApplication removes by id and restores at the same position on invert', () => {
+    const a = { ...application, id: 'a1' }
+    const b = { ...application, id: 'b2' }
+    const c = { ...application, id: 'c3' }
+    const state: ModelState = { profile: null, applications: [a, b, c] }
+    const cmd = removeApplicationCommand('b2')
+    const next = cmd.apply(state)
+    expect(next.applications.map((x) => x.id)).toEqual(['a1', 'c3'])
+    expect(cmd.invert(next).applications.map((x) => x.id)).toEqual(['a1', 'b2', 'c3'])
   })
 })

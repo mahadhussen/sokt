@@ -1,8 +1,10 @@
 import { useSoktStore } from '../app/store'
+import { removeApplicationCommand } from '../app/commands'
 import { employmentTypeLabel, surveyLabel } from '../report/activityReport'
 
 export function ApplicationsView() {
   const applications = useSoktStore((s) => s.applications)
+  const execute = useSoktStore((s) => s.execute)
 
   if (applications.length === 0) {
     return <p className="muted">Inga loggade ansökningar ännu. Sök jobb och ansök så hamnar de här.</p>
@@ -19,6 +21,7 @@ export function ApplicationsView() {
           <th>Urvalsfrågor</th>
           <th>Ort</th>
           <th>Länk</th>
+          <th />
         </tr>
       </thead>
       <tbody>
@@ -36,6 +39,16 @@ export function ApplicationsView() {
                   Annons ↗
                 </a>
               )}
+            </td>
+            <td>
+              <button
+                type="button"
+                className="link-button danger-text"
+                onClick={() => execute(removeApplicationCommand(a.id))}
+                aria-label={`Ta bort ansökan: ${a.jobTitle}`}
+              >
+                Ta bort
+              </button>
             </td>
           </tr>
         ))}
