@@ -2,10 +2,17 @@
 // Pure module: no imports from ui, render, services, or app.
 
 import type { Job } from '../model/types'
+import { mapTaxonomy } from './taxonomy'
+import type { TaxonomyAd } from './taxonomy'
+
+interface RawConcept {
+  concept_id?: string | null
+  label?: string | null
+}
 
 // The subset of the JobTech JobSearch hit we read. Everything optional —
 // the mapper must never crash on a sparse ad.
-export interface JobTechAd {
+export interface JobTechAd extends TaxonomyAd {
   id?: string | number
   headline?: string | null
   employer?: { name?: string | null } | null
@@ -16,6 +23,9 @@ export interface JobTechAd {
     url?: string | null
     email?: string | null
   } | null
+  occupation?: RawConcept | null
+  occupation_group?: RawConcept | null
+  occupation_field?: RawConcept | null
   webpage_url?: string | null
   publication_date?: string | null
 }
@@ -50,6 +60,7 @@ export function mapJobTechAd(ad: JobTechAd): Job {
     municipality: ad.workplace_address?.municipality ?? '',
     employmentType: mapEmploymentType(ad),
     applicationChannel: mapApplicationChannel(ad),
+    taxonomy: mapTaxonomy(ad),
     source: 'platsbanken',
     publishedAt: ad.publication_date ?? '',
     url: ad.webpage_url ?? '',

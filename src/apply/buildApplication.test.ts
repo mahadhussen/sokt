@@ -9,6 +9,7 @@ const job: Job = {
   municipality: 'Torsby',
   employmentType: 'deltid',
   applicationChannel: { kind: 'url', value: 'https://jobba.branas.se/jobs/7900210' },
+  taxonomy: { occupation: { id: 'dYo1_D8c_87U', label: 'Diskare' } },
   source: 'platsbanken',
   publishedAt: '2026-07-01T09:04:20',
   url: 'https://arbetsformedlingen.se/platsbanken/annonser/31233932',

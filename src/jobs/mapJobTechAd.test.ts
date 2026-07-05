@@ -14,6 +14,9 @@ const realAd: JobTechAd = {
     email: null,
     url: 'https://jobba.branas.se/jobs/7900210-diskare/applications/new?promotion=2079392-arbetsformedlingen',
   },
+  occupation: { concept_id: 'dYo1_D8c_87U', label: 'Diskare' },
+  occupation_group: { concept_id: 'abc_group', label: 'Köks- och restaurangbiträden' },
+  occupation_field: { concept_id: 'def_field', label: 'Hotell, restaurang, storhushåll' },
   webpage_url: 'https://arbetsformedlingen.se/platsbanken/annonser/31233932',
   publication_date: '2026-07-01T09:04:20',
 }
@@ -30,6 +33,11 @@ describe('mapJobTechAd', () => {
         kind: 'url',
         value:
           'https://jobba.branas.se/jobs/7900210-diskare/applications/new?promotion=2079392-arbetsformedlingen',
+      },
+      taxonomy: {
+        occupation: { id: 'dYo1_D8c_87U', label: 'Diskare' },
+        group: { id: 'abc_group', label: 'Köks- och restaurangbiträden' },
+        field: { id: 'def_field', label: 'Hotell, restaurang, storhushåll' },
       },
       source: 'platsbanken',
       publishedAt: '2026-07-01T09:04:20',
