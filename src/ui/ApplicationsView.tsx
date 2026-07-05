@@ -1,26 +1,28 @@
 import { useSoktStore } from '../app/store'
 import { removeApplicationCommand } from '../app/commands'
-import { employmentTypeLabel, surveyLabel } from '../report/activityReport'
+import { useT } from '../i18n/useT'
+import { uiEmploymentTypeLabel, uiSurveyLabel } from '../i18n/translations'
 
 export function ApplicationsView() {
   const applications = useSoktStore((s) => s.applications)
   const execute = useSoktStore((s) => s.execute)
+  const { t, lang } = useT()
 
   if (applications.length === 0) {
-    return <p className="muted">Inga loggade ansökningar ännu. Sök jobb och ansök så hamnar de här.</p>
+    return <p className="muted">{t('apps.empty')}</p>
   }
 
   return (
     <table className="report-table">
       <thead>
         <tr>
-          <th>Jobbtitel</th>
-          <th>Arbetsgivare</th>
-          <th>Anställningsform</th>
-          <th>Datum</th>
-          <th>Urvalsfrågor</th>
-          <th>Ort</th>
-          <th>Länk</th>
+          <th>{t('table.jobTitle')}</th>
+          <th>{t('table.employer')}</th>
+          <th>{t('table.employmentType')}</th>
+          <th>{t('table.date')}</th>
+          <th>{t('table.survey')}</th>
+          <th>{t('table.ort')}</th>
+          <th>{t('table.link')}</th>
           <th />
         </tr>
       </thead>
@@ -29,14 +31,14 @@ export function ApplicationsView() {
           <tr key={a.id}>
             <td>{a.jobTitle}</td>
             <td>{a.employerName}</td>
-            <td>{employmentTypeLabel(a.employmentType)}</td>
+            <td>{uiEmploymentTypeLabel(lang, a.employmentType)}</td>
             <td>{a.appliedAt}</td>
-            <td>{surveyLabel(a.surveyAnswered)}</td>
+            <td>{uiSurveyLabel(lang, a.surveyAnswered)}</td>
             <td>{a.municipality}</td>
             <td>
               {a.jobUrl && (
                 <a href={a.jobUrl} target="_blank" rel="noreferrer">
-                  Annons ↗
+                  {t('job.ad')}
                 </a>
               )}
             </td>
@@ -45,9 +47,9 @@ export function ApplicationsView() {
                 type="button"
                 className="link-button danger-text"
                 onClick={() => execute(removeApplicationCommand(a.id))}
-                aria-label={`Ta bort ansökan: ${a.jobTitle}`}
+                aria-label={t('apps.removeAria', { title: a.jobTitle })}
               >
-                Ta bort
+                {t('apps.remove')}
               </button>
             </td>
           </tr>

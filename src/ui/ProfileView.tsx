@@ -3,25 +3,22 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useSoktStore, fileStore } from '../app/store'
 import { CV_REF } from '../services/fileStore'
 import { setProfileCommand } from '../app/commands'
+import { useT } from '../i18n/useT'
 
 function ConsentGate() {
   const setConsent = useSoktStore((s) => s.setConsent)
+  const { t } = useT()
   const [checked, setChecked] = useState(false)
   return (
     <section className="card">
-      <h2>Samtycke</h2>
-      <p className="muted">
-        För att spara din profil, ditt CV och dina ansökningar behöver du samtycka till att Sökt
-        lagrar dina personuppgifter. Allt sparas <strong>bara lokalt i den här webbläsaren</strong> —
-        inget skickas till någon server och inget delas. Du kan när som helst exportera eller radera
-        allt.
-      </p>
+      <h2>{t('consent.title')}</h2>
+      <p className="muted">{t('consent.body')}</p>
       <label className="checkbox">
         <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-        Jag samtycker till att mina uppgifter sparas lokalt.
+        {t('consent.checkbox')}
       </label>
       <button type="button" onClick={() => setConsent(true)} disabled={!checked}>
-        Fortsätt
+        {t('consent.continue')}
       </button>
     </section>
   )
@@ -31,6 +28,7 @@ function CvSection() {
   const cv = useSoktStore((s) => s.cv)
   const uploadCv = useSoktStore((s) => s.uploadCv)
   const removeCv = useSoktStore((s) => s.removeCv)
+  const { t } = useT()
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,27 +61,27 @@ function CvSection() {
 
   return (
     <section className="card">
-      <h2>CV</h2>
+      <h2>{t('cv.title')}</h2>
       {cv ? (
         <>
           <p>
             <strong>{cv.fileName}</strong>{' '}
             <span className="muted">
               ({Math.round(cv.byteSize / 1024)} kB
-              {cv.text ? `, ${cv.text.length} tecken inlästa` : ', ingen text inläst'})
+              {cv.text ? `, ${t('cv.charsRead', { n: cv.text.length })}` : `, ${t('cv.noText')}`})
             </span>
           </p>
           <div className="button-row">
             <button type="button" onClick={download}>
-              Ladda ner
+              {t('cv.download')}
             </button>
             <button type="button" className="ghost" onClick={() => void removeCv()}>
-              Ta bort CV
+              {t('cv.remove')}
             </button>
           </div>
         </>
       ) : (
-        <p className="muted">Ladda upp ditt CV som PDF så har du det redo att bifoga vid varje ansökan.</p>
+        <p className="muted">{t('cv.empty')}</p>
       )}
       <input
         ref={inputRef}
@@ -91,9 +89,9 @@ function CvSection() {
         accept="application/pdf"
         onChange={onFile}
         disabled={busy}
-        aria-label="Ladda upp CV"
+        aria-label={t('cv.uploadAria')}
       />
-      {busy && <p className="muted">Läser in CV…</p>}
+      {busy && <p className="muted">{t('cv.reading')}</p>}
       {error && <p className="error">{error}</p>}
     </section>
   )
@@ -102,6 +100,7 @@ function CvSection() {
 function DataSection() {
   const exportData = useSoktStore((s) => s.exportData)
   const deleteAll = useSoktStore((s) => s.deleteAll)
+  const { t } = useT()
   const [confirming, setConfirming] = useState(false)
 
   function download() {
@@ -116,27 +115,24 @@ function DataSection() {
 
   return (
     <section className="card">
-      <h2>Dina uppgifter</h2>
-      <p className="muted">
-        Exportera allt du sparat, eller radera det helt. Radering tar bort profil, ansökningar och CV
-        från den här webbläsaren och går inte att ångra.
-      </p>
+      <h2>{t('data.title')}</h2>
+      <p className="muted">{t('data.body')}</p>
       <div className="button-row">
         <button type="button" onClick={download}>
-          Exportera som JSON
+          {t('data.export')}
         </button>
         {confirming ? (
           <>
             <button type="button" className="danger" onClick={() => void deleteAll()}>
-              Ja, radera allt
+              {t('data.deleteConfirm')}
             </button>
             <button type="button" className="ghost" onClick={() => setConfirming(false)}>
-              Avbryt
+              {t('data.cancel')}
             </button>
           </>
         ) : (
           <button type="button" className="ghost danger-text" onClick={() => setConfirming(true)}>
-            Radera all data
+            {t('data.delete')}
           </button>
         )}
       </div>
@@ -148,6 +144,7 @@ function ProfileForm() {
   const profile = useSoktStore((s) => s.profile)
   const cv = useSoktStore((s) => s.cv)
   const execute = useSoktStore((s) => s.execute)
+  const { t } = useT()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -189,45 +186,45 @@ function ProfileForm() {
 
   return (
     <form className="card profile-form" onSubmit={save}>
-      <h2>Profil</h2>
+      <h2>{t('profile.title')}</h2>
       <div className="apply-fields">
         <label>
-          Förnamn
+          {t('field.firstName')}
           <input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         </label>
         <label>
-          Efternamn
+          {t('field.lastName')}
           <input value={lastName} onChange={(e) => setLastName(e.target.value)} required />
         </label>
         <label>
-          E-post
+          {t('field.email')}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
-          Telefon
+          {t('field.phone')}
           <input value={phone} onChange={(e) => setPhone(e.target.value)} />
         </label>
         <label>
-          Adress
+          {t('field.address')}
           <input value={address} onChange={(e) => setAddress(e.target.value)} />
         </label>
         <label>
-          Ort
+          {t('field.city')}
           <input value={city} onChange={(e) => setCity(e.target.value)} />
         </label>
       </div>
       <label>
-        Personligt brev (grundversion, återanvänds vid varje ansökan)
+        {t('profile.baseLetter')}
         <textarea
           rows={8}
           value={baseLetter}
           onChange={(e) => setBaseLetter(e.target.value)}
-          placeholder="Skriv ditt grundbrev en gång — det följer med i varje ansökan."
+          placeholder={t('profile.baseLetterPlaceholder')}
         />
       </label>
       <div className="button-row">
-        <button type="submit">Spara profil</button>
-        {saved && <span className="muted">Sparad ✓</span>}
+        <button type="submit">{t('profile.save')}</button>
+        {saved && <span className="muted">{t('profile.saved')}</span>}
       </div>
     </form>
   )
@@ -236,8 +233,9 @@ function ProfileForm() {
 export function ProfileView() {
   const hydrated = useSoktStore((s) => s.hydrated)
   const consent = useSoktStore((s) => s.consent)
+  const { t } = useT()
 
-  if (!hydrated) return <p className="muted">Laddar…</p>
+  if (!hydrated) return <p className="muted">{t('profile.loading')}</p>
   if (!consent) return <ConsentGate />
 
   return (
