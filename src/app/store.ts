@@ -10,10 +10,12 @@ import { createLocalStorage } from '../services/storage'
 import type { StoragePort } from '../services/storage'
 import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
 import type { CvMeta, FileStore } from '../services/fileStore'
+import type { SavedSearch } from '../jobs/savedSearch'
 import type { Command, ModelState } from './commands'
 import { setProfileCommand } from './commands'
 
 const CONSENT_KEY = 'sokt.consent.v1'
+const SEARCHES_KEY = 'sokt.searches.v1'
 
 export interface SoktStore extends ModelState {
   hydrated: boolean
@@ -22,15 +24,37 @@ export interface SoktStore extends ModelState {
   jobs: Job[]
   jobsTotal: number
   cv: CvMeta | null
+  savedSearches: SavedSearch[]
   execute(command: Command): void
   undo(): void
-  hydrate(model: PersistedModel | null, cv: CvMeta | null, consent: boolean): void
+  hydrate(
+    model: PersistedModel | null,
+    cv: CvMeta | null,
+    consent: boolean,
+    savedSearches: SavedSearch[],
+  ): void
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
   uploadCv(file: File): Promise<void>
   removeCv(): Promise<void>
+  saveSearch(input: Omit<SavedSearch, 'id'>): void
+  removeSearch(id: string): void
   exportData(): string
   deleteAll(): Promise<void>
+}
+
+function loadSavedSearches(): SavedSearch[] {
+  try {
+    const raw = window.localStorage.getItem(SEARCHES_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? (parsed as SavedSearch[]) : []
+  } catch {
+    return []
+  }
+}
+
+function persistSavedSearches(searches: SavedSearch[]): void {
+  window.localStorage.setItem(SEARCHES_KEY, JSON.stringify(searches))
 }
 
 function defaultStorage(): StoragePort {
@@ -55,6 +79,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     jobs: [],
     jobsTotal: 0,
     cv: null,
+    savedSearches: [],
 
     execute(command) {
       const { profile, applications, history } = get()
@@ -72,12 +97,13 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       void storage.save(toPersistedModel(next))
     },
 
-    hydrate(model, cv, consent) {
+    hydrate(model, cv, consent, savedSearches) {
       set({
         profile: model?.profile ?? null,
         applications: model?.applications ?? [],
         cv,
         consent,
+        savedSearches,
         hydrated: true,
       })
     },
@@ -114,10 +140,23 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       }
     },
 
+    saveSearch(input) {
+      const search: SavedSearch = { id: crypto.randomUUID(), ...input }
+      const savedSearches = [...get().savedSearches, search]
+      set({ savedSearches })
+      persistSavedSearches(savedSearches)
+    },
+
+    removeSearch(id) {
+      const savedSearches = get().savedSearches.filter((s) => s.id !== id)
+      set({ savedSearches })
+      persistSavedSearches(savedSearches)
+    },
+
     exportData() {
-      const { profile, applications, cv } = get()
+      const { profile, applications, cv, savedSearches } = get()
       return JSON.stringify(
-        { schemaVersion: SCHEMA_VERSION, profile, applications, cv },
+        { schemaVersion: SCHEMA_VERSION, profile, applications, cv, savedSearches },
         null,
         2,
       )
@@ -127,11 +166,13 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       await storage.clear()
       await fileStore.clearCv()
       window.localStorage.removeItem(CONSENT_KEY)
+      window.localStorage.removeItem(SEARCHES_KEY)
       set({
         profile: null,
         applications: [],
         cv: null,
         consent: false,
+        savedSearches: [],
         history: [],
       })
     },
@@ -146,7 +187,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     const cvMeta: CvMeta | null = cv
       ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize }
       : null
-    store.getState().hydrate(model, cvMeta, consent)
+    store.getState().hydrate(model, cvMeta, consent, loadSavedSearches())
   }
   void boot()
 
