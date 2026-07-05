@@ -3,6 +3,28 @@
 ## NEEDS-DECISION (löst)
 - **Supabase inför M1 → körs helt lokalt.** Beslut 2026-07-03: användarens Supabase-projekt är fullt, så M1 byggs på den lokala stacken (localStorage + IndexedDB) bakom samma `StoragePort`. Auth utgår; en profil per webbläsare. GDPR-konsekvens: personuppgifter lämnar aldrig enheten, överförs aldrig till en server, och kan exporteras/raderas helt av användaren. "Kryptering i vila" hanteras av OS/webbläsarens egen lagring — äkta applikationskryptering kräver en backend-nyckel och skjuts till en framtida Supabase-migrering. Detta är ärligt dokumenterat i UI:t (samtyckestexten).
 
+## 2026-07-05 — Milestone 2: Fas 2 (delvis, lokal stack)
+
+### Byggt
+- **Taxonomibaserad titelmappning** — `jobs/taxonomy.ts` (ren, testad) läser annonsens occupation/occupation_group/occupation_field till `Job.taxonomy`, och `canonicalOccupation` väljer mest specifika yrke, annars rubriken. Visas som tagg i jobbkorten när det skiljer sig från rubriken.
+- **Deterministiskt per-jobb-anpassat brev** — `apply/tailorLetter.ts` (ren, testad). Om grundbrevet har platshållare ({tjänst}/{arbetsgivare}/{ort}/{namn}/{yrke}) ersätts bara de (respekterar användarens struktur), annars omsluts brevet med hälsning/inledning/signatur byggd av jobb + profil. Redigerbart i ansök-panelen, kopierbart, prefyller e-postkanalens body. Unicode-säker token-regex (\w matchar inte ä/ö).
+- **Sparade sökningar** — `jobs/savedSearch.ts` (ren, testad summary), lagrade i separat localStorage-nyckel, laddade i storen, inkluderade i `exportData`, rensade vid `deleteAll`. Chips överst i Jobb-vyn, klick återkör.
+
+### Beslut (med alternativ)
+10. **Job-typen utökad med `taxonomy` (planerad M2-utökning, ej drift).** GOALS M2 kräver taxonomibaserad titelmappning; att bära taxonomin på Job är den rena platsen. Invarianterna hålls: rapportfält härleds fortfarande enbart ur Application. Alternativ: separat sidostruktur — förkastat, taxonomin hör till jobbet.
+11. **AI-brev → deterministiskt brev nu, ren söm för Anthropic senare.** Riktig AI-anpassning kräver Anthropic-API bakom en backend; den lokala byggnaden har ingen nyckel (Max-abonnemang, ingen ANTHROPIC_API_KEY). Deterministisk mall/token-ersättning ger per-jobb-brev gratis och offline (free-over-paid). `tailorLetter` är synkron och ren; byt anropet mot ett async backend-anrop när nyckel finns. Rapportfält rörs aldrig.
+12. **Sparade sökningar utanför AF-modellen.** De är inte rapportdata, så de ligger i egen localStorage-nyckel (som samtycke/CV) men inkluderas i GDPR-exporten. Alternativ: lägg i PersistedModel — skulle kräva schemaversion-migrering utan tydlig vinst.
+
+### Ej byggt i denna omgång (kräver backend/auth — rapporterat)
+- **AI-brev via Anthropic** — kräver backend + nyckel. Söm finns (se ovan).
+- **JobStream lokal mirror** — kräver persistens/backend för att hålla en färsk spegel; JobSearch ger redan färska annonser.
+- **Coach- och providervy för Rusta och matcha** — kräver multi-user/auth (Supabase); meningslös utan inloggning lokalt.
+- **Flerspråk (svenska/arabiska/somaliska)** — stor i18n-yta; separat omgång.
+- **Alerts på sparade sökningar** — kräver bakgrundskörning/backend.
+
+### Kvalitetsgrindar
+- typecheck ✅, lint ✅, 46 tester ✅, build ✅. Verifierat end-to-end i webbläsare mot riktiga API:t (taxonomitagg, sparad sökning, anpassat brev, mailto-prefyllning).
+
 ## 2026-07-03 — Milestone 1: MVP (lokal stack)
 
 ### Byggt

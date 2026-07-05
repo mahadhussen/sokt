@@ -170,12 +170,19 @@ label.checkbox input {
 
 .search-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
 }
 
 .search-form input {
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 160px;
+}
+
+.search-form select {
+  flex: 0 1 200px;
+  min-width: 130px;
 }
 
 .search-form button {
@@ -275,6 +282,82 @@ label.checkbox input {
   background: var(--bg);
   color: var(--muted);
   font-weight: 600;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: var(--accent-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.saved-searches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.chip-main {
+  border: none;
+  background: none;
+  padding: 5px 6px 5px 12px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chip-x {
+  border: none;
+  background: none;
+  padding: 0 10px 0 4px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.save-search {
+  color: var(--accent);
+  margin: -6px 0 14px;
+}
+
+label.full {
+  width: 100%;
+}
+
+.letter-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.letter-actions button.ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .muted {

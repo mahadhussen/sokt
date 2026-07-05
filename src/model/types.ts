@@ -5,6 +5,19 @@ export type Id = string
 
 export type EmploymentType = 'heltid' | 'deltid' | 'timanstalld'
 
+// A reference into the JobTech taxonomy: a stable concept id plus its label.
+export interface TaxonomyRef {
+  id: string
+  label: string
+}
+
+// Occupation taxonomy carried by the ad, most specific first.
+export interface JobTaxonomy {
+  occupation?: TaxonomyRef // e.g. Städare/Lokalvårdare
+  group?: TaxonomyRef // e.g. Städare
+  field?: TaxonomyRef // e.g. Sanering och renhållning
+}
+
 export interface Job {
   // from JobTech, mapped
   id: Id
@@ -13,6 +26,7 @@ export interface Job {
   municipality: string // ort
   employmentType: EmploymentType | 'unknown'
   applicationChannel: { kind: 'url' | 'email' | 'unknown'; value?: string }
+  taxonomy: JobTaxonomy // M2: occupation mapped to the JobTech taxonomy
   source: 'platsbanken'
   publishedAt: string
   url: string
