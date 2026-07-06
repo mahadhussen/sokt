@@ -8,6 +8,7 @@ import { searchJobs } from '../services/jobtech'
 import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { savedSearchSummary } from '../jobs/savedSearch'
+import { filterSimpleApply } from '../jobs/simpleApply'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
@@ -154,6 +155,8 @@ export function JobsView() {
   const [worktimeExtentId, setWorktimeExtentId] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [simpleOnly, setSimpleOnly] = useState(true)
+  const [resultSimple, setResultSimple] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
 
@@ -166,13 +169,16 @@ export function JobsView() {
     setLoading(true)
     setError(null)
     try {
+      // In simple-apply mode we fetch a fuller page (the API max) and then keep
+      // only email-channel ads, so the user still sees a useful number of them.
       const result = await searchJobs({
         q: params.q,
         municipalityId: params.municipalityId || undefined,
         worktimeExtentId: params.worktimeExtentId || undefined,
-        limit: 25,
+        limit: simpleOnly ? 100 : 25,
       })
-      setJobs(result.jobs, result.total)
+      setJobs(simpleOnly ? filterSimpleApply(result.jobs) : result.jobs, result.total)
+      setResultSimple(simpleOnly)
       setSearched(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -245,6 +251,14 @@ export function JobsView() {
           {loading ? t('search.searching') : t('search.submit')}
         </button>
       </form>
+      <label className="checkbox simple-toggle">
+        <input
+          type="checkbox"
+          checked={simpleOnly}
+          onChange={(e) => setSimpleOnly(e.target.checked)}
+        />
+        {t('filter.simpleApply')}
+      </label>
       {searched && hasQuery && (
         <button type="button" className="link-button save-search" onClick={onSaveSearch}>
           {t('search.save')}
@@ -252,10 +266,14 @@ export function JobsView() {
       )}
       {error && <p className="error">{error}</p>}
       {jobs.length > 0 && (
-        <p className="muted">{t('results.count', { total: jobsTotal, shown: jobs.length })}</p>
+        <p className="muted">
+          {resultSimple
+            ? t('results.simpleCount', { total: jobsTotal, shown: jobs.length })
+            : t('results.count', { total: jobsTotal, shown: jobs.length })}
+        </p>
       )}
       {searched && !loading && jobs.length === 0 && !error && (
-        <p className="muted">{t('results.none')}</p>
+        <p className="muted">{resultSimple ? t('results.noneSimple') : t('results.none')}</p>
       )}
       <ul className="job-list">
         {jobs.map((job) => {

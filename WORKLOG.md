@@ -3,6 +3,16 @@
 ## NEEDS-DECISION (löst)
 - **Supabase inför M1 → körs helt lokalt.** Beslut 2026-07-03: användarens Supabase-projekt är fullt, så M1 byggs på den lokala stacken (localStorage + IndexedDB) bakom samma `StoragePort`. Auth utgår; en profil per webbläsare. GDPR-konsekvens: personuppgifter lämnar aldrig enheten, överförs aldrig till en server, och kan exporteras/raderas helt av användaren. "Kryptering i vila" hanteras av OS/webbläsarens egen lagring — äkta applikationskryptering kräver en backend-nyckel och skjuts till en framtida Supabase-migrering. Detta är ärligt dokumenterat i UI:t (samtyckestexten).
 
+## 2026-07-06 — Milestone 4: "Enkel ansökan"-filter
+
+### Byggt
+- **`jobs/simpleApply.ts`** (ren, testad) — `isSimpleApply(job) = kanal är e-post`. E-postansökan kräver bara namn + CV + brev; url-kanal går till externt formulär (t.ex. Ponty) vars fält vi inte kan se utan att skrapa (förbjudet), så det utesluts.
+- **Standard-på-filter i Jobb-vyn** — kryssrutan "Bara enkel ansökan" är förvald. I det läget hämtas API:ts maxsida (100) och listan filtreras till e-postjobb; ärlig räknare "X enkla ansökningar (av Y annonser)". Kan stängas av för full lista. Tomt-läge när inga enkla finns. i18n sv/ar/so.
+
+### Beslut (med alternativ)
+16. **"Enkel ansökan" = e-postkanal, avgjort via JobTech-data, inte skrapning.** Användaren vill bara se jobb där det räcker med namn/CV/brev. Vi kan inte inspektera ett externt ansökningsformulär utan att skrapa (hård regel), så vi använder annonsens egen sanktionerade kanal: e-post = enkelt; url/unknown = uteslut. Alternativ: (a) skrapa formulären och räkna fält — förbjudet och ömtåligt; (b) inkludera url om domänen ser "enkel" ut — gissning, "nästan rätt"-fällan. Förkastade.
+17. **Filtret är på som standard.** Användaren var tydlig: inga andra jobb. Kryssruta låter den som vill se allt stänga av. Hämtar limit 100 i enkelt läge så tillräckligt många e-postjobb visas (mätt: ~40/100 för lokalvårdare, ~29 diskare, ~44 personlig assistent, ~11 lagerarbetare).
+
 ## 2026-07-05 — Milestone 3: Flerspråk (sv/ar/so)
 
 ### Byggt
