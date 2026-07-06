@@ -11,11 +11,18 @@ import type { StoragePort } from '../services/storage'
 import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
 import type { CvMeta, FileStore } from '../services/fileStore'
 import type { SavedSearch } from '../jobs/savedSearch'
+import type { Lang } from '../i18n/translations'
 import type { Command, ModelState } from './commands'
 import { setProfileCommand } from './commands'
 
 const CONSENT_KEY = 'sokt.consent.v1'
 const SEARCHES_KEY = 'sokt.searches.v1'
+const LANG_KEY = 'sokt.lang.v1'
+
+function loadLang(): Lang {
+  const stored = window.localStorage.getItem(LANG_KEY)
+  return stored === 'ar' || stored === 'so' ? stored : 'sv'
+}
 
 export interface SoktStore extends ModelState {
   hydrated: boolean
@@ -25,6 +32,7 @@ export interface SoktStore extends ModelState {
   jobsTotal: number
   cv: CvMeta | null
   savedSearches: SavedSearch[]
+  lang: Lang
   execute(command: Command): void
   undo(): void
   hydrate(
@@ -35,6 +43,7 @@ export interface SoktStore extends ModelState {
   ): void
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
+  setLang(lang: Lang): void
   uploadCv(file: File): Promise<void>
   removeCv(): Promise<void>
   saveSearch(input: Omit<SavedSearch, 'id'>): void
@@ -80,6 +89,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     jobsTotal: 0,
     cv: null,
     savedSearches: [],
+    lang: loadLang(),
 
     execute(command) {
       const { profile, applications, history } = get()
@@ -116,6 +126,11 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       set({ consent })
       if (consent) window.localStorage.setItem(CONSENT_KEY, 'true')
       else window.localStorage.removeItem(CONSENT_KEY)
+    },
+
+    setLang(lang) {
+      set({ lang })
+      window.localStorage.setItem(LANG_KEY, lang)
     },
 
     async uploadCv(file) {

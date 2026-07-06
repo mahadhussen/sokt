@@ -25,10 +25,37 @@ body {
   padding: 24px 16px 48px;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 header h1 {
   margin: 0;
   font-size: 1.9rem;
   letter-spacing: -0.02em;
+}
+
+.lang-select {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+/* RTL: mirror text alignment for Arabic. Flex rows reverse via `dir` already. */
+[dir='rtl'] body {
+  text-align: right;
+}
+
+[dir='rtl'] .report-table th,
+[dir='rtl'] .report-table td {
+  text-align: right;
+}
+
+[dir='rtl'] .tabs {
+  flex-direction: row-reverse;
 }
 
 .tagline {

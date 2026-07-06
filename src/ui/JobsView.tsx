@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
-import { employmentTypeLabel } from '../report/activityReport'
 import { buildApplication } from '../apply/buildApplication'
 import { tailorLetter } from '../apply/tailorLetter'
 import { canonicalOccupation } from '../jobs/taxonomy'
@@ -11,6 +10,8 @@ import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { savedSearchSummary } from '../jobs/savedSearch'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
+import { useT } from '../i18n/useT'
+import { uiEmploymentTypeLabel } from '../i18n/translations'
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -23,6 +24,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
   const profile = useSoktStore((s) => s.profile)
   const cv = useSoktStore((s) => s.cv)
+  const { t } = useT()
   const [appliedAt, setAppliedAt] = useState(todayIso())
   const [surveyAnswered, setSurveyAnswered] = useState(false)
   const [employmentType, setEmploymentType] = useState<EmploymentType | ''>(
@@ -63,67 +65,67 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
       <p className="apply-channel">
         {channel.kind === 'url' && (
           <a href={channel.value} target="_blank" rel="noreferrer">
-            Öppna ansökningssidan ↗
+            {t('apply.openUrl')}
           </a>
         )}
         {channel.kind === 'email' && (
           <a href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}>
-            Skicka ansökan via e-post ({channel.value})
+            {t('apply.email', { email: channel.value ?? '' })}
           </a>
         )}
         {channel.kind === 'unknown' && (
           <a href={job.url} target="_blank" rel="noreferrer">
-            Se ansökningsinstruktioner i annonsen ↗
+            {t('apply.instructions')}
           </a>
         )}
       </p>
       {profile ? (
         <label className="full">
-          Personligt brev (anpassat för den här tjänsten)
+          {t('apply.letterLabel')}
           <textarea rows={9} value={letter} onChange={(e) => setLetter(e.target.value)} />
           <span className="letter-actions">
             <button type="button" className="ghost" onClick={copyLetter}>
-              {copied ? 'Kopierat ✓' : 'Kopiera brev'}
+              {copied ? t('apply.copied') : t('apply.copyLetter')}
             </button>
             <button
               type="button"
               className="ghost"
               onClick={() => setLetter(tailorLetter({ job, profile }))}
             >
-              Återställ från grundbrev
+              {t('apply.resetLetter')}
             </button>
           </span>
         </label>
       ) : (
-        <p className="muted">Tips: fyll i din profil och ditt grundbrev så anpassas brevet per jobb.</p>
+        <p className="muted">{t('apply.noProfileTip')}</p>
       )}
       {cv ? (
-        <p className="muted">CV redo att bifoga: {cv.fileName}. Bifoga det i kanalen ovan.</p>
+        <p className="muted">{t('apply.cvReady', { fileName: cv.fileName })}</p>
       ) : (
-        <p className="muted">Tips: ladda upp ditt CV under Profil så har du det redo att bifoga.</p>
+        <p className="muted">{t('apply.cvTip')}</p>
       )}
       <div className="apply-fields">
         <label>
-          Datum
+          {t('apply.date')}
           <input type="date" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} required />
         </label>
         <label>
-          Anställningsform
+          {t('apply.employmentType')}
           <select
             value={employmentType}
             onChange={(e) => setEmploymentType(e.target.value as EmploymentType | '')}
             required
           >
             <option value="" disabled>
-              Välj…
+              {t('apply.choose')}
             </option>
-            <option value="heltid">Heltid</option>
-            <option value="deltid">Deltid</option>
-            <option value="timanstalld">Timanställd</option>
+            <option value="heltid">{t('employment.heltid')}</option>
+            <option value="deltid">{t('employment.deltid')}</option>
+            <option value="timanstalld">{t('employment.timanstalld')}</option>
           </select>
         </label>
         <label>
-          Ort
+          {t('apply.ort')}
           <input value={municipality} onChange={(e) => setMunicipality(e.target.value)} required />
         </label>
         <label className="checkbox">
@@ -132,11 +134,11 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             checked={surveyAnswered}
             onChange={(e) => setSurveyAnswered(e.target.checked)}
           />
-          Besvarade urvalsfrågor
+          {t('apply.surveyAnswered')}
         </label>
       </div>
       {error && <p className="error">{error}</p>}
-      <button type="submit">Logga ansökan</button>
+      <button type="submit">{t('apply.log')}</button>
     </form>
   )
 }
@@ -146,6 +148,7 @@ export function JobsView() {
   const savedSearches = useSoktStore((s) => s.savedSearches)
   const saveSearch = useSoktStore((s) => s.saveSearch)
   const removeSearch = useSoktStore((s) => s.removeSearch)
+  const { t, lang } = useT()
   const [q, setQ] = useState('')
   const [municipalityId, setMunicipalityId] = useState('')
   const [worktimeExtentId, setWorktimeExtentId] = useState('')
@@ -192,7 +195,7 @@ export function JobsView() {
 
   function onSaveSearch() {
     const summary = savedSearchSummary({ q, municipalityId, worktimeExtentId }, municipalityName, worktimeName)
-    const name = window.prompt('Namn på sökningen', summary)
+    const name = window.prompt(t('search.savePrompt'), summary)
     if (name === null) return
     saveSearch({ name: name.trim() || summary, q, municipalityId, worktimeExtentId })
   }
@@ -211,7 +214,7 @@ export function JobsView() {
               <button
                 type="button"
                 className="chip-x"
-                aria-label={`Ta bort sparad sökning: ${s.name}`}
+                aria-label={t('savedSearch.removeAria', { name: s.name })}
                 onClick={() => removeSearch(s.id)}
               >
                 ×
@@ -221,13 +224,9 @@ export function JobsView() {
         </div>
       )}
       <form className="search-form" onSubmit={search}>
-        <input
-          placeholder="Yrke eller sökord, t.ex. lokalvårdare"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+        <input placeholder={t('search.qPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} />
         <select value={municipalityId} onChange={(e) => setMunicipalityId(e.target.value)}>
-          <option value="">Alla orter</option>
+          <option value="">{t('search.allOrter')}</option>
           {municipalityOptions.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
@@ -235,7 +234,7 @@ export function JobsView() {
           ))}
         </select>
         <select value={worktimeExtentId} onChange={(e) => setWorktimeExtentId(e.target.value)}>
-          <option value="">All omfattning</option>
+          <option value="">{t('search.allExtent')}</option>
           {WORKTIME_EXTENTS.map((w) => (
             <option key={w.id} value={w.id}>
               {w.label}
@@ -243,22 +242,20 @@ export function JobsView() {
           ))}
         </select>
         <button type="submit" disabled={loading}>
-          {loading ? 'Söker…' : 'Sök jobb'}
+          {loading ? t('search.searching') : t('search.submit')}
         </button>
       </form>
       {searched && hasQuery && (
         <button type="button" className="link-button save-search" onClick={onSaveSearch}>
-          + Spara sökningen
+          {t('search.save')}
         </button>
       )}
       {error && <p className="error">{error}</p>}
       {jobs.length > 0 && (
-        <p className="muted">
-          {jobsTotal} annonser hittade, visar {jobs.length}.
-        </p>
+        <p className="muted">{t('results.count', { total: jobsTotal, shown: jobs.length })}</p>
       )}
       {searched && !loading && jobs.length === 0 && !error && (
-        <p className="muted">Inga annonser matchade sökningen. Prova andra filter.</p>
+        <p className="muted">{t('results.none')}</p>
       )}
       <ul className="job-list">
         {jobs.map((job) => {
@@ -274,15 +271,15 @@ export function JobsView() {
                     {job.employer}
                     {job.municipality && ` · ${job.municipality}`}
                     {job.employmentType !== 'unknown' &&
-                      ` · ${employmentTypeLabel(job.employmentType)}`}
+                      ` · ${uiEmploymentTypeLabel(lang, job.employmentType)}`}
                   </div>
                 </div>
                 <div className="job-actions">
                   <a href={job.url} target="_blank" rel="noreferrer">
-                    Annons ↗
+                    {t('job.ad')}
                   </a>
                   <button type="button" onClick={() => setOpenJobId(openJobId === job.id ? null : job.id)}>
-                    {openJobId === job.id ? 'Stäng' : 'Ansök'}
+                    {openJobId === job.id ? t('job.close') : t('job.apply')}
                   </button>
                 </div>
               </div>

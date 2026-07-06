@@ -3,6 +3,22 @@
 ## NEEDS-DECISION (löst)
 - **Supabase inför M1 → körs helt lokalt.** Beslut 2026-07-03: användarens Supabase-projekt är fullt, så M1 byggs på den lokala stacken (localStorage + IndexedDB) bakom samma `StoragePort`. Auth utgår; en profil per webbläsare. GDPR-konsekvens: personuppgifter lämnar aldrig enheten, överförs aldrig till en server, och kan exporteras/raderas helt av användaren. "Kryptering i vila" hanteras av OS/webbläsarens egen lagring — äkta applikationskryptering kräver en backend-nyckel och skjuts till en framtida Supabase-migrering. Detta är ärligt dokumenterat i UI:t (samtyckestexten).
 
+## 2026-07-05 — Milestone 3: Flerspråk (sv/ar/so)
+
+### Byggt
+- **i18n-modul** — `i18n/translations.ts` (ren): ordbok för svenska, arabiska, somaliska; `translate(lang, key, params)` med `{param}`-interpolation och fallback (lang → sv → nyckel); `dirFor` (rtl endast arabiska); `uiEmploymentTypeLabel`/`uiSurveyLabel` för skärm. Testad.
+- **Språk i store** — `lang`/`setLang`, persist i `sokt.lang.v1` (default sv). `useT`-hook.
+- **RTL** — `App` sätter `document.documentElement.dir/lang`; CSS speglar tabbar, tabelljustering och textriktning för arabiska.
+- **Alla vyer översatta** — App, Jobs (inkl. ansök-panel), Profile (samtycke/CV/data/profil), Applications, Report. Språkväljare i headern.
+
+### Beslut (med alternativ)
+13. **AF-rapportexporten förblir alltid svensk.** `report/`-modulens text/CSV (myndighetsdokument till Arbetsförmedlingen) behåller svenska etiketter via `employmentTypeLabel`/`surveyLabel`. Skärmtabellerna använder separata `uiEmploymentTypeLabel`/`uiSurveyLabel` i UI-språket. Alternativ: översätt exporten — förkastat, AF förväntar sig svenska.
+14. **Språk utanför AF-modellen, rensas inte vid radera-allt.** Språk är en UI-preferens, inte personuppgift; egen localStorage-nyckel, överlever `deleteAll`.
+15. **`translate` importerar `EmploymentType` från model — tillåtet.** i18n är UI-lagernära; beroenderegeln förbjuder bara model/jobs/report/apply att importera uppåt. i18n importeras aldrig av de rena modulerna.
+
+### Kvalitetsgrindar
+- typecheck ✅, lint ✅, 51 tester ✅, build ✅. Verifierat i webbläsare: byte sv↔ar↔so, RTL-spegling för arabiska, persistens, AF-export förblir svensk.
+
 ## 2026-07-05 — Milestone 2: Fas 2 (delvis, lokal stack)
 
 ### Byggt

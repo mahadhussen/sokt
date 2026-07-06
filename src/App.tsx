@@ -1,40 +1,59 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { JobsView } from './ui/JobsView'
 import { ProfileView } from './ui/ProfileView'
 import { ApplicationsView } from './ui/ApplicationsView'
 import { ReportView } from './ui/ReportView'
 import { useSoktStore } from './app/store'
+import { useT } from './i18n/useT'
+import { LANGUAGES, dirFor } from './i18n/translations'
+import type { Lang } from './i18n/translations'
 import './index.css'
 
 type Tab = 'jobb' | 'profil' | 'ansokningar' | 'rapport'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'jobb', label: 'Jobb' },
-  { id: 'profil', label: 'Profil' },
-  { id: 'ansokningar', label: 'Ansökningar' },
-  { id: 'rapport', label: 'Aktivitetsrapport' },
-]
+const TABS: Tab[] = ['jobb', 'profil', 'ansokningar', 'rapport']
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
   const applicationCount = useSoktStore((s) => s.applications.length)
+  const setLang = useSoktStore((s) => s.setLang)
+  const { t, lang } = useT()
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+    document.documentElement.dir = dirFor(lang)
+  }, [lang])
 
   return (
     <div className="app">
       <header>
-        <h1>Sökt</h1>
-        <p className="tagline">Sök jobb, ansök snabbt — aktivitetsrapporten bygger sig själv.</p>
+        <div className="header-row">
+          <h1>Sökt</h1>
+          <select
+            className="lang-select"
+            aria-label={t('lang.aria')}
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Lang)}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="tagline">{t('tagline')}</p>
       </header>
       <nav className="tabs">
-        {TABS.map((t) => (
+        {TABS.map((id) => (
           <button
-            key={t.id}
+            key={id}
             type="button"
-            className={tab === t.id ? 'tab active' : 'tab'}
-            onClick={() => setTab(t.id)}
+            className={tab === id ? 'tab active' : 'tab'}
+            onClick={() => setTab(id)}
           >
-            {t.label}
-            {t.id === 'ansokningar' && applicationCount > 0 && ` (${applicationCount})`}
+            {t(`tab.${id}`)}
+            {id === 'ansokningar' && applicationCount > 0 && ` (${applicationCount})`}
           </button>
         ))}
       </nav>
@@ -45,11 +64,11 @@ export default function App() {
         {tab === 'rapport' && <ReportView />}
       </main>
       <footer>
-        Jobbannonser från{' '}
+        {t('footer.pre')}{' '}
         <a href="https://jobtechdev.se" target="_blank" rel="noreferrer">
-          Arbetsförmedlingens JobTech-API
+          {t('footer.link')}
         </a>{' '}
-        (Platsbanken), data under licens CC-BY-SA.
+        {t('footer.post')}
       </footer>
     </div>
   )
