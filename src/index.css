@@ -290,6 +290,13 @@ label.checkbox input {
   color: var(--ink);
 }
 
+.new-since {
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-size: 0.92rem;
+  margin: 0 0 4px;
+}
+
 .copy-fields {
   display: flex;
   flex-direction: column;

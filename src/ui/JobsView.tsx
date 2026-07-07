@@ -8,7 +8,7 @@ import { canonicalOccupation } from '../jobs/taxonomy'
 import { searchJobs } from '../services/jobtech'
 import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
-import { savedSearchSummary } from '../jobs/savedSearch'
+import { newJobIds, savedSearchSummary } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
@@ -180,6 +180,7 @@ export function JobsView() {
   const savedSearches = useSoktStore((s) => s.savedSearches)
   const saveSearch = useSoktStore((s) => s.saveSearch)
   const removeSearch = useSoktStore((s) => s.removeSearch)
+  const markSearchSeen = useSoktStore((s) => s.markSearchSeen)
   const { t, lang } = useT()
   const [q, setQ] = useState('')
   const [municipalityId, setMunicipalityId] = useState('')
@@ -188,6 +189,7 @@ export function JobsView() {
   const [searched, setSearched] = useState(false)
   const [simpleOnly, setSimpleOnly] = useState(true)
   const [resultSimple, setResultSimple] = useState(true)
+  const [newSince, setNewSince] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
 
@@ -196,7 +198,11 @@ export function JobsView() {
     [],
   )
 
-  async function runSearch(params: { q: string; municipalityId: string; worktimeExtentId: string }) {
+  async function runSearch(params: {
+    q: string
+    municipalityId: string
+    worktimeExtentId: string
+  }): Promise<Job[]> {
     setLoading(true)
     setError(null)
     try {
@@ -208,11 +214,14 @@ export function JobsView() {
         worktimeExtentId: params.worktimeExtentId || undefined,
         limit: simpleOnly ? 100 : 25,
       })
-      setJobs(simpleOnly ? filterSimpleApply(result.jobs) : result.jobs, result.total)
+      const shown = simpleOnly ? filterSimpleApply(result.jobs) : result.jobs
+      setJobs(shown, result.total)
       setResultSimple(simpleOnly)
       setSearched(true)
+      return shown
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      return []
     } finally {
       setLoading(false)
     }
@@ -220,14 +229,20 @@ export function JobsView() {
 
   function search(event: FormEvent) {
     event.preventDefault()
+    setNewSince(null)
     void runSearch({ q, municipalityId, worktimeExtentId })
   }
 
-  function applySaved(s: (typeof savedSearches)[number]) {
+  async function applySaved(s: (typeof savedSearches)[number]) {
     setQ(s.q)
     setMunicipalityId(s.municipalityId)
     setWorktimeExtentId(s.worktimeExtentId)
-    void runSearch(s)
+    setNewSince(null)
+    const shown = await runSearch(s)
+    const shownIds = shown.map((j) => j.id)
+    // Only surface "new since last" once the search has been seen before.
+    if (s.seenJobIds) setNewSince(newJobIds(shownIds, s.seenJobIds).length)
+    markSearchSeen(s.id, shownIds)
   }
 
   function onSaveSearch() {
@@ -296,6 +311,11 @@ export function JobsView() {
         </button>
       )}
       {error && <p className="error">{error}</p>}
+      {newSince !== null && (
+        <p className="new-since">
+          {newSince > 0 ? t('results.newSince', { n: newSince }) : t('results.newSinceNone')}
+        </p>
+      )}
       {jobs.length > 0 && (
         <p className="muted">
           {resultSimple

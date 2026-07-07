@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { savedSearchSummary } from './savedSearch'
+import { newJobIds, savedSearchSummary } from './savedSearch'
+
+describe('newJobIds', () => {
+  it('returns ids not in the seen set, preserving order', () => {
+    expect(newJobIds(['c', 'a', 'd', 'b'], ['a', 'b'])).toEqual(['c', 'd'])
+  })
+
+  it('treats no seen set as everything being new', () => {
+    expect(newJobIds(['a', 'b'])).toEqual(['a', 'b'])
+  })
+
+  it('is empty when nothing changed', () => {
+    expect(newJobIds(['a', 'b'], ['a', 'b'])).toEqual([])
+  })
+})
 
 const muni = (id: string) => (id === 'm1' ? 'Uppsala' : undefined)
 const work = (id: string) => (id === 'w1' ? 'Heltid' : undefined)

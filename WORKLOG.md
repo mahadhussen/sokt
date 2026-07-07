@@ -1,3 +1,9 @@
+## 2026-07-07 — Milestone 7: Sparade sökningar — "nya sedan sist"
+
+### Byggt
+- **`newJobIds(currentIds, seenIds)`** (ren, testad) — lokala "alerts" utan backend: nya annons-id sedan sökningen senast kördes.
+- **SavedSearch.seenJobIds** + store `markSearchSeen`. När en sparad sökning körs visas "N nya sedan sist" (eller inga), och sedda id sparas. i18n sv/ar/so.
+
 ## 2026-07-06 — Milestone 6: Coach- och provideröversikt
 
 ### Byggt
