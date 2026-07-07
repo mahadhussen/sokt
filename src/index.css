@@ -164,6 +164,75 @@ button:disabled {
   gap: 16px;
 }
 
+.stat-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 160px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  font-size: 0.9rem;
+}
+
+.bar-track {
+  background: var(--bg);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  min-width: 3px;
+}
+
+.bar-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+  min-width: 1.5em;
+  text-align: end;
+}
+
 input,
 select,
 textarea {

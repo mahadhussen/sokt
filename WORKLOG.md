@@ -1,3 +1,9 @@
+## 2026-07-06 — Milestone 6: Coach- och provideröversikt
+
+### Byggt
+- **`report/applicationStats.ts`** (ren, testad) — total, urvalsfrågor besvarade, per anställningsform, per ort (sorterad), per ISO-vecka. Robust isoWeek-algoritm (testad mot årsskifte).
+- **Översikt-flik** — statistikkort + stapellistor, byggd ovanpå activityReport (härleds enbart ur Application). Att gå igenom med coach/provider. i18n sv/ar/so.
+
 # WORKLOG
 
 ## NEEDS-DECISION (löst)
