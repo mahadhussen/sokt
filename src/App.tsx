@@ -3,15 +3,16 @@ import { JobsView } from './ui/JobsView'
 import { ProfileView } from './ui/ProfileView'
 import { ApplicationsView } from './ui/ApplicationsView'
 import { ReportView } from './ui/ReportView'
+import { OverviewView } from './ui/OverviewView'
 import { useSoktStore } from './app/store'
 import { useT } from './i18n/useT'
 import { LANGUAGES, dirFor } from './i18n/translations'
 import type { Lang } from './i18n/translations'
 import './index.css'
 
-type Tab = 'jobb' | 'profil' | 'ansokningar' | 'rapport'
+type Tab = 'jobb' | 'profil' | 'ansokningar' | 'rapport' | 'oversikt'
 
-const TABS: Tab[] = ['jobb', 'profil', 'ansokningar', 'rapport']
+const TABS: Tab[] = ['jobb', 'profil', 'ansokningar', 'rapport', 'oversikt']
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
@@ -62,6 +63,7 @@ export default function App() {
         {tab === 'profil' && <ProfileView />}
         {tab === 'ansokningar' && <ApplicationsView />}
         {tab === 'rapport' && <ReportView />}
+        {tab === 'oversikt' && <OverviewView />}
       </main>
       <footer>
         {t('footer.pre')}{' '}
