@@ -4,6 +4,8 @@ import type { EmploymentType, Job } from '../model/types'
 import { buildApplication } from '../apply/buildApplication'
 import { tailorLetter } from '../apply/tailorLetter'
 import { applicantFields } from '../apply/applicantFields'
+import { chooseProvider } from '../apply/letterProvider'
+import { improveLetterWithAi } from '../services/letterAi'
 import { canonicalOccupation } from '../jobs/taxonomy'
 import { searchJobs } from '../services/jobtech'
 import { MUNICIPALITIES } from '../jobs/municipalities'
@@ -55,6 +57,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
   const profile = useSoktStore((s) => s.profile)
   const cv = useSoktStore((s) => s.cv)
+  const aiKey = useSoktStore((s) => s.aiKey)
   const { t } = useT()
   const [appliedAt, setAppliedAt] = useState(todayIso())
   const [surveyAnswered, setSurveyAnswered] = useState(false)
@@ -64,7 +67,27 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const [municipality, setMunicipality] = useState(job.municipality)
   const [letter, setLetter] = useState(() => (profile ? tailorLetter({ job, profile }) : ''))
   const [copied, setCopied] = useState(false)
+  const [improving, setImproving] = useState(false)
+  const [aiHint, setAiHint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  async function improveWithAi() {
+    if (!profile) return
+    if (chooseProvider(aiKey) === 'deterministic') {
+      setAiHint(t('apply.aiNoKey'))
+      return
+    }
+    setAiHint(null)
+    setImproving(true)
+    try {
+      const improved = await improveLetterWithAi({ job, profile, currentLetter: letter, apiKey: aiKey })
+      setLetter(improved)
+    } catch (e) {
+      setAiHint(e instanceof Error ? e.message : String(e))
+    } finally {
+      setImproving(false)
+    }
+  }
 
   function logApplication(event: FormEvent) {
     event.preventDefault()
@@ -125,7 +148,11 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             >
               {t('apply.resetLetter')}
             </button>
+            <button type="button" className="ghost" onClick={improveWithAi} disabled={improving}>
+              {improving ? t('apply.improving') : t('apply.improveAi')}
+            </button>
           </span>
+          {aiHint && <span className="muted ai-hint">{aiHint}</span>}
         </label>
       ) : (
         <p className="muted">{t('apply.noProfileTip')}</p>
