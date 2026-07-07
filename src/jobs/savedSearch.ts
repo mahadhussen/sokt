@@ -7,6 +7,14 @@ export interface SavedSearch {
   q: string
   municipalityId: string
   worktimeExtentId: string
+  seenJobIds?: string[] // ids seen the last time this search was run
+}
+
+// Job ids present now that were not in the previously seen set. This is the
+// local, backend-free "alert": how many new ads since you last ran the search.
+export function newJobIds(currentIds: string[], seenIds: string[] = []): string[] {
+  const seen = new Set(seenIds)
+  return currentIds.filter((id) => !seen.has(id))
 }
 
 // A short human label for a saved search, from its filters.

@@ -48,6 +48,7 @@ export interface SoktStore extends ModelState {
   removeCv(): Promise<void>
   saveSearch(input: Omit<SavedSearch, 'id'>): void
   removeSearch(id: string): void
+  markSearchSeen(id: string, jobIds: string[]): void
   exportData(): string
   deleteAll(): Promise<void>
 }
@@ -164,6 +165,14 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
 
     removeSearch(id) {
       const savedSearches = get().savedSearches.filter((s) => s.id !== id)
+      set({ savedSearches })
+      persistSavedSearches(savedSearches)
+    },
+
+    markSearchSeen(id, jobIds) {
+      const savedSearches = get().savedSearches.map((s) =>
+        s.id === id ? { ...s, seenJobIds: jobIds } : s,
+      )
       set({ savedSearches })
       persistSavedSearches(savedSearches)
     },

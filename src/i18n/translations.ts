@@ -53,6 +53,8 @@ const sv: Dict = {
   'filter.simpleApply': 'Bara enkel ansökan (namn, CV och brev räcker)',
   'results.count': '{total} annonser hittade, visar {shown}.',
   'results.simpleCount': '{shown} enkla ansökningar (av {total} annonser för sökningen).',
+  'results.newSince': '{n} nya sedan du senast körde sökningen.',
+  'results.newSinceNone': 'Inga nya sedan du senast körde sökningen.',
   'results.none': 'Inga annonser matchade sökningen. Prova andra filter.',
   'results.noneSimple':
     'Inga enkla ansökningar här — arbetsgivarna kräver mer än namn, CV och brev. Prova ett annat yrke eller stäng av “Bara enkel ansökan”.',
@@ -174,6 +176,8 @@ const ar: Dict = {
   'filter.simpleApply': 'التقديم السهل فقط (يكفي الاسم والسيرة الذاتية والرسالة)',
   'results.count': 'تم العثور على {total} إعلانًا، عرض {shown}.',
   'results.simpleCount': '{shown} وظائف بتقديم سهل (من أصل {total} إعلانًا للبحث).',
+  'results.newSince': '{n} جديدة منذ آخر مرة شغّلت فيها البحث.',
+  'results.newSinceNone': 'لا جديد منذ آخر مرة شغّلت فيها البحث.',
   'results.none': 'لا توجد إعلانات مطابقة. جرّب مرشحات أخرى.',
   'results.noneSimple':
     'لا توجد وظائف بتقديم سهل هنا — يطلب أصحاب العمل أكثر من الاسم والسيرة الذاتية والرسالة. جرّب مهنة أخرى أو أوقف «التقديم السهل فقط».',
@@ -296,6 +300,8 @@ const so: Dict = {
   'filter.simpleApply': 'Kaliya codsi fudud (magac, CV iyo warqad ayaa ku filan)',
   'results.count': '{total} xayeysiis ayaa la helay, waxaa la tusayaa {shown}.',
   'results.simpleCount': '{shown} shaqo oo codsi fudud leh (ka mid ah {total} xayeysiis).',
+  'results.newSince': '{n} cusub tan iyo markii ugu dambaysay ee aad raadisay.',
+  'results.newSinceNone': 'Wax cusub ma jiraan tan iyo markii ugu dambaysay ee aad raadisay.',
   'results.none': 'Ma jiraan xayeysiisyo ku habboon. Isku day shaandhayn kale.',
   'results.noneSimple':
     'Halkan ma jiraan codsiyo fudud — shaqo bixiyayaashu waxay dalbanayaan wax ka badan magac, CV iyo warqad. Isku day xirfad kale ama dami “Kaliya codsi fudud”.',
