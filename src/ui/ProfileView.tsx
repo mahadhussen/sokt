@@ -151,6 +151,7 @@ function ProfileForm() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [city, setCity] = useState('')
+  const [birthYear, setBirthYear] = useState('')
   const [baseLetter, setBaseLetter] = useState('')
   const [saved, setSaved] = useState(false)
 
@@ -162,6 +163,7 @@ function ProfileForm() {
     setPhone(profile.details.telefon ?? '')
     setAddress(profile.details.adress ?? '')
     setCity(profile.details.ort ?? '')
+    setBirthYear(profile.details.fodelsear ?? '')
     setBaseLetter(profile.baseLetter)
   }, [profile])
 
@@ -177,7 +179,13 @@ function ProfileForm() {
         // Keep the CV link in sync with actual CV presence, regardless of the
         // order the CV and profile were created in.
         cvFileRef: cv ? CV_REF : undefined,
-        details: { ...profile?.details, telefon: phone, adress: address, ort: city },
+        details: {
+          ...profile?.details,
+          telefon: phone,
+          adress: address,
+          ort: city,
+          fodelsear: birthYear,
+        },
       }),
     )
     setSaved(true)
@@ -211,6 +219,15 @@ function ProfileForm() {
         <label>
           {t('field.city')}
           <input value={city} onChange={(e) => setCity(e.target.value)} />
+        </label>
+        <label>
+          {t('field.birthYear')}
+          <input
+            inputMode="numeric"
+            value={birthYear}
+            onChange={(e) => setBirthYear(e.target.value)}
+            placeholder="1995"
+          />
         </label>
       </div>
       <label>

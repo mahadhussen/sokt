@@ -3,6 +3,14 @@
 ## NEEDS-DECISION (löst)
 - **Supabase inför M1 → körs helt lokalt.** Beslut 2026-07-03: användarens Supabase-projekt är fullt, så M1 byggs på den lokala stacken (localStorage + IndexedDB) bakom samma `StoragePort`. Auth utgår; en profil per webbläsare. GDPR-konsekvens: personuppgifter lämnar aldrig enheten, överförs aldrig till en server, och kan exporteras/raderas helt av användaren. "Kryptering i vila" hanteras av OS/webbläsarens egen lagring — äkta applikationskryptering kräver en backend-nyckel och skjuts till en framtida Supabase-migrering. Detta är ärligt dokumenterat i UI:t (samtyckestexten).
 
+## 2026-07-06 — Milestone 5: Apply-hjälp (prefill/streamline)
+
+### Byggt
+- **`apply/applicantFields.ts`** (ren, testad) — ordnad lista av kopierbara uppgifter (namn, e-post, telefon, adress, ort, födelseår); tomma fält utelämnas.
+- **Kopiera-panel i ansök-vyn** — "Dina uppgifter (klicka för att kopiera)", varje fält en klick-att-kopiera-chip. Streamline enligt BUILD_SPEC pkt 3 (prepares/prefills), aldrig auto-submit.
+- **Födelseår** i profilen (efterfrågas ofta av externa formulär, t.ex. Ponty).
+- i18n sv/ar/so.
+
 ## 2026-07-06 — Milestone 4: "Enkel ansökan"-filter
 
 ### Byggt
