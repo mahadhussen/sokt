@@ -221,6 +221,45 @@ label.checkbox input {
   color: var(--ink);
 }
 
+.copy-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.copy-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.copy-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.copy-chip:hover {
+  border-color: var(--accent);
+}
+
+.copy-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.copy-value {
+  color: var(--ink);
+}
+
 .job-list {
   list-style: none;
   padding: 0;

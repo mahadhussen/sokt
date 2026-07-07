@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
 import { buildApplication } from '../apply/buildApplication'
 import { tailorLetter } from '../apply/tailorLetter'
+import { applicantFields } from '../apply/applicantFields'
 import { canonicalOccupation } from '../jobs/taxonomy'
 import { searchJobs } from '../services/jobtech'
 import { MUNICIPALITIES } from '../jobs/municipalities'
@@ -20,6 +21,35 @@ function todayIso(): string {
 
 const municipalityName = (id: string) => MUNICIPALITIES.find((m) => m.id === id)?.name
 const worktimeName = (id: string) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label
+
+function CopyFields() {
+  const profile = useSoktStore((s) => s.profile)
+  const { t } = useT()
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  if (!profile) return null
+  const fields = applicantFields(profile)
+  if (fields.length === 0) return null
+
+  async function copy(key: string, value: string) {
+    await navigator.clipboard.writeText(value)
+    setCopiedKey(key)
+    setTimeout(() => setCopiedKey(null), 1500)
+  }
+
+  return (
+    <div className="copy-fields">
+      <span className="muted">{t('apply.yourDetails')}</span>
+      <div className="copy-grid">
+        {fields.map((f) => (
+          <button key={f.key} type="button" className="copy-chip" onClick={() => void copy(f.key, f.value)}>
+            <span className="copy-label">{t(`field.${f.key}`)}</span>
+            <span className="copy-value">{copiedKey === f.key ? t('apply.copied1') : f.value}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
@@ -105,6 +135,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
       ) : (
         <p className="muted">{t('apply.cvTip')}</p>
       )}
+      <CopyFields />
       <div className="apply-fields">
         <label>
           {t('apply.date')}
