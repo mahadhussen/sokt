@@ -1,3 +1,21 @@
+## NEEDS-DECISION (öppna — kräver backend/Supabase/BankID)
+Hela produkten kör lokalt utan backend. Följande återstående punkter kan inte byggas ärligt på den lokala stacken och väntar på ett backend-/Supabase-beslut. Alla har en ren söm i koden (StoragePort, letterProvider, freshness-cache) så de aktiveras utan omskrivning:
+- **Äkta JobStream-mirror.** M9 ger en lokal freshness-cache (senaste sökningen sparas + "senast hämtad", återställs offline). En riktig mirror konsumerar JobStreams ändringsström till en databas server-side — kräver backend + lagring + schemalagd körning.
+- **Multi-user coach-/providervy.** M6 ger deltagarens egen översikt att gå igenom med coachen. Att en coach loggar in och ser flera deltagares data kräver auth + roller + RLS (Supabase).
+- **Bevakningar/alerts med push.** M7 ger "nya sedan sist" när användaren själv kör sökningen. Push/e-post kräver bakgrundskörning server-side.
+- **BankID.** Kräver certifierad backend-integration; kan inte göras klientlokalt.
+- **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
+- **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
+
+## Slutstatus 2026-07-07
+M0–M9 byggda, testade (64 tester), verifierade i webbläsare mot riktiga API:t, mergade till main via en PR per milstolpe. Produkten uppfyller BUILD_SPECs Definition of Done och GOALS M0–M2 samt de backend-oberoende delarna av M3. Återstående punkter dokumenterade ovan.
+
+## 2026-07-07 — Milestone 9: JobStream-freshness (lokal cache)
+
+### Byggt
+- **`jobs/freshness.ts`** (ren, testad) — `CachedSearch`-typ + `minutesAgo`.
+- **Freshness-cache** — senaste lyckade sökningen (resultat + filter + tidsstämpel) sparas i `sokt.lastsearch.v1`, återställs på nästa öppning (offline inkluderat), med "Senast hämtad …". Rensas vid deleteAll. Lokal tolkning av "JobStream mirror for freshness"; äkta mirror kräver backend (se NEEDS-DECISION).
+
 ## 2026-07-07 — Milestone 8: AI-brev (provider + valfri egen nyckel)
 
 ### Byggt
