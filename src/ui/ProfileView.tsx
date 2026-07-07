@@ -247,6 +247,43 @@ function ProfileForm() {
   )
 }
 
+function AiKeySection() {
+  const aiKey = useSoktStore((s) => s.aiKey)
+  const setAiKey = useSoktStore((s) => s.setAiKey)
+  const { t } = useT()
+  const [value, setValue] = useState(aiKey)
+  const [saved, setSaved] = useState(false)
+
+  function save() {
+    setAiKey(value.trim())
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <section className="card">
+      <h2>{t('ai.title')}</h2>
+      <p className="muted">{t('ai.body')}</p>
+      <label className="full">
+        {t('ai.keyLabel')}
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="sk-ant-…"
+          autoComplete="off"
+        />
+      </label>
+      <div className="button-row">
+        <button type="button" onClick={save}>
+          {t('profile.save')}
+        </button>
+        {saved && <span className="muted">{t('ai.saved')}</span>}
+      </div>
+    </section>
+  )
+}
+
 export function ProfileView() {
   const hydrated = useSoktStore((s) => s.hydrated)
   const consent = useSoktStore((s) => s.consent)
@@ -259,6 +296,7 @@ export function ProfileView() {
     <div className="stack">
       <ProfileForm />
       <CvSection />
+      <AiKeySection />
       <DataSection />
     </div>
   )

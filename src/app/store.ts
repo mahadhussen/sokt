@@ -18,6 +18,7 @@ import { setProfileCommand } from './commands'
 const CONSENT_KEY = 'sokt.consent.v1'
 const SEARCHES_KEY = 'sokt.searches.v1'
 const LANG_KEY = 'sokt.lang.v1'
+const AI_KEY = 'sokt.aikey.v1'
 
 function loadLang(): Lang {
   const stored = window.localStorage.getItem(LANG_KEY)
@@ -33,6 +34,7 @@ export interface SoktStore extends ModelState {
   cv: CvMeta | null
   savedSearches: SavedSearch[]
   lang: Lang
+  aiKey: string
   execute(command: Command): void
   undo(): void
   hydrate(
@@ -44,6 +46,7 @@ export interface SoktStore extends ModelState {
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
   setLang(lang: Lang): void
+  setAiKey(key: string): void
   uploadCv(file: File): Promise<void>
   removeCv(): Promise<void>
   saveSearch(input: Omit<SavedSearch, 'id'>): void
@@ -91,6 +94,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     cv: null,
     savedSearches: [],
     lang: loadLang(),
+    aiKey: window.localStorage.getItem(AI_KEY) ?? '',
 
     execute(command) {
       const { profile, applications, history } = get()
@@ -132,6 +136,13 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     setLang(lang) {
       set({ lang })
       window.localStorage.setItem(LANG_KEY, lang)
+    },
+
+    setAiKey(key) {
+      set({ aiKey: key })
+      // A secret: stored locally only, never included in the data export.
+      if (key.trim()) window.localStorage.setItem(AI_KEY, key)
+      else window.localStorage.removeItem(AI_KEY)
     },
 
     async uploadCv(file) {
@@ -191,12 +202,14 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       await fileStore.clearCv()
       window.localStorage.removeItem(CONSENT_KEY)
       window.localStorage.removeItem(SEARCHES_KEY)
+      window.localStorage.removeItem(AI_KEY)
       set({
         profile: null,
         applications: [],
         cv: null,
         consent: false,
         savedSearches: [],
+        aiKey: '',
         history: [],
       })
     },

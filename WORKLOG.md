@@ -1,3 +1,14 @@
+## 2026-07-07 — Milestone 8: AI-brev (provider + valfri egen nyckel)
+
+### Byggt
+- **`apply/letterProvider.ts`** (ren, testad) — `chooseProvider(key)`: anthropic om nyckel finns, annars deterministic (default).
+- **`services/letterAi.ts`** — Anthropic-anrop (browser-direct, modell claude-haiku-4-5) som förbättrar brevet. Endast brevinnehåll, aldrig rapportfält.
+- **AI-nyckel i profil** — valfri, sparas lokalt (`sokt.aikey.v1`), UTESLUTS ur dataexporten, rensas vid deleteAll. "Förbättra med AI"-knapp i ansök-vyn; utan nyckel visas hint, deterministiskt brev fungerar alltid.
+- i18n sv/ar/so.
+
+### Beslut
+18. **BYO-nyckel i browsern, deterministiskt som default.** Den lokala stacken har ingen backend/nyckel; äkta AI levereras via användarens egen Anthropic-nyckel (browser-direct-header). Deterministiskt brev är default och alltid gratis/offline. Verifierat med stubbat fetch (rätt endpoint/headers/modell/prompt, brevet uppdateras); skarp körning kräver riktig nyckel.
+
 ## 2026-07-07 — Milestone 7: Sparade sökningar — "nya sedan sist"
 
 ### Byggt
