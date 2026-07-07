@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
 import { buildApplication } from '../apply/buildApplication'
@@ -12,6 +12,7 @@ import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { newJobIds, savedSearchSummary } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
+import { minutesAgo } from '../jobs/freshness'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
@@ -208,6 +209,8 @@ export function JobsView() {
   const saveSearch = useSoktStore((s) => s.saveSearch)
   const removeSearch = useSoktStore((s) => s.removeSearch)
   const markSearchSeen = useSoktStore((s) => s.markSearchSeen)
+  const lastSearch = useSoktStore((s) => s.lastSearch)
+  const cacheLastSearch = useSoktStore((s) => s.cacheLastSearch)
   const { t, lang } = useT()
   const [q, setQ] = useState('')
   const [municipalityId, setMunicipalityId] = useState('')
@@ -217,6 +220,7 @@ export function JobsView() {
   const [simpleOnly, setSimpleOnly] = useState(true)
   const [resultSimple, setResultSimple] = useState(true)
   const [newSince, setNewSince] = useState<number | null>(null)
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
 
@@ -224,6 +228,21 @@ export function JobsView() {
     () => MUNICIPALITIES.map((m) => ({ id: m.id, name: m.name })),
     [],
   )
+
+  // Restore the last search (results + filters) on first mount, so the feed is
+  // there instantly on reopen — offline included — with a "last fetched" stamp.
+  useEffect(() => {
+    if (searched || !lastSearch) return
+    setQ(lastSearch.q)
+    setMunicipalityId(lastSearch.municipalityId)
+    setWorktimeExtentId(lastSearch.worktimeExtentId)
+    setSimpleOnly(lastSearch.simpleOnly)
+    setResultSimple(lastSearch.simpleOnly)
+    setJobs(lastSearch.jobs, lastSearch.total)
+    setFetchedAt(lastSearch.fetchedAt)
+    setSearched(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function runSearch(params: {
     q: string
@@ -245,6 +264,17 @@ export function JobsView() {
       setJobs(shown, result.total)
       setResultSimple(simpleOnly)
       setSearched(true)
+      const now = Date.now()
+      setFetchedAt(now)
+      cacheLastSearch({
+        q: params.q,
+        municipalityId: params.municipalityId,
+        worktimeExtentId: params.worktimeExtentId,
+        simpleOnly,
+        jobs: shown,
+        total: result.total,
+        fetchedAt: now,
+      })
       return shown
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -348,6 +378,17 @@ export function JobsView() {
           {resultSimple
             ? t('results.simpleCount', { total: jobsTotal, shown: jobs.length })
             : t('results.count', { total: jobsTotal, shown: jobs.length })}
+          {fetchedAt !== null &&
+            (() => {
+              const mins = minutesAgo(fetchedAt, Date.now())
+              const label =
+                mins === 0
+                  ? t('freshness.now')
+                  : mins < 60
+                    ? t('freshness.minutes', { n: mins })
+                    : t('freshness.hours', { n: Math.floor(mins / 60) })
+              return ` · ${label}`
+            })()}
         </p>
       )}
       {searched && !loading && jobs.length === 0 && !error && (

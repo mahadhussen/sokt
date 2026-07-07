@@ -11,6 +11,7 @@ import type { StoragePort } from '../services/storage'
 import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
 import type { CvMeta, FileStore } from '../services/fileStore'
 import type { SavedSearch } from '../jobs/savedSearch'
+import type { CachedSearch } from '../jobs/freshness'
 import type { Lang } from '../i18n/translations'
 import type { Command, ModelState } from './commands'
 import { setProfileCommand } from './commands'
@@ -19,6 +20,16 @@ const CONSENT_KEY = 'sokt.consent.v1'
 const SEARCHES_KEY = 'sokt.searches.v1'
 const LANG_KEY = 'sokt.lang.v1'
 const AI_KEY = 'sokt.aikey.v1'
+const LASTSEARCH_KEY = 'sokt.lastsearch.v1'
+
+function loadLastSearch(): CachedSearch | null {
+  try {
+    const raw = window.localStorage.getItem(LASTSEARCH_KEY)
+    return raw ? (JSON.parse(raw) as CachedSearch) : null
+  } catch {
+    return null
+  }
+}
 
 function loadLang(): Lang {
   const stored = window.localStorage.getItem(LANG_KEY)
@@ -35,6 +46,7 @@ export interface SoktStore extends ModelState {
   savedSearches: SavedSearch[]
   lang: Lang
   aiKey: string
+  lastSearch: CachedSearch | null
   execute(command: Command): void
   undo(): void
   hydrate(
@@ -47,6 +59,7 @@ export interface SoktStore extends ModelState {
   setConsent(consent: boolean): void
   setLang(lang: Lang): void
   setAiKey(key: string): void
+  cacheLastSearch(entry: CachedSearch): void
   uploadCv(file: File): Promise<void>
   removeCv(): Promise<void>
   saveSearch(input: Omit<SavedSearch, 'id'>): void
@@ -95,6 +108,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     savedSearches: [],
     lang: loadLang(),
     aiKey: window.localStorage.getItem(AI_KEY) ?? '',
+    lastSearch: loadLastSearch(),
 
     execute(command) {
       const { profile, applications, history } = get()
@@ -143,6 +157,11 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       // A secret: stored locally only, never included in the data export.
       if (key.trim()) window.localStorage.setItem(AI_KEY, key)
       else window.localStorage.removeItem(AI_KEY)
+    },
+
+    cacheLastSearch(entry) {
+      set({ lastSearch: entry })
+      window.localStorage.setItem(LASTSEARCH_KEY, JSON.stringify(entry))
     },
 
     async uploadCv(file) {
@@ -203,6 +222,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       window.localStorage.removeItem(CONSENT_KEY)
       window.localStorage.removeItem(SEARCHES_KEY)
       window.localStorage.removeItem(AI_KEY)
+      window.localStorage.removeItem(LASTSEARCH_KEY)
       set({
         profile: null,
         applications: [],
@@ -210,6 +230,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
         consent: false,
         savedSearches: [],
         aiKey: '',
+        lastSearch: null,
         history: [],
       })
     },
