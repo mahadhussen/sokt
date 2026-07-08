@@ -7,6 +7,17 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-08 — Milestone 10: Fler jobbkällor (JobTech JobAd Links)
+
+### Byggt
+- **Andra sanktionerade källan.** `services/joblinks.ts` mot JobTech JobAd Links (`links.api.jobtechdev.se/joblinks`) — officiell AF-öppen-data som länkar annonser från andra svenska jobbsajter (ingenjorsjobb.se, ledigajobb.se, studentjob.se, offentligajobb.se m.fl.). Ingen skrapning.
+- **Ren mapper med dubblettfiltrering.** `jobs/mapJobLinksAd.ts` släpper igenom bara annonser UTAN arbetsformedlingen.se-länk (resten är dubbletter av Platsbanken-flödet) och länklösa annonser. `Job.source` union: `'platsbanken' | 'joblinks'`. Testad.
+- **Egen UI-sektion.** Externa jobb visas i en hopfällbar sektion under huvudträffarna, med källmärkning (host som `tag-source`) och en tydlig not: ansökan sker på deras sajt, omfattas inte av "enkel ansökan". Andra källan hämtas parallellt och dess fel bryter aldrig huvudsökningen. i18n sv/ar/so.
+
+### Beslut (med alternativ)
+- **JobAd Links, inte scraping/andra API:er.** Användaren frågade om alla jobb bara kom från Platsbanken. JobAd Links är JobTechs officiella aggregat av externa annonser — samma öppna data-familj, tillåtet enligt reglerna. Alternativ: skrapa jobbsajter (förbjudet) eller integrera varje sajts API (finns inte/otillåtet). Mätt unik andel (ej AF): ~0–7 % för lokalvårdare/diskare, 10–17 % för säljare/systemutvecklare — värdefullt främst för tjänstemannayrken.
+- **Länk-annonser är aldrig "enkel ansökan".** De saknar e-postkanal (bara extern länk), så de hamnar i egen sektion, inte i huvudlistan, och krockar inte med namn+CV+brev-löftet.
+
 ## Slutstatus 2026-07-07
 M0–M9 byggda, testade (64 tester), verifierade i webbläsare mot riktiga API:t, mergade till main via en PR per milstolpe. Produkten uppfyller BUILD_SPECs Definition of Done och GOALS M0–M2 samt de backend-oberoende delarna av M3. Återstående punkter dokumenterade ovan.
 

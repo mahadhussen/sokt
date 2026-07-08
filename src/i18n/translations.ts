@@ -61,6 +61,10 @@ const sv: Dict = {
   'results.none': 'Inga annonser matchade sökningen. Prova andra filter.',
   'results.noneSimple':
     'Inga enkla ansökningar här — arbetsgivarna kräver mer än namn, CV och brev. Prova ett annat yrke eller stäng av “Bara enkel ansökan”.',
+  'external.show': 'Visa {n} jobb från andra sajter',
+  'external.hide': 'Dölj jobb från andra sajter',
+  'external.note':
+    'Dessa annonser kommer från andra jobbsajter (via Arbetsförmedlingens öppna data) och ansökan sker med formulär på deras sajt — de omfattas inte av enkel ansökan.',
   'savedSearch.removeAria': 'Ta bort sparad sökning: {name}',
   'job.ad': 'Annons ↗',
   'job.apply': 'Ansök',
@@ -195,6 +199,10 @@ const ar: Dict = {
   'results.none': 'لا توجد إعلانات مطابقة. جرّب مرشحات أخرى.',
   'results.noneSimple':
     'لا توجد وظائف بتقديم سهل هنا — يطلب أصحاب العمل أكثر من الاسم والسيرة الذاتية والرسالة. جرّب مهنة أخرى أو أوقف «التقديم السهل فقط».',
+  'external.show': 'عرض {n} وظائف من مواقع أخرى',
+  'external.hide': 'إخفاء وظائف المواقع الأخرى',
+  'external.note':
+    'هذه الإعلانات تأتي من مواقع توظيف أخرى (عبر البيانات المفتوحة لمصلحة التوظيف) ويتم التقديم عبر نموذج على موقعها — لا يشملها التقديم السهل.',
   'savedSearch.removeAria': 'حذف البحث المحفوظ: {name}',
   'job.ad': 'الإعلان ↗',
   'job.apply': 'تقديم',
@@ -330,6 +338,10 @@ const so: Dict = {
   'results.none': 'Ma jiraan xayeysiisyo ku habboon. Isku day shaandhayn kale.',
   'results.noneSimple':
     'Halkan ma jiraan codsiyo fudud — shaqo bixiyayaashu waxay dalbanayaan wax ka badan magac, CV iyo warqad. Isku day xirfad kale ama dami “Kaliya codsi fudud”.',
+  'external.show': 'Tus {n} shaqo oo ka yimid bogag kale',
+  'external.hide': 'Qari shaqooyinka bogagga kale',
+  'external.note':
+    'Xayeysiisyadan waxay ka yimaadeen bogag shaqo oo kale (iyada oo loo marayo xogta furan ee Xafiiska Shaqada), codsigana wuxuu ku dhacaa foom boggooda — kuma jiraan codsiga fudud.',
   'savedSearch.removeAria': 'Tirtir raadinta la kaydiyay: {name}',
   'job.ad': 'Xayeysiis ↗',
   'job.apply': 'Codso',

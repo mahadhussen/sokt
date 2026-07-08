@@ -8,6 +8,8 @@ import { chooseProvider } from '../apply/letterProvider'
 import { improveLetterWithAi } from '../services/letterAi'
 import { canonicalOccupation } from '../jobs/taxonomy'
 import { searchJobs } from '../services/jobtech'
+import { searchJobLinks } from '../services/joblinks'
+import { sourceHost } from '../jobs/mapJobLinksAd'
 import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { newJobIds, savedSearchSummary } from '../jobs/savedSearch'
@@ -211,7 +213,7 @@ export function JobsView() {
   const markSearchSeen = useSoktStore((s) => s.markSearchSeen)
   const lastSearch = useSoktStore((s) => s.lastSearch)
   const cacheLastSearch = useSoktStore((s) => s.cacheLastSearch)
-  const { t, lang } = useT()
+  const { t } = useT()
   const [q, setQ] = useState('')
   const [municipalityId, setMunicipalityId] = useState('')
   const [worktimeExtentId, setWorktimeExtentId] = useState('')
@@ -219,6 +221,8 @@ export function JobsView() {
   const [searched, setSearched] = useState(false)
   const [simpleOnly, setSimpleOnly] = useState(true)
   const [resultSimple, setResultSimple] = useState(true)
+  const [externalJobs, setExternalJobs] = useState<Job[]>([])
+  const [showExternal, setShowExternal] = useState(false)
   const [newSince, setNewSince] = useState<number | null>(null)
   const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -254,13 +258,23 @@ export function JobsView() {
     try {
       // In simple-apply mode we fetch a fuller page (the API max) and then keep
       // only email-channel ads, so the user still sees a useful number of them.
-      const result = await searchJobs({
-        q: params.q,
-        municipalityId: params.municipalityId || undefined,
-        worktimeExtentId: params.worktimeExtentId || undefined,
-        limit: simpleOnly ? 100 : 25,
-      })
+      // The second source (JobAd Links) runs in parallel; its failure must
+      // never break the main Platsbanken search — degrade to an empty extra
+      // section instead.
+      const [result, external] = await Promise.all([
+        searchJobs({
+          q: params.q,
+          municipalityId: params.municipalityId || undefined,
+          worktimeExtentId: params.worktimeExtentId || undefined,
+          limit: simpleOnly ? 100 : 25,
+        }),
+        searchJobLinks({
+          q: params.q,
+          municipalityId: params.municipalityId || undefined,
+        }).catch(() => []),
+      ])
       const shown = simpleOnly ? filterSimpleApply(result.jobs) : result.jobs
+      setExternalJobs(external)
       setJobs(shown, result.total)
       setResultSimple(simpleOnly)
       setSearched(true)
@@ -395,36 +409,88 @@ export function JobsView() {
         <p className="muted">{resultSimple ? t('results.noneSimple') : t('results.none')}</p>
       )}
       <ul className="job-list">
-        {jobs.map((job) => {
-          const occupation = canonicalOccupation(job.taxonomy, job.title)
-          const showTag = occupation.toLowerCase() !== job.title.toLowerCase()
-          return (
-            <li key={job.id} className="job-card">
-              <div className="job-head">
-                <div>
-                  <strong>{job.title}</strong>
-                  {showTag && <span className="tag">{occupation}</span>}
-                  <div className="muted">
-                    {job.employer}
-                    {job.municipality && ` · ${job.municipality}`}
-                    {job.employmentType !== 'unknown' &&
-                      ` · ${uiEmploymentTypeLabel(lang, job.employmentType)}`}
-                  </div>
-                </div>
-                <div className="job-actions">
-                  <a href={job.url} target="_blank" rel="noreferrer">
-                    {t('job.ad')}
-                  </a>
-                  <button type="button" onClick={() => setOpenJobId(openJobId === job.id ? null : job.id)}>
-                    {openJobId === job.id ? t('job.close') : t('job.apply')}
-                  </button>
-                </div>
-              </div>
-              {openJobId === job.id && <ApplyPanel job={job} onDone={() => setOpenJobId(null)} />}
-            </li>
-          )
-        })}
+        {jobs.map((job) => (
+          <JobCard
+            key={job.id}
+            job={job}
+            open={openJobId === job.id}
+            onToggle={() => setOpenJobId(openJobId === job.id ? null : job.id)}
+            onDone={() => setOpenJobId(null)}
+          />
+        ))}
       </ul>
+      {searched && externalJobs.length > 0 && (
+        <div className="external-section">
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => setShowExternal((v) => !v)}
+          >
+            {showExternal
+              ? t('external.hide')
+              : t('external.show', { n: externalJobs.length })}
+          </button>
+          {showExternal && (
+            <>
+              <p className="muted">{t('external.note')}</p>
+              <ul className="job-list">
+                {externalJobs.map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    open={openJobId === job.id}
+                    onToggle={() => setOpenJobId(openJobId === job.id ? null : job.id)}
+                    onDone={() => setOpenJobId(null)}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
     </section>
+  )
+}
+
+function JobCard({
+  job,
+  open,
+  onToggle,
+  onDone,
+}: {
+  job: Job
+  open: boolean
+  onToggle: () => void
+  onDone: () => void
+}) {
+  const { t, lang } = useT()
+  const occupation = canonicalOccupation(job.taxonomy, job.title)
+  const showTag = occupation.toLowerCase() !== job.title.toLowerCase()
+  const host = job.source === 'joblinks' ? sourceHost(job) : ''
+  return (
+    <li className="job-card">
+      <div className="job-head">
+        <div>
+          <strong>{job.title}</strong>
+          {showTag && <span className="tag">{occupation}</span>}
+          {host && <span className="tag tag-source">{host}</span>}
+          <div className="muted">
+            {job.employer}
+            {job.municipality && ` · ${job.municipality}`}
+            {job.employmentType !== 'unknown' &&
+              ` · ${uiEmploymentTypeLabel(lang, job.employmentType)}`}
+          </div>
+        </div>
+        <div className="job-actions">
+          <a href={job.url} target="_blank" rel="noreferrer">
+            {t('job.ad')}
+          </a>
+          <button type="button" onClick={onToggle}>
+            {open ? t('job.close') : t('job.apply')}
+          </button>
+        </div>
+      </div>
+      {open && <ApplyPanel job={job} onDone={onDone} />}
+    </li>
   )
 }
