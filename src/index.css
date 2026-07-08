@@ -443,6 +443,21 @@ label.checkbox input {
   vertical-align: middle;
 }
 
+.tag-source {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.external-section {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 .saved-searches {
   display: flex;
   flex-wrap: wrap;

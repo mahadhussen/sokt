@@ -27,7 +27,9 @@ export interface Job {
   employmentType: EmploymentType | 'unknown'
   applicationChannel: { kind: 'url' | 'email' | 'unknown'; value?: string }
   taxonomy: JobTaxonomy // M2: occupation mapped to the JobTech taxonomy
-  source: 'platsbanken'
+  // platsbanken = JobTech JobSearch; joblinks = JobTech JobAd Links (external
+  // boards, link-only ads). Both are official Arbetsförmedlingen open data.
+  source: 'platsbanken' | 'joblinks'
   publishedAt: string
   url: string
 }
