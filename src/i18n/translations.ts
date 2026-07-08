@@ -151,6 +151,7 @@ const sv: Dict = {
   'report.copy': 'Kopiera som text',
   'report.copied': 'Kopierad ✓',
   'report.downloadCsv': 'Ladda ner CSV',
+  'report.downloadPdf': 'Ladda ner PDF',
   'report.emptyPeriod': 'Inga ansökningar i den valda perioden.',
 
   'table.jobTitle': 'Jobbtitel',
@@ -289,6 +290,7 @@ const ar: Dict = {
   'report.copy': 'نسخ كنص',
   'report.copied': 'تم النسخ ✓',
   'report.downloadCsv': 'تنزيل CSV',
+  'report.downloadPdf': 'تنزيل PDF',
   'report.emptyPeriod': 'لا توجد طلبات في الفترة المحددة.',
 
   'table.jobTitle': 'المسمى الوظيفي',
@@ -428,6 +430,7 @@ const so: Dict = {
   'report.copy': 'Nuqul qoraal ahaan',
   'report.copied': 'La nuqulay ✓',
   'report.downloadCsv': 'Soo deji CSV',
+  'report.downloadPdf': 'Soo deji PDF',
   'report.emptyPeriod': 'Ma jiraan codsiyo muddada la doortay.',
 
   'table.jobTitle': 'Cinwaanka shaqada',

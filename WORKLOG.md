@@ -7,6 +7,16 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-08 — Milestone 11: PDF-export av aktivitetsrapporten
+
+### Byggt
+- **`ui/reportPdf.ts`** — `buildReportPdf(rows, start, end)` med jsPDF (MIT, lazy-laddad). Blocklayout (två rader per ansökan) som aldrig spränger sidbredden och paginerar rent; rubrik med period, antal och källa. Government-dokument → alltid svenska (som text/CSV), oberoende av UI-språk. `downloadReportPdf` triggar nedladdning.
+- **Knapp "Ladda ner PDF"** i ReportView bredvid CSV. Lazy `import('./reportPdf')` så huvudbundeln förblir 84 kB gzip (jsPDF 130 kB laddas bara vid klick).
+- Test: giltig PDF (`%PDF-`, byte-storlek), sidbrytning vid många rader, tom period kraschar inte.
+
+### Beslut
+- **PDF-rendering i ui-lagret, inte report/.** Den rena rapportderiveringen (`activityReport`) ligger kvar i report/; jsPDF är en render-/UI-sak. Blocklayout valdes framför bred tabell för robusthet mot långa titlar/arbetsgivare och ren paginering.
+
 ## 2026-07-08 — Milestone 10: Fler jobbkällor (JobTech JobAd Links)
 
 ### Byggt

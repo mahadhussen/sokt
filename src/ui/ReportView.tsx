@@ -59,6 +59,16 @@ export function ReportView() {
         <button type="button" onClick={downloadCsv} disabled={rows.length === 0}>
           {t('report.downloadCsv')}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            // jsPDF is large; load it only when a PDF is actually requested.
+            void import('./reportPdf').then((m) => m.downloadReportPdf(rows, start, end))
+          }}
+          disabled={rows.length === 0}
+        >
+          {t('report.downloadPdf')}
+        </button>
       </div>
       {rows.length === 0 ? (
         <p className="muted">{t('report.emptyPeriod')}</p>
