@@ -36,6 +36,14 @@ function loadLang(): Lang {
   return stored === 'ar' || stored === 'so' ? stored : 'sv'
 }
 
+// A short confirmation of what just happened. `undoable` means the command that
+// produced it is still the last one in history, so undo() will reverse exactly
+// that — the moment anything else is executed the notice is cleared.
+export interface Notice {
+  key: string
+  undoable: boolean
+}
+
 export interface SoktStore extends ModelState {
   hydrated: boolean
   // Stored data existed but could not be read. The app runs on an empty model,
@@ -51,8 +59,10 @@ export interface SoktStore extends ModelState {
   lang: Lang
   aiKey: string
   lastSearch: CachedSearch | null
+  notice: Notice | null
   execute(command: Command): void
   undo(): void
+  setNotice(notice: Notice | null): void
   hydrate(input: {
     model: PersistedModel | null
     cv: CvMeta | null
@@ -117,11 +127,14 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     lang: loadLang(),
     aiKey: window.localStorage.getItem(AI_KEY) ?? '',
     lastSearch: loadLastSearch(),
+    notice: null,
 
     execute(command) {
       const { profile, applications, history } = get()
       const next = command.apply({ profile, applications })
-      set({ ...next, history: [...history, command] })
+      // Any new command invalidates a pending undo offer: the notice must never
+      // outlive the command it describes.
+      set({ ...next, history: [...history, command], notice: null })
       void storage.save(toPersistedModel(next))
     },
 
@@ -130,8 +143,12 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       const command = history[history.length - 1]
       if (!command) return
       const next = command.invert({ profile, applications })
-      set({ ...next, history: history.slice(0, -1) })
+      set({ ...next, history: history.slice(0, -1), notice: null })
       void storage.save(toPersistedModel(next))
+    },
+
+    setNotice(notice) {
+      set({ notice })
     },
 
     hydrate({ model, cv, consent, savedSearches, loadError = false, backupJson = null }) {
@@ -244,6 +261,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
         history: [],
         loadError: false,
         backupJson: null,
+        notice: null,
       })
     },
   }))

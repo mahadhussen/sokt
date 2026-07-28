@@ -69,6 +69,12 @@ const sv: Dict = {
   'external.note':
     'Dessa annonser kommer från andra jobbsajter (via Arbetsförmedlingens öppna data) och ansökan sker med formulär på deras sajt — de omfattas inte av enkel ansökan.',
   'savedSearch.removeAria': 'Ta bort sparad sökning: {name}',
+  'job.alreadyApplied': '✓ Du sökte den {date}',
+  'apply.duplicate':
+    'Du loggade redan en ansökan till det här jobbet den {date}. Dubbletter i aktivitetsrapporten kan bli ifrågasatta — logga bara om du verkligen sökte igen.',
+  'notice.logged': 'Ansökan loggad ✓ Den kommer med i aktivitetsrapporten.',
+  'notice.removed': 'Ansökan borttagen.',
+  'notice.undo': 'Ångra',
   'job.ad': 'Annons ↗',
   'job.apply': 'Ansök',
   'job.close': 'Stäng',
@@ -224,6 +230,12 @@ const ar: Dict = {
   'external.note':
     'هذه الإعلانات تأتي من مواقع توظيف أخرى (عبر البيانات المفتوحة لمصلحة التوظيف) ويتم التقديم عبر نموذج على موقعها — لا يشملها التقديم السهل.',
   'savedSearch.removeAria': 'حذف البحث المحفوظ: {name}',
+  'job.alreadyApplied': '✓ قدّمت في {date}',
+  'apply.duplicate':
+    'سجّلت طلبًا لهذه الوظيفة في {date}. التكرار في تقرير النشاط قد يُثير تساؤلات — سجّل فقط إذا قدّمت فعلًا مرة أخرى.',
+  'notice.logged': 'تم تسجيل الطلب ✓ سيظهر في تقرير النشاط.',
+  'notice.removed': 'تم حذف الطلب.',
+  'notice.undo': 'تراجع',
   'job.ad': 'الإعلان ↗',
   'job.apply': 'تقديم',
   'job.close': 'إغلاق',
@@ -379,6 +391,12 @@ const so: Dict = {
   'external.note':
     'Xayeysiisyadan waxay ka yimaadeen bogag shaqo oo kale (iyada oo loo marayo xogta furan ee Xafiiska Shaqada), codsigana wuxuu ku dhacaa foom boggooda — kuma jiraan codsiga fudud.',
   'savedSearch.removeAria': 'Tirtir raadinta la kaydiyay: {name}',
+  'job.alreadyApplied': '✓ Waad codsatay {date}',
+  'apply.duplicate':
+    'Horey ayaad u diiwaan gelisay codsi shaqadan {date}. Codsiyo isku mid ah warbixinta waa la su’aali karaa — kaliya diiwaan geli haddii aad dhab ahaan mar labaad codsatay.',
+  'notice.logged': 'Codsiga waa la diiwaan geliyay ✓ Wuxuu ku jiri doonaa warbixinta.',
+  'notice.removed': 'Codsiga waa la tirtiray.',
+  'notice.undo': 'Ka noqo',
   'job.ad': 'Xayeysiis ↗',
   'job.apply': 'Codso',
   'job.close': 'Xir',

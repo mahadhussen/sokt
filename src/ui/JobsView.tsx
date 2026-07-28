@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
 import { buildApplication } from '../apply/buildApplication'
+import { appliedTo, findDuplicate } from '../apply/duplicates'
 import { tailorLetter } from '../apply/tailorLetter'
 import { applicantFields } from '../apply/applicantFields'
 import { chooseProvider } from '../apply/letterProvider'
@@ -56,6 +57,8 @@ function CopyFields() {
 
 function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
+  const setNotice = useSoktStore((s) => s.setNotice)
+  const applications = useSoktStore((s) => s.applications)
   const profile = useSoktStore((s) => s.profile)
   const cv = useSoktStore((s) => s.cv)
   const aiKey = useSoktStore((s) => s.aiKey)
@@ -103,11 +106,21 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         municipality: municipality || undefined,
       })
       execute(addApplicationCommand(application))
+      setNotice({ key: 'notice.logged', undoable: true })
       onDone()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
   }
+
+  // Warn, never block: applying to the same employer twice can be deliberate,
+  // and only the participant knows.
+  const duplicate = findDuplicate(applications, {
+    jobTitle: job.title,
+    employerName: job.employer,
+    appliedAt,
+    jobUrl: job.url || undefined,
+  })
 
   async function copyLetter() {
     await navigator.clipboard.writeText(letter)
@@ -199,6 +212,11 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           {t('apply.surveyAnswered')}
         </label>
       </div>
+      {duplicate && (
+        <p className="warn">
+          {t('apply.duplicate', { date: duplicate.appliedAt })}
+        </p>
+      )}
       {error && <p className="error">{error}</p>}
       <button type="submit">{t('apply.log')}</button>
     </form>
@@ -518,16 +536,24 @@ function JobCard({
   onDone: () => void
 }) {
   const { t, lang } = useT()
+  const applications = useSoktStore((s) => s.applications)
   const occupation = canonicalOccupation(job.taxonomy, job.title)
   const showTag = occupation.toLowerCase() !== job.title.toLowerCase()
   const host = job.source === 'joblinks' ? sourceHost(job) : ''
+  // Same ad next week should not look untouched.
+  const already = appliedTo(applications, job)
   return (
-    <li className="job-card">
+    <li className={already ? 'job-card job-card-applied' : 'job-card'}>
       <div className="job-head">
         <div>
           <strong>{job.title}</strong>
           {showTag && <span className="tag">{occupation}</span>}
           {host && <span className="tag tag-source">{host}</span>}
+          {already && (
+            <span className="tag tag-applied">
+              {t('job.alreadyApplied', { date: already.appliedAt })}
+            </span>
+          )}
           <div className="muted">
             {job.employer}
             {job.municipality && ` · ${job.municipality}`}

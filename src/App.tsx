@@ -45,6 +45,34 @@ function RecoveryBanner() {
   )
 }
 
+// Confirmation that something happened, with a way back. Logging an application
+// used to collapse the panel with no signal at all, and deleting one was a
+// single irreversible tap — while undo() sat implemented and unreachable.
+function NoticeBar() {
+  const notice = useSoktStore((s) => s.notice)
+  const setNotice = useSoktStore((s) => s.setNotice)
+  const undo = useSoktStore((s) => s.undo)
+  const { t } = useT()
+
+  useEffect(() => {
+    if (!notice) return
+    const timer = setTimeout(() => setNotice(null), 8000)
+    return () => clearTimeout(timer)
+  }, [notice, setNotice])
+
+  if (!notice) return null
+  return (
+    <div className="banner banner-ok" role="status">
+      <span>{t(notice.key)}</span>
+      {notice.undoable && (
+        <button type="button" className="ghost" onClick={undo}>
+          {t('notice.undo')}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
   const applicationCount = useSoktStore((s) => s.applications.length)
@@ -78,6 +106,7 @@ export default function App() {
         <p className="tagline">{t('tagline')}</p>
       </header>
       {loadError && <RecoveryBanner />}
+      <NoticeBar />
       <nav className="tabs">
         {TABS.map((id) => (
           <button

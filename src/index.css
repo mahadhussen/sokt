@@ -600,6 +600,49 @@ footer {
   background: #b45309;
 }
 
+.banner-ok {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.banner-ok button.ghost {
+  background: var(--card);
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.warn {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #7c2d12;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.tag-applied {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.job-card-applied {
+  border-color: #6ee7b7;
+}
+
 .deadline {
   margin: -6px 0 14px;
   font-weight: 600;

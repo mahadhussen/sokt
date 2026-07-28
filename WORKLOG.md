@@ -7,6 +7,45 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 14: Dubbletter, sökt-markering och en väg tillbaka
+
+### Byggt
+- **`apply/duplicates.ts`** (ren, testad) — `appliedTo(applications, job)` och
+  `findDuplicate(applications, kandidat, withinDays = 60)`. Ingenting kontrollerade detta tidigare:
+  nästa vecka kom samma annonser tillbaka och såg orörda ut, så deltagaren antingen sökte igen eller
+  loggade samma ansökan två gånger. En dubblettrad är precis vad som får en aktivitetsrapport
+  ifrågasatt — och samma annons finns på riktigt två gånger i Sökt, en gång från Platsbanken och en
+  gång via JobAd Links, med olika id och olika url.
+- **Matchning på annonsens url först, annars arbetsgivare + titel** — vikta genom `fold` från
+  `jobs/occupations`, så "Städare" och "stadare" är samma jobb. Tidsfönstret gäller bara
+  arbetsgivare+titel: samma roll hos samma arbetsgivare ett halvår senare är en riktig andra
+  ansökan, inte ett misstag. Url-matchningen är tidlös — samma annons är samma annons.
+- **Sökt-markering på jobbkortet** — "✓ Du sökte den {datum}" och grön ram.
+- **Dubblettvarning** i både Ansök-panelen och det manuella formuläret. Varnar, blockerar aldrig:
+  bara deltagaren vet om den andra ansökan var avsiktlig.
+- **Bekräftelse med Ångra.** Att logga en ansökan fällde tidigare ihop panelen utan någon signal
+  alls, och "Ta bort" var ett enda oåterkalleligt klick — medan `undo()` låg färdigimplementerad i
+  store.ts utan en enda anropare i hela UI:t. Nu sätter både logga och ta bort en `notice` som visas
+  som en rad högst upp med knappen "Ångra".
+
+### Beslut (med alternativ)
+- **Ångra i stället för bekräftelsedialog före radering.** En dialog framför varje radering straffar
+  alla för ett sällsynt misstag; en ångra-knapp efteråt kostar ingenting förrän man behöver den.
+  Dessutom fanns maskineriet redan — det saknades bara en knapp.
+- **`notice` nollställs i `execute()`.** Ett ångra-erbjudande får aldrig överleva kommandot det
+  beskriver: `undo()` ångrar sista kommandot i historiken, så om något annat hunnit köras skulle
+  knappen ta bort fel sak. Rensas också automatiskt efter åtta sekunder.
+- **Varning, inte spärr, vid dubblett.** Alternativet (blockera) hade gjort en legitim andra ansökan
+  omöjlig att logga, och rapporten hade blivit fel åt andra hållet.
+
+### Verifierat i webbläsare (375 px, riktiga API:t)
+Manuell ansökan → grön rad "Ansökan loggad ✓" med Ångra. Ta bort → "Ansökan borttagen." → Ångra →
+raden tillbaka i listan OCH i localStorage. Manuellt formulär med "lagerarbetare" / "AHMEDS LOGISTIK
+AB" → dubblettvarning trots annan skiftläge. Sökning på städare → logga ansökan från kortet → kortet
+får grön ram och "✓ Du sökte den 2026-07-28".
+
+119 tester.
+
 ## 2026-07-28 — Milestone 13: Manuell ansökan (rapporten blir fullständig)
 
 ### Byggt

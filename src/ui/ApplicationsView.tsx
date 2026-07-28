@@ -4,6 +4,7 @@ import { useSoktStore } from '../app/store'
 import { addApplicationCommand, removeApplicationCommand } from '../app/commands'
 import { buildManualApplication, validateManualApply } from '../apply/buildManualApplication'
 import type { ManualApplyInput, ManualField } from '../apply/buildManualApplication'
+import { findDuplicate } from '../apply/duplicates'
 import { todayIso } from '../report/periods'
 import { useT } from '../i18n/useT'
 import type { EmploymentType } from '../model/types'
@@ -15,6 +16,8 @@ import { uiEmploymentTypeLabel, uiSurveyLabel } from '../i18n/translations'
 // report that omits the rest is an incomplete legal document.
 function ManualApplyForm({ onDone }: { onDone: () => void }) {
   const execute = useSoktStore((s) => s.execute)
+  const setNotice = useSoktStore((s) => s.setNotice)
+  const applications = useSoktStore((s) => s.applications)
   const profile = useSoktStore((s) => s.profile)
   const { t } = useT()
   const [jobTitle, setJobTitle] = useState('')
@@ -40,8 +43,15 @@ function ManualApplyForm({ onDone }: { onDone: () => void }) {
     setMissing(problems)
     if (problems.length > 0) return
     execute(addApplicationCommand(buildManualApplication(input)))
+    setNotice({ key: 'notice.logged', undoable: true })
     onDone()
   }
+
+  const duplicate = findDuplicate(applications, {
+    jobTitle,
+    employerName,
+    appliedAt,
+  })
 
   const fieldError = (field: ManualField) =>
     missing.includes(field) ? <span className="error">{t('manual.required')}</span> : null
@@ -98,6 +108,9 @@ function ManualApplyForm({ onDone }: { onDone: () => void }) {
           {t('apply.surveyAnswered')}
         </label>
       </div>
+      {duplicate && (
+        <p className="warn">{t('apply.duplicate', { date: duplicate.appliedAt })}</p>
+      )}
       <div className="button-row">
         <button type="submit">{t('manual.save')}</button>
         <button type="button" className="ghost" onClick={onDone}>
@@ -111,8 +124,16 @@ function ManualApplyForm({ onDone }: { onDone: () => void }) {
 export function ApplicationsView() {
   const applications = useSoktStore((s) => s.applications)
   const execute = useSoktStore((s) => s.execute)
+  const setNotice = useSoktStore((s) => s.setNotice)
   const { t, lang } = useT()
   const [adding, setAdding] = useState(false)
+
+  // Deleting is one tap and stays that way — the way back is the undo offer,
+  // not a confirmation dialog in front of every delete.
+  function remove(id: string) {
+    execute(removeApplicationCommand(id))
+    setNotice({ key: 'notice.removed', undoable: true })
+  }
 
   return (
     <section className="stack">
@@ -163,7 +184,7 @@ export function ApplicationsView() {
                     <button
                       type="button"
                       className="link-button danger-text"
-                      onClick={() => execute(removeApplicationCommand(a.id))}
+                      onClick={() => remove(a.id)}
                       aria-label={t('apps.removeAria', { title: a.jobTitle })}
                     >
                       {t('apps.remove')}
