@@ -607,6 +607,23 @@ footer {
   color: #b45309;
 }
 
+.add-manual {
+  color: var(--accent);
+  font-size: 0.95rem;
+  min-height: 44px;
+  align-self: flex-start;
+  text-align: start;
+}
+
+.manual-form {
+  width: 100%;
+  gap: 12px;
+}
+
+.manual-form .error {
+  margin-top: 2px;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

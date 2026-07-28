@@ -147,6 +147,12 @@ const sv: Dict = {
   'apps.removeAria': 'Ta bort ansökan: {title}',
   'apps.remove': 'Ta bort',
 
+  'manual.add': '+ Lägg till en ansökan du gjort själv',
+  'manual.intro':
+    'Sökte du ett jobb utanför Sökt — på plats, via telefon, från ett tips eller en annons du hittat någon annanstans? Lägg till den här så kommer den med i aktivitetsrapporten.',
+  'manual.save': 'Spara ansökan',
+  'manual.required': 'Fyll i det här',
+
   'report.intro':
     'Rapporten byggs direkt från dina loggade ansökningar. Granska den och för in uppgifterna i Mina sidor hos Arbetsförmedlingen — Sökt skickar aldrig in något åt dig.',
   'report.from': 'Från',
@@ -292,6 +298,11 @@ const ar: Dict = {
   'profile.save': 'حفظ الملف الشخصي',
   'profile.saved': 'تم الحفظ ✓',
 
+  'manual.add': '+ أضِف طلبًا قدّمته بنفسك',
+  'manual.intro':
+    'هل قدّمت على وظيفة خارج Sökt — في المكان، عبر الهاتف، من نصيحة أو من إعلان وجدته في مكان آخر؟ أضِفه هنا ليدخل في تقرير النشاط.',
+  'manual.save': 'احفظ الطلب',
+  'manual.required': 'املأ هذا الحقل',
   'apps.empty': 'لا توجد طلبات مسجّلة بعد. ابحث عن وظائف وقدّم لتظهر هنا.',
   'apps.removeAria': 'حذف الطلب: {title}',
   'apps.remove': 'حذف',
@@ -442,6 +453,11 @@ const so: Dict = {
   'profile.save': 'Kaydi astaanta',
   'profile.saved': 'La kaydiyay ✓',
 
+  'manual.add': '+ Ku dar codsi aad adigu samaysay',
+  'manual.intro':
+    'Ma waxaad shaqo ka codsatay Sökt dibaddiisa — goobta, telefoonka, talo lagu siiyay ama xayeysiis meel kale ka helay? Halkan ku dar si uu ugu jiro warbixinta dhaqdhaqaaqa.',
+  'manual.save': 'Kaydi codsiga',
+  'manual.required': 'Buuxi tan',
   'apps.empty': 'Weli ma jiraan codsiyo la diiwaan geliyay. Raadi shaqo oo codso si ay halkan uga muuqdaan.',
   'apps.removeAria': 'Tirtir codsiga: {title}',
   'apps.remove': 'Tirtir',

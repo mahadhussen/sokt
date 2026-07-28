@@ -7,6 +7,39 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 13: Manuell ansökan (rapporten blir fullständig)
+
+### Byggt
+- **`apply/buildManualApplication.ts`** (ren, testad) — bygger en `Application` av det deltagaren
+  själv skriver in, för jobb hen sökt utanför Sökt: på plats, via telefon, från coachens tips, från
+  en annons hittad någon annanstans. Fram tills nu gick `addApplicationCommand` att nå från exakt
+  ETT ställe (Ansök-panelen på ett sökträffskort), så allt annat gick helt enkelt inte att registrera.
+  Aktivitetsrapporten täckte alltså bara den del av aktiviteten som råkat gå genom appens sökruta.
+- **`validateManualApply`** returnerar fältnycklar, inte meningar. Rena moduler kan inte översätta,
+  och ett kastat svenskt felmeddelande hade varit oläsbart i en app som skeppar arabiska och somaliska.
+  UI:t översätter nycklarna till fältnära fel i stället för en textrad längst ned.
+- **Formulär i Ansökningar-vyn** bakom "+ Lägg till en ansökan du gjort själv". Sex AF-fält, inget
+  mer: datum förifyllt med dagens (lokala) datum, ort förifylld från profilen. i18n sv/ar/so.
+
+### Beslut (med alternativ)
+- **Samma vägran att gissa som `buildApplication`.** Ofullständig post byggs inte — rapporten går
+  till Arbetsförmedlingen, och en påhittad arbetsgivare eller anställningsform i ett myndighets-
+  dokument är värre än en saknad rad. Alternativet (spara som utkast med tomma fält) valdes bort:
+  ett utkast som ser färdigt ut i listan är en fälla.
+- **`channel: 'manual'`, ingen fråga om hur man sökte.** Kanalen är spårbarhet, inte ett rapportfält
+  (`activityReport` läser bara de sex AF-fälten). Att fråga hade lagt till en ruta utan att göra
+  rapporten mer korrekt.
+- **Inga nya aktivitetstyper (kontakt med arbetsgivare, rekryteringsträff, utbildning) ännu.** De hör
+  hemma i AF:s rapport men kräver en modelländring och därmed `SCHEMA_VERSION` 2 — som är spärrat
+  tills `migrate()` finns (M12). Nästa steg, i rätt ordning.
+
+### Verifierat i webbläsare (375 px)
+Tomt formulär → fyra fältfel, ingenting skrivet till localStorage. Ifyllt → rad i Ansökningar,
+`channel: "manual"` i lagringen, formuläret stängs, och raden syns i aktivitetsrapporten för juli.
+Formuläret renderar rent på arabiska (`dir=rtl`) utan att sidan scrollar i sidled.
+
+108 tester.
+
 ## 2026-07-28 — Milestone 12: Vecka 1 efter granskningen (grund för deltagaren)
 
 Föregicks av en granskning med tre agenter (deltagar-UX, Pathly-integration, teknik) plus en
