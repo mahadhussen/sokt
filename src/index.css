@@ -624,6 +624,16 @@ footer {
   cursor: pointer;
 }
 
+.hidden-file {
+  display: none;
+}
+
+.ok-text {
+  color: #065f46;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
 .warn {
   background: #fff7ed;
   border: 1px solid #fdba74;

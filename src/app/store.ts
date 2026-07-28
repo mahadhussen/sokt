@@ -8,8 +8,15 @@ import { SCHEMA_VERSION } from '../model/serialization'
 import type { PersistedModel } from '../model/serialization'
 import { createLocalStorage } from '../services/storage'
 import type { StoragePort } from '../services/storage'
-import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
+import {
+  base64ToBlob,
+  blobToBase64,
+  createIndexedDbFileStore,
+  CV_REF,
+} from '../services/fileStore'
 import type { CvMeta, FileStore } from '../services/fileStore'
+import { BACKUP_VERSION, mergeBackup, parseBackup } from '../model/backup'
+import type { BackupFile } from '../model/backup'
 import type { SavedSearch } from '../jobs/savedSearch'
 import type { CachedSearch } from '../jobs/freshness'
 import type { Lang } from '../i18n/translations'
@@ -81,8 +88,16 @@ export interface SoktStore extends ModelState {
   saveSearch(input: Omit<SavedSearch, 'id'>): void
   removeSearch(id: string): void
   markSearchSeen(id: string, jobIds: string[]): void
-  exportData(): string
+  exportBackup(): Promise<string>
+  importBackup(json: string): Promise<ImportResult>
   deleteAll(): Promise<void>
+}
+
+export interface ImportResult {
+  addedApplications: number
+  droppedApplications: number
+  cvRestored: boolean
+  profileRestored: boolean
 }
 
 function loadSavedSearches(): SavedSearch[] {
@@ -234,13 +249,74 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       persistSavedSearches(savedSearches)
     },
 
-    exportData() {
-      const { profile, applications, cv, savedSearches } = get()
-      return JSON.stringify(
-        { schemaVersion: SCHEMA_VERSION, profile, applications, cv, savedSearches },
-        null,
-        2,
+    async exportBackup() {
+      const { profile, applications, savedSearches } = get()
+      // The CV blob travels with the file. The old export named itself "all
+      // your data" while leaving the CV behind, so a restore left the
+      // participant re-uploading a document they thought they had saved.
+      // The AI key is deliberately absent: it is a secret, not their data.
+      const stored = await fileStore.loadCv().catch(() => null)
+      const cv = stored
+        ? {
+            fileName: stored.fileName,
+            text: stored.text,
+            byteSize: stored.byteSize,
+            dataBase64: await blobToBase64(stored.blob),
+          }
+        : undefined
+      const backup: BackupFile = {
+        sokt: 'backup',
+        version: BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        profile,
+        applications,
+        savedSearches,
+        cv,
+      }
+      return JSON.stringify(backup, null, 2)
+    },
+
+    async importBackup(json) {
+      // Restoring never destroys: applications merge by id, an existing profile
+      // wins, and a CV already on the device is left alone.
+      const { backup, droppedApplications } = parseBackup(json)
+      const { profile, applications } = get()
+      const merged = mergeBackup({ profile, applications }, backup)
+
+      let cvRestored = false
+      if (backup.cv && !get().cv) {
+        const meta: CvMeta = {
+          fileName: backup.cv.fileName,
+          text: backup.cv.text,
+          byteSize: backup.cv.byteSize,
+        }
+        await fileStore.saveCv({ ...meta, blob: base64ToBlob(backup.cv.dataBase64) })
+        set({ cv: meta })
+        cvRestored = true
+      }
+
+      const nextModel = { profile: merged.profile, applications: merged.applications }
+      // A restore is not undoable through the command history — it is a bulk
+      // write, and offering "Ångra" for it would be a lie.
+      set({ ...nextModel, history: [], notice: null })
+      await storage.save(toPersistedModel(nextModel))
+
+      const known = new Set(get().savedSearches.map((s) => s.id))
+      const restoredSearches = (backup.savedSearches as SavedSearch[]).filter(
+        (s) => s && typeof s.id === 'string' && !known.has(s.id),
       )
+      if (restoredSearches.length > 0) {
+        const savedSearches = [...get().savedSearches, ...restoredSearches]
+        set({ savedSearches })
+        persistSavedSearches(savedSearches)
+      }
+
+      return {
+        addedApplications: merged.addedApplications,
+        droppedApplications,
+        cvRestored,
+        profileRestored: profile === null && merged.profile !== null,
+      }
     },
 
     async deleteAll() {
@@ -266,7 +342,20 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     },
   }))
 
+  // Ask the browser to keep this origin's data. Without it Safari's ITP clears
+  // everything after seven days without a visit — and a jobseeker is job
+  // hunting, not app-checking. Best effort: never block boot, never surface a
+  // failure the participant cannot act on.
+  function requestPersistence(): void {
+    try {
+      void navigator.storage?.persist?.().catch(() => false)
+    } catch {
+      /* not supported here */
+    }
+  }
+
   async function boot() {
+    requestPersistence()
     // A failed load is NOT an empty model. Distinguishing the two is the whole
     // point: treating "unreadable" as "empty" would let the next edit write
     // over a participant's entire application history. The adapter has already

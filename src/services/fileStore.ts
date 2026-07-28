@@ -48,6 +48,25 @@ function tx<T>(db: IDBDatabase, mode: IDBTransactionMode, run: (store: IDBObject
   })
 }
 
+// Base64 so a CV can travel inside the JSON backup. Chunked: spreading a
+// multi-megabyte Uint8Array into String.fromCharCode overflows the stack.
+export async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  let binary = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
+export function base64ToBlob(base64: string, type = 'application/pdf'): Blob {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type })
+}
+
 export function createIndexedDbFileStore(): FileStore {
   return {
     async saveCv(cv) {

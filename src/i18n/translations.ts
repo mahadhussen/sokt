@@ -131,8 +131,12 @@ const sv: Dict = {
 
   'data.title': 'Dina uppgifter',
   'data.body':
-    'Exportera allt du sparat, eller radera det helt. Radering tar bort profil, ansökningar och CV från den här webbläsaren och går inte att ångra.',
-  'data.export': 'Exportera som JSON',
+    'Ta en säkerhetskopia av allt du sparat — profil, ansökningar, sparade sökningar och ditt CV — i en fil. Spara den någonstans säkert: om webbläsaren rensas, telefonen går sönder eller du byter dator kan du läsa tillbaka den här. Du kan också radera allt.',
+  'data.export': 'Ladda ner säkerhetskopia',
+  'data.import': 'Läs in säkerhetskopia',
+  'data.restoredApplications': '{n} ansökningar tillagda.',
+  'data.restoredCv': 'CV återställt.',
+  'data.restoredDropped': '{n} rader gick inte att läsa och hoppades över.',
   'data.deleteConfirm': 'Ja, radera allt',
   'data.cancel': 'Avbryt',
   'data.delete': 'Radera all data',
@@ -292,8 +296,12 @@ const ar: Dict = {
 
   'data.title': 'بياناتك',
   'data.body':
-    'صدّر كل ما حفظته، أو احذفه بالكامل. الحذف يزيل الملف الشخصي والطلبات والسيرة الذاتية من هذا المتصفح ولا يمكن التراجع عنه.',
-  'data.export': 'تصدير بصيغة JSON',
+    'خذ نسخة احتياطية من كل ما حفظته — الملف الشخصي والطلبات وعمليات البحث المحفوظة وسيرتك الذاتية — في ملف واحد. احفظه في مكان آمن: إذا مُسح المتصفح أو تعطّل هاتفك أو غيّرت الحاسوب يمكنك استعادته هنا. ويمكنك أيضًا حذف كل شيء.',
+  'data.export': 'تنزيل نسخة احتياطية',
+  'data.import': 'استعادة من نسخة احتياطية',
+  'data.restoredApplications': 'تمت إضافة {n} طلبًا.',
+  'data.restoredCv': 'تمت استعادة السيرة الذاتية.',
+  'data.restoredDropped': 'تعذّرت قراءة {n} صفًا وتم تخطيها.',
   'data.deleteConfirm': 'نعم، احذف كل شيء',
   'data.cancel': 'إلغاء',
   'data.delete': 'حذف جميع البيانات',
@@ -453,8 +461,12 @@ const so: Dict = {
 
   'data.title': 'Xogtaada',
   'data.body':
-    'Soo deji wax walba oo aad kaydisay, ama gebi ahaanba tirtir. Tirtiristu waxay ka saaraysaa astaanta, codsiyada iyo CV-ga browserkan, mana laga noqon karo.',
-  'data.export': 'U soo deji JSON',
+    'Qaado nuqul kayd ah oo ka mid ah wax walba oo aad kaydisay — astaanta, codsiyada, raadinta la kaydiyay iyo CV-gaaga — hal fayl. Meel ammaan ah dhig: haddii browserka la nadiifiyo, taleefanku jabo ama aad kombuyuutar beddesho halkan ayaad ku soo celin kartaa. Sidoo kale wax walba waad tirtiri kartaa.',
+  'data.export': 'Soo deji nuqulka kaydka',
+  'data.import': 'Ka soo celi nuqulka',
+  'data.restoredApplications': '{n} codsi ayaa lagu daray.',
+  'data.restoredCv': 'CV-ga waa la soo celiyay.',
+  'data.restoredDropped': '{n} saf lama akhrin karin waana laga booday.',
   'data.deleteConfirm': 'Haa, tirtir wax walba',
   'data.cancel': 'Jooji',
   'data.delete': 'Tirtir dhammaan xogta',

@@ -7,6 +7,53 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 15: Säkerhetskopia som faktiskt går att läsa tillbaka
+
+### Byggt
+- **`model/backup.ts`** (ren, testad) — filformatet `{sokt:'backup', version, exportedAt, profile,
+  applications, savedSearches, cv}`. `parseBackup` validerar och **räddar det som går att läsa**
+  i stället för att kasta allt: en trasig rad hoppas över och räknas, resten återställs. Vägrar med
+  ett begripligt skäl när filen inte är en Sökt-kopia eller kommer från en nyare version.
+- **`mergeBackup`** — återställning får aldrig förstöra. Ansökningar slås ihop på id, en profil som
+  redan finns på enheten vinner över filens, och ett CV som redan finns rörs inte. Att läsa in samma
+  fil två gånger lägger till noll.
+- **CV:t följer med filen** (base64, chunkad kodning — att spreada en flermegabyte-Uint8Array in i
+  `String.fromCharCode` spränger stacken). Den gamla exporten kallade sig "allt du sparat" men
+  lämnade kvar CV-blobben, och **ingenting i hela kodbasen kunde läsa tillbaka den**. En
+  säkerhetskopia är bara en säkerhetskopia om den återställer.
+- **AI-nyckeln är avsiktligt inte med.** Den är en hemlighet, inte deltagarens data.
+- **`model/validate.ts`** (ren, testad indirekt) — riktiga typvakter för `Application`/`Profile`.
+  `deserializeModel` validerade tidigare bara `Array.isArray`, så en enda trasig rad gick rakt in i
+  render-trädet och blankade appen — varefter deltagaren inte ens kunde nå Exportera eller Radera,
+  eftersom de knapparna satt i appen som just dog. Nu kastar den i stället, vilket leder till
+  säkerhetskopie-vägen från M12 där rådata bevaras och lämnas tillbaka.
+- **`navigator.storage.persist()`** begärs vid boot. Utan den rensar Safaris ITP allt efter sju dagar
+  utan besök — och en arbetssökande söker jobb, hen kollar inte appar.
+
+### Beslut (med alternativ)
+- **Sammanslagning, inte överskrivning.** En återställning på en enhet som redan har data behåller
+  allt den hade. Alternativet (ersätt allt) är enklare att resonera om men gör en felklickad
+  återställning till en katastrof.
+- **Ingen "Ångra" på återställning.** Det är en bulkskrivning, inte ett kommando i historiken; att
+  erbjuda Ångra hade varit en lögn. Historiken nollställs i stället.
+- **Vakterna kastar i stället för att tyst filtrera bort rader.** Att tappa en rad ur en rapport som
+  går till Arbetsförmedlingen får inte ske i tysthet. Kastet leder till bannern med säkerhetskopian.
+
+### Verifierat i webbläsare (375 px)
+Export → filen innehåller `sokt:'backup'`, version 1, tidsstämpel och ansökan (CV-fältet saknas
+korrekt när inget CV finns). Ta bort ansökan → import → "1 ansökningar tillagda", raden tillbaka i
+localStorage. Samma fil igen → "0 ansökningar tillagda" (inga dubbletter). Främmande JSON → "Filen är
+inte en säkerhetskopia från Sökt" och orörd data. `navigator.storage.persist()` returnerar false på
+en färsk localhost-origin — webbläsaren avslår själv, verifierat med ett direkt anrop; Chrome ger
+persistens vid engagemang/installation, vilket är ännu ett argument för PWA-manifestet härnäst.
+
+### Noterat, inte åtgärdat
+Efter "Radera all data" (och i en färsk webbläsare) måste samtycket ges innan Profil-fliken renderas,
+alltså innan man kommer åt "Läs in säkerhetskopia". Ett tryck extra, men det hör till den större
+frågan om samtyckesgrinden som ändå ska omprövas.
+
+129 tester.
+
 ## 2026-07-28 — Milestone 14: Dubbletter, sökt-markering och en väg tillbaka
 
 ### Byggt
