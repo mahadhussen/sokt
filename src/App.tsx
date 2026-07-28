@@ -4,6 +4,7 @@ import { ProfileView } from './ui/ProfileView'
 import { ApplicationsView } from './ui/ApplicationsView'
 import { ReportView } from './ui/ReportView'
 import { OverviewView } from './ui/OverviewView'
+import { AccountPanel } from './ui/AccountPanel'
 import { useSoktStore } from './app/store'
 import { useT } from './i18n/useT'
 import { LANGUAGES, dirFor } from './i18n/translations'
@@ -73,10 +74,28 @@ function NoticeBar() {
   )
 }
 
+// The one write that silently failed used to look exactly like a successful
+// one. If persistence is broken the participant has to know before they build a
+// month of applications on top of it.
+function SaveFailedBanner() {
+  const saveFailed = useSoktStore((s) => s.saveFailed)
+  const { t } = useT()
+  if (!saveFailed) return null
+  return (
+    <div className="banner banner-warning" role="alert">
+      <strong>{t('save.failedTitle')}</strong>
+      <p>{t('save.failedBody')}</p>
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
+  const [accountOpen, setAccountOpen] = useState(false)
   const applicationCount = useSoktStore((s) => s.applications.length)
   const loadError = useSoktStore((s) => s.loadError)
+  const account = useSoktStore((s) => s.account)
+  const authConfigured = useSoktStore((s) => s.authConfigured)
   const setLang = useSoktStore((s) => s.setLang)
   const { t, lang } = useT()
 
@@ -90,6 +109,15 @@ export default function App() {
       <header>
         <div className="header-row">
           <h1>Sökt</h1>
+          {authConfigured && (
+            <button
+              type="button"
+              className="link-button account-link"
+              onClick={() => setAccountOpen((v) => !v)}
+            >
+              {account ? t('account.signedIn') : t('account.signIn')}
+            </button>
+          )}
           <select
             className="lang-select"
             aria-label={t('lang.aria')}
@@ -106,7 +134,9 @@ export default function App() {
         <p className="tagline">{t('tagline')}</p>
       </header>
       {loadError && <RecoveryBanner />}
+      <SaveFailedBanner />
       <NoticeBar />
+      {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}
       <nav className="tabs">
         {TABS.map((id) => (
           <button

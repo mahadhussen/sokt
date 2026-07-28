@@ -163,6 +163,31 @@ const sv: Dict = {
   'manual.save': 'Spara ansökan',
   'manual.required': 'Fyll i det här',
 
+  'account.title': 'Ditt konto',
+  'account.signIn': 'Logga in',
+  'account.signedIn': 'Ditt konto',
+  'account.intro':
+    'Du behöver inget konto för att använda Sökt. Loggar du in kan du nå dina ansökningar från flera enheter — om telefonen går sönder, webbläsaren rensas eller du sitter vid en annan dator. Inget lösenord: vi mejlar en sexsiffrig kod.',
+  'account.sendCode': 'Skicka kod',
+  'account.sending': 'Skickar…',
+  'account.codeSent': 'Vi skickade en sexsiffrig kod till {email}. Kolla skräpposten om den dröjer.',
+  'account.codeLabel': 'Koden från mejlet',
+  'account.verifying': 'Loggar in…',
+  'account.changeEmail': 'Byt e-postadress',
+  'account.close': 'Stäng',
+  'account.badEmail': 'Kontrollera e-postadressen.',
+  'account.signedInAs': 'Inloggad som {email}.',
+  'account.syncExplained':
+    'Dina ansökningar och din profil sparas nu både här och på ditt konto, så du ser dem på alla enheter där du loggar in. Ditt CV ligger kvar bara på den här enheten.',
+  'account.signOut': 'Logga ut',
+  'account.optional': 'Allt fungerar precis lika bra utan konto.',
+  'account.syncing': 'Synkar…',
+  'account.synced': 'Synkat ✓',
+  'account.syncFailed': 'Kunde inte synka just nu. Dina uppgifter finns kvar på den här enheten och synkas när det går igen.',
+  'save.failedTitle': 'Kunde inte spara på den här enheten',
+  'save.failedBody':
+    'Din senaste ändring finns på skärmen men kunde inte sparas — lagringen kan vara full. Ladda ner en säkerhetskopia under Profil innan du stänger appen.',
+
   'report.intro':
     'Rapporten byggs direkt från dina loggade ansökningar. Granska den och för in uppgifterna i Mina sidor hos Arbetsförmedlingen — Sökt skickar aldrig in något åt dig.',
   'report.from': 'Från',
@@ -326,6 +351,31 @@ const ar: Dict = {
   'apps.empty': 'لا توجد طلبات مسجّلة بعد. ابحث عن وظائف وقدّم لتظهر هنا.',
   'apps.removeAria': 'حذف الطلب: {title}',
   'apps.remove': 'حذف',
+
+  'account.title': 'حسابك',
+  'account.signIn': 'تسجيل الدخول',
+  'account.signedIn': 'حسابك',
+  'account.intro':
+    'لا تحتاج إلى حساب لاستخدام Sökt. بتسجيل الدخول يمكنك الوصول إلى طلباتك من أكثر من جهاز — إذا تعطّل الهاتف أو مُسح المتصفح أو كنت على حاسوب آخر. بلا كلمة مرور: نرسل لك رمزًا من ستة أرقام.',
+  'account.sendCode': 'أرسل الرمز',
+  'account.sending': 'جارٍ الإرسال…',
+  'account.codeSent': 'أرسلنا رمزًا من ستة أرقام إلى {email}. تحقّق من البريد غير المرغوب فيه إذا تأخر.',
+  'account.codeLabel': 'الرمز من البريد',
+  'account.verifying': 'جارٍ تسجيل الدخول…',
+  'account.changeEmail': 'تغيير البريد',
+  'account.close': 'إغلاق',
+  'account.badEmail': 'تحقّق من عنوان البريد.',
+  'account.signedInAs': 'مسجّل الدخول باسم {email}.',
+  'account.syncExplained':
+    'تُحفظ طلباتك وملفك الشخصي الآن هنا وفي حسابك، فتراها على كل جهاز تسجّل الدخول منه. سيرتك الذاتية تبقى على هذا الجهاز فقط.',
+  'account.signOut': 'تسجيل الخروج',
+  'account.optional': 'كل شيء يعمل بنفس الجودة بدون حساب.',
+  'account.syncing': 'جارٍ المزامنة…',
+  'account.synced': 'تمت المزامنة ✓',
+  'account.syncFailed': 'تعذّرت المزامنة الآن. بياناتك محفوظة على هذا الجهاز وستُزامن لاحقًا.',
+  'save.failedTitle': 'تعذّر الحفظ على هذا الجهاز',
+  'save.failedBody':
+    'آخر تغيير ظاهر على الشاشة لكن لم يُحفظ — قد تكون الذاكرة ممتلئة. نزّل نسخة احتياطية من صفحة الملف الشخصي قبل إغلاق التطبيق.',
 
   'report.intro':
     'يُبنى التقرير مباشرة من طلباتك المسجّلة. راجعه وأدخِل البيانات في صفحاتك لدى مصلحة التوظيف — لا يرسل Sökt أي شيء نيابةً عنك.',
@@ -491,6 +541,31 @@ const so: Dict = {
   'apps.empty': 'Weli ma jiraan codsiyo la diiwaan geliyay. Raadi shaqo oo codso si ay halkan uga muuqdaan.',
   'apps.removeAria': 'Tirtir codsiga: {title}',
   'apps.remove': 'Tirtir',
+
+  'account.title': 'Akoonkaaga',
+  'account.signIn': 'Gal',
+  'account.signedIn': 'Akoonkaaga',
+  'account.intro':
+    'Uma baahnid akoon si aad u isticmaasho Sökt. Haddii aad gasho waxaad codsiyadaada ka arki kartaa qalab kasta — haddii taleefanku jabo, browserka la nadiifiyo ama aad kombuyuutar kale fadhido. Furaha sirta ah ma jiro: waxaan kuu soo dirnaa kood lix god ah.',
+  'account.sendCode': 'Soo dir koodka',
+  'account.sending': 'Waa la dirayaa…',
+  'account.codeSent': 'Waxaan kood lix god ah u dirnay {email}. Hubi qashinka boostada haddii uu daaho.',
+  'account.codeLabel': 'Koodka emailka',
+  'account.verifying': 'Waa la galayaa…',
+  'account.changeEmail': 'Beddel emailka',
+  'account.close': 'Xir',
+  'account.badEmail': 'Hubi cinwaanka emailka.',
+  'account.signedInAs': 'Waxaad u gashay {email}.',
+  'account.syncExplained':
+    'Codsiyadaada iyo astaantaada hadda waxay ku kaydsan yihiin halkan iyo akoonkaaga labadaba, sidaas darteed waad ka arki doontaa qalab kasta oo aad ka gasho. CV-gaagu wuxuu ku hadhayaa qalabkan oo keliya.',
+  'account.signOut': 'Ka bax',
+  'account.optional': 'Wax walba si siman ayey u shaqeeyaan akoon la\'aan.',
+  'account.syncing': 'Waa la isku dhaafinayaa…',
+  'account.synced': 'La isku dhaafiyay ✓',
+  'account.syncFailed': 'Hadda lama isku dhaafin karin. Xogtaadu waxay ku jirtaa qalabkan waana la isku dhaafin doonaa markay suurtogal noqoto.',
+  'save.failedTitle': 'Lagama kaydin karin qalabkan',
+  'save.failedBody':
+    'Beddelkaagii ugu dambeeyay wuu muuqdaa laakiin lama kaydin — kaydku wuu buuxsami karaa. Ka soo deji nuqul kayd ah bogga Astaanta ka hor inta aadan xirin.',
 
   'report.intro':
     'Warbixinta waxaa toos looga dhisaa codsiyadaada la diiwaan geliyay. Dib u eeg oo gali xogta boggaaga Xafiiska Shaqada — Sökt waxba kuuma diro adiga.',

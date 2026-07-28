@@ -7,6 +7,72 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 16: Konto med sexsiffrig kod, och synk mellan enheter
+
+### Byggt
+- **`services/auth.ts` + `services/supabaseClient.ts`** — inloggning med e-post och sexsiffrig
+  engångskod (Supabase Auth `signInWithOtp`/`verifyOtp`, mejlet levererat av Resend som SMTP).
+  Vi genererar, lagrar och kontrollerar **inte** koder själva: rate limiting, brute force-skydd,
+  token-förnyelse och sessionslagring är precis de delar som är lätta att göra subtilt och farligt
+  fel. Inget lösenord — att hitta på, minnas och återställa ett är tre separata sätt att bli utelåst
+  för den här målgruppen.
+- **Kontot är frivilligt.** Utan `VITE_SOKT_SUPABASE_*` finns ingen inloggningsknapp, och
+  supabase-js laddas aldrig ner (verifierat: bara vår egen 3,6 kB-modul hämtas). Appen fungerar
+  exakt som förut lokalt. Det är inte en reservlösning utan produktens grundläge.
+- **`model/sync.ts`** (ren, testad) — `mergeRemote`. Reglerna finns för att synken ska vara
+  *oförmögen* att tappa en ansökan: rader bara denna enhet har LADDAS UPP (en månad offline får inte
+  kosta en månad), rader bara kontot har LÄGGS TILL, rader kontot markerat raderade TAS BORT även
+  här, och en lokal rad skrivs aldrig över av kontots kopia.
+- **Mjuk radering (`deleted_at`).** Utan den går en saknad rad inte att skilja från en rad som ännu
+  inte laddats upp — nästa synk skulle återuppliva den och deltagaren blir aldrig av med den.
+- **Per-post-skrivningar.** `Command` fick `sync`/`syncUndo`, så varje ändring speglas som EN rad.
+  Den gamla `save(hela modellen)` var last-write-wins och fire-and-forget: med två enheter (eller
+  två flikar) hade den andra skrivningen tyst raderat den förstas arbete. Det var den kända
+  blockeraren för allt molnarbete, och den är borta nu.
+- **Sparfel syns.** `persist()` fångar ett avvisat `save` och visar en banner. Tidigare svaldes
+  ett `QuotaExceededError` av `void storage.save(...)` — raden låg på skärmen, räknaren tickade upp,
+  och allt var borta vid omladdning.
+- **`model/credentials.ts`** (ren, testad) — normaliserar e-post och kod. Koden klistras in med
+  mellanslag, hårda mellanslag eller bindestreck ur mejlappen; adressen kommer med stor
+  begynnelsebokstav från telefonens tangentbord. Att avvisa det är inte stringens, det är en låst
+  dörr.
+- **`supabase/migrations/20260728120000_sokt_konto_och_synk.sql`** — `applications` + `profiles`
+  med RLS där varje användare bara når sina egna rader. `WITH CHECK` på insert/update, inte bara
+  `USING`, annars kan man skriva rader åt någon annan.
+- **`SETUP_KONTO.md`** — de steg som kräver Mahads konton (Supabase-projekt, Resend-domän, DNS,
+  SMTP, mallen med `{{ .Token }}`).
+
+### Beslut (med alternativ)
+- **Eget Supabase-projekt, inte Pathlys.** Sökt är öppet för vem som helst. Publika användare ska
+  inte ligga i en leverantörs tenant-databas när verktyget ska säljas till flera R&M-leverantörer,
+  och Pathlys `handle_new_user` gör dessutom varje ny inloggning till handläggare i company 1.
+  Bonus: deltagaren äger sitt eget konto och kan senare VÄLJA att dela med en coach — det är det
+  enda sättet att få ett samtycke som är frivilligt enligt GDPR art. 7.4, eftersom coachen annars
+  styr deltagarens programdeltagande.
+- **Supabase Auth, inte egen OTP mot Resend.** Alternativet (egen kod, egen tabell, egna sessioner)
+  är en stor säkerhetsyta för en ensam utvecklare. Resend används där det hör hemma: som SMTP.
+- **`noValidate` på formulären.** `type="email"` behålls för tangentbordet, men webbläsarens egen
+  valideringsbubbla kommer på *webbläsarens* språk — en arabisk- eller somalisktalande på en svensk
+  telefon hade rättats på svenska. Vår text är översatt.
+- **Synkfel är inte dataförlust.** Den lokala skrivningen har redan lyckats, så ett misslyckat
+  moln-anrop rapporteras som "inte synkat än" och nästa `syncNow()` tar raden från den lokala sidan.
+
+### Verifierat i webbläsare (375 px)
+Utan nycklar: ingen inloggningsknapp, supabase-js hämtas inte alls, appen oförändrad.
+Med attrapp-nycklar: knappen syns, panelen renderar, felaktig adress ger "Kontrollera
+e-postadressen." (vår översatta text, inte webbläsarens), och "Skicka kod" mot en påhittad
+Supabase-URL ger "Ingen kontakt med servern. Kontrollera din uppkoppling." och lämnar användaren kvar
+på e-poststeget. 144 tester.
+
+**Inte verifierat mot ett riktigt projekt** — det kräver Supabase + Resend enligt SETUP_KONTO.md.
+Hela kedjan (kod i mejlet → inloggning → synk mellan två enheter) ska köras igenom när nycklarna
+finns.
+
+### Öppet innan riktiga användare släpps in
+- **Radera kontot** går i dag bara via Supabase-dashboarden. "Radera" måste betyda radera.
+- CV-synk saknas (står uttryckligen i kontopanelen).
+- Delning med coach: separat, och deltagarens eget val.
+
 ## 2026-07-28 — Milestone 15: Säkerhetskopia som faktiskt går att läsa tillbaka
 
 ### Byggt
