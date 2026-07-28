@@ -14,9 +14,41 @@ type Tab = 'jobb' | 'profil' | 'ansokningar' | 'rapport' | 'oversikt'
 
 const TABS: Tab[] = ['jobb', 'profil', 'ansokningar', 'rapport', 'oversikt']
 
+// Stored data existed but could not be read. Nothing has been deleted — the
+// raw bytes were set aside before the app started writing over them — so say
+// that plainly and hand the file back rather than letting a participant think
+// their whole application history is gone.
+function RecoveryBanner() {
+  const backupJson = useSoktStore((s) => s.backupJson)
+  const { t } = useT()
+
+  function download() {
+    if (!backupJson) return
+    const url = URL.createObjectURL(new Blob([backupJson], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sokt-sakerhetskopia.json'
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  return (
+    <div className="banner banner-warning" role="alert">
+      <strong>{t('storage.brokenTitle')}</strong>
+      <p>{t('storage.brokenBody')}</p>
+      {backupJson && (
+        <button type="button" onClick={download}>
+          {t('storage.downloadBackup')}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
   const applicationCount = useSoktStore((s) => s.applications.length)
+  const loadError = useSoktStore((s) => s.loadError)
   const setLang = useSoktStore((s) => s.setLang)
   const { t, lang } = useT()
 
@@ -45,6 +77,7 @@ export default function App() {
         </div>
         <p className="tagline">{t('tagline')}</p>
       </header>
+      {loadError && <RecoveryBanner />}
       <nav className="tabs">
         {TABS.map((id) => (
           <button

@@ -38,6 +38,10 @@ function loadLang(): Lang {
 
 export interface SoktStore extends ModelState {
   hydrated: boolean
+  // Stored data existed but could not be read. The app runs on an empty model,
+  // and the original bytes are kept under a backup key — never overwritten.
+  loadError: boolean
+  backupJson: string | null
   consent: boolean
   history: Command[]
   jobs: Job[]
@@ -49,12 +53,14 @@ export interface SoktStore extends ModelState {
   lastSearch: CachedSearch | null
   execute(command: Command): void
   undo(): void
-  hydrate(
-    model: PersistedModel | null,
-    cv: CvMeta | null,
-    consent: boolean,
-    savedSearches: SavedSearch[],
-  ): void
+  hydrate(input: {
+    model: PersistedModel | null
+    cv: CvMeta | null
+    consent: boolean
+    savedSearches: SavedSearch[]
+    loadError?: boolean
+    backupJson?: string | null
+  }): void
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
   setLang(lang: Lang): void
@@ -100,6 +106,8 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
     profile: null,
     applications: [],
     hydrated: false,
+    loadError: false,
+    backupJson: null,
     consent: false,
     history: [],
     jobs: [],
@@ -126,13 +134,15 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
       void storage.save(toPersistedModel(next))
     },
 
-    hydrate(model, cv, consent, savedSearches) {
+    hydrate({ model, cv, consent, savedSearches, loadError = false, backupJson = null }) {
       set({
         profile: model?.profile ?? null,
         applications: model?.applications ?? [],
         cv,
         consent,
         savedSearches,
+        loadError,
+        backupJson,
         hydrated: true,
       })
     },
@@ -232,20 +242,39 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
         aiKey: '',
         lastSearch: null,
         history: [],
+        loadError: false,
+        backupJson: null,
       })
     },
   }))
 
   async function boot() {
+    // A failed load is NOT an empty model. Distinguishing the two is the whole
+    // point: treating "unreadable" as "empty" would let the next edit write
+    // over a participant's entire application history. The adapter has already
+    // set the raw bytes aside; we surface that so the UI can say so and offer
+    // the file back.
+    let loadError = false
     const [model, cv] = await Promise.all([
-      storage.load().catch(() => null),
+      storage.load().catch(() => {
+        loadError = true
+        return null
+      }),
       fileStore.loadCv().catch(() => null),
     ])
+    const backupJson = loadError ? await storage.backup().catch(() => null) : null
     const consent = window.localStorage.getItem(CONSENT_KEY) === 'true'
     const cvMeta: CvMeta | null = cv
       ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize }
       : null
-    store.getState().hydrate(model, cvMeta, consent, loadSavedSearches())
+    store.getState().hydrate({
+      model,
+      cv: cvMeta,
+      consent,
+      savedSearches: loadSavedSearches(),
+      loadError,
+      backupJson,
+    })
   }
   void boot()
 

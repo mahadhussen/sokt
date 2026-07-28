@@ -14,15 +14,13 @@ import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { newJobIds, savedSearchSummary } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
+import { suggestOccupation } from '../jobs/occupations'
 import { minutesAgo } from '../jobs/freshness'
+import { todayIso } from '../report/periods'
 import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
 import { uiEmploymentTypeLabel } from '../i18n/translations'
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 const municipalityName = (id: string) => MUNICIPALITIES.find((m) => m.id === id)?.name
 const worktimeName = (id: string) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label
@@ -62,7 +60,9 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const cv = useSoktStore((s) => s.cv)
   const aiKey = useSoktStore((s) => s.aiKey)
   const { t } = useT()
-  const [appliedAt, setAppliedAt] = useState(todayIso())
+  // Local calendar date. toISOString() would hand a participant applying after
+  // midnight yesterday's date — on a report that may already have been filed.
+  const [appliedAt, setAppliedAt] = useState(() => todayIso(new Date()))
   const [surveyAnswered, setSurveyAnswered] = useState(false)
   const [employmentType, setEmploymentType] = useState<EmploymentType | ''>(
     job.employmentType === 'unknown' ? '' : job.employmentType,
@@ -221,6 +221,10 @@ export function JobsView() {
   const [searched, setSearched] = useState(false)
   const [simpleOnly, setSimpleOnly] = useState(true)
   const [resultSimple, setResultSimple] = useState(true)
+  // Everything the search returned, before the simple-apply filter. Keeping it
+  // lets us say honestly how many ads were hidden, and flip the filter without
+  // a second round trip.
+  const [rawJobs, setRawJobs] = useState<Job[]>([])
   const [externalJobs, setExternalJobs] = useState<Job[]>([])
   const [showExternal, setShowExternal] = useState(false)
   const [newSince, setNewSince] = useState<number | null>(null)
@@ -242,7 +246,11 @@ export function JobsView() {
     setWorktimeExtentId(lastSearch.worktimeExtentId)
     setSimpleOnly(lastSearch.simpleOnly)
     setResultSimple(lastSearch.simpleOnly)
-    setJobs(lastSearch.jobs, lastSearch.total)
+    setRawJobs(lastSearch.jobs)
+    setJobs(
+      lastSearch.simpleOnly ? filterSimpleApply(lastSearch.jobs) : lastSearch.jobs,
+      lastSearch.total,
+    )
     setFetchedAt(lastSearch.fetchedAt)
     setSearched(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,21 +282,27 @@ export function JobsView() {
         }).catch(() => []),
       ])
       const shown = simpleOnly ? filterSimpleApply(result.jobs) : result.jobs
+      setRawJobs(result.jobs)
       setExternalJobs(external)
       setJobs(shown, result.total)
       setResultSimple(simpleOnly)
       setSearched(true)
       const now = Date.now()
       setFetchedAt(now)
-      cacheLastSearch({
-        q: params.q,
-        municipalityId: params.municipalityId,
-        worktimeExtentId: params.worktimeExtentId,
-        simpleOnly,
-        jobs: shown,
-        total: result.total,
-        fetchedAt: now,
-      })
+      // Cache the unfiltered ads so the offline restore can still toggle the
+      // filter — and never cache an empty result, which would restore a blank
+      // feed on the next cold start.
+      if (result.jobs.length > 0) {
+        cacheLastSearch({
+          q: params.q,
+          municipalityId: params.municipalityId,
+          worktimeExtentId: params.worktimeExtentId,
+          simpleOnly,
+          jobs: result.jobs,
+          total: result.total,
+          fetchedAt: now,
+        })
+      }
       return shown
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -324,6 +338,29 @@ export function JobsView() {
   }
 
   const hasQuery = Boolean(q || municipalityId || worktimeExtentId)
+
+  // The ads are already here, so flipping the filter is instant and costs no
+  // request — and we can say up front how many it hides.
+  const simpleCount = useMemo(() => filterSimpleApply(rawJobs).length, [rawJobs])
+
+  function applySimpleOnly(next: boolean) {
+    setSimpleOnly(next)
+    if (!searched || rawJobs.length === 0) return
+    setResultSimple(next)
+    setJobs(next ? filterSimpleApply(rawJobs) : rawJobs, jobsTotal)
+  }
+
+  // The JobTech API does no diacritic folding: `stadare` returns nothing while
+  // `städare` returns hundreds. Offer the spelling the participant meant rather
+  // than leaving them on a dead end.
+  const suggestion =
+    searched && !loading && !error && rawJobs.length === 0 ? suggestOccupation(q) : null
+
+  function runSuggestion(name: string) {
+    setQ(name)
+    setNewSince(null)
+    void runSearch({ q: name, municipalityId, worktimeExtentId })
+  }
 
   return (
     <section>
@@ -372,9 +409,11 @@ export function JobsView() {
         <input
           type="checkbox"
           checked={simpleOnly}
-          onChange={(e) => setSimpleOnly(e.target.checked)}
+          onChange={(e) => applySimpleOnly(e.target.checked)}
         />
-        {t('filter.simpleApply')}
+        {rawJobs.length > 0
+          ? t('filter.simpleApplyCount', { shown: simpleCount, fetched: rawJobs.length })
+          : t('filter.simpleApply')}
       </label>
       {searched && hasQuery && (
         <button type="button" className="link-button save-search" onClick={onSaveSearch}>
@@ -387,7 +426,7 @@ export function JobsView() {
           {newSince > 0 ? t('results.newSince', { n: newSince }) : t('results.newSinceNone')}
         </p>
       )}
-      {jobs.length > 0 && (
+      {searched && rawJobs.length > 0 && (
         <p className="muted">
           {resultSimple
             ? t('results.simpleCount', { total: jobsTotal, shown: jobs.length })
@@ -405,8 +444,23 @@ export function JobsView() {
             })()}
         </p>
       )}
-      {searched && !loading && jobs.length === 0 && !error && (
-        <p className="muted">{resultSimple ? t('results.noneSimple') : t('results.none')}</p>
+      {searched && !loading && !error && rawJobs.length === 0 && (
+        <div className="empty-state">
+          <p className="muted">{t('results.none')}</p>
+          {suggestion && (
+            <button type="button" onClick={() => runSuggestion(suggestion)}>
+              {t('search.didYouMean', { name: suggestion })}
+            </button>
+          )}
+        </div>
+      )}
+      {searched && !loading && !error && rawJobs.length > 0 && jobs.length === 0 && (
+        <div className="empty-state">
+          <p className="muted">{t('results.noneSimple', { fetched: rawJobs.length })}</p>
+          <button type="button" onClick={() => applySimpleOnly(false)}>
+            {t('results.showAllChannels', { n: rawJobs.length })}
+          </button>
+        </div>
       )}
       <ul className="job-list">
         {jobs.map((job) => (

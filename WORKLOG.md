@@ -7,6 +7,87 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 12: Vecka 1 efter granskningen (grund för deltagaren)
+
+Föregicks av en granskning med tre agenter (deltagar-UX, Pathly-integration, teknik) plus en
+adversariell kritiker. Kritikern kullkastade flera av förslagen; det som byggdes här är kritikerns
+prioritering, inte granskarnas. Se "Byggs INTE" nedan — den listan är lika viktig som det byggda.
+
+### Byggt
+- **`report/periods.ts`** (ren, testad) — `todayIso`/`toIsoDate` läser LOKALT datum, aldrig
+  `toISOString()`. Sverige är UTC+1/+2, så mellan midnatt och 01/02 gav den gamla `todayIso()` i
+  JobsView gårdagens datum som default på en ansökan — in i en månad vars rapport kan vara inlämnad.
+  Samma modul äger nu perioden: `reportPeriod(now)` ger FÖREGÅENDE månad så länge AF:s
+  rapportfönster (1–14) är öppet, annars innevarande. Rapport- och översiktsvyn delade tidigare en
+  kopierad `currentMonthRange()` som defaultade fel under exakt de två veckor någon öppnar fliken.
+- **Deadline-rad i rapportvyn** — "Lämna rapporten i Mina sidor senast den 14:e — {n} dagar kvar",
+  bara medan fönstret är öppet.
+- **`jobs/occupations.ts`** (ren, testad) — JobTech-API:t viker inte diakriter. Verifierat live:
+  `stadare` → 0 träffar, `städare` → 733; `underskoterska` → 0, `undersköterska` → 26. Deltagare med
+  arabiskt/somaliskt tangentbord gick alltså in i en tyst återvändsgränd på appens viktigaste
+  kontroll. Vid noll träffar viks sökningen och matchas mot en kurerad yrkeslista → knappen
+  "Menade du städare?". Brute force är uteslutet (54 stavningar för "lokalvardare" = 54 anrop).
+  Listan är samtidigt fröet till en yrkesväljare, som är den riktiga långsiktiga lösningen.
+- **Ärliga siffror i sökningen.** Kryssrutan visar nu "Bara enkel ansökan — 47 av 100 jobb", och
+  resultatraden syns även när filtret tömmer listan. Den gamla texten ("43 enkla ansökningar av 729
+  annonser") blandade två olika populationer: 43 kom ur de 100 hämtade, 729 var API:ts totalsumma.
+- **Tomt läge är aldrig en återvändsgränd.** Noll enkla ansökningar ger knappen "Visa alla
+  ansökningssätt (100 jobb)"; noll träffar totalt ger stavningsförslaget. Filtret filtrerar nu
+  lokalt på redan hämtade annonser — omedelbart, utan nytt anrop.
+- **Säkerhetskopia vid oläsbar data.** `storage.load()` kastar `StorageReadError` i stället för att
+  se ut som "tomt", och lägger undan råsträngen under `sokt.model.v1.trasig` (första kopian vinner)
+  innan appen börjar skriva över den. Store skiljer nu "saknas" från "gick inte att läsa" och visar
+  en banner: ingenting är raderat, ladda ner kopian och visa den för din coach.
+  Detta var den enda vägen till total dataförlust i produkten: `deserializeModel` kastar på ALLA
+  schemaversioner ≠ 1 och det finns ingen migrate(), så en framtida `SCHEMA_VERSION`-höjning hade
+  tömt varje installation vid nästa klick.
+- **E-post före formulärlänk** i `mapApplicationChannel`. En annons kan bära båda; att läsa url
+  först stängde ute dem från enkel ansökan trots att ett vanligt mail gick lika bra. Mätt effekt
+  live: städare 43 → 47 enkla av 100 hämtade.
+- **Mobil-CSS.** Filen hade noll `@media` på 545 rader. Dokumentet var 492 px brett vid 375 px
+  viewport, så två flikar låg utanför skärmen och tabellerna sköt ut sidan till 794 px. Nu:
+  `overflow-x: hidden` på body, scrollande flikremsa med snap, `.table-wrap` runt båda tabellerna,
+  44 px träffytor, 16 px inputs (annars zoomar iOS Safari), staplad sökform och jobbkort på telefon.
+  RTL: `.tag` och chips använder logiska egenskaper, så arabiskan får rätt sida.
+- **Tom sökning cachas inte längre** — den skrev över offline-cachen och gav ett blankt flöde vid
+  nästa kallstart. Cachen sparar nu ofiltrerade annonser, så filtret går att slå om offline.
+
+### Verifierat i webbläsare (375 px, riktiga API:t)
+`stadare` → 0 träffar → "Menade du städare?" → 47 jobb. Kryssrutan "47 av 100 jobb", raden
+"47 jobb med enkel ansökan. 730 annonser finns totalt." Toggle av → 100 kort utan nytt anrop.
+`document.scrollWidth` 375 = viewport (var 492). Femte fliken nåbar via remsan. Planterad v2-modell
+→ banner + `sokt.model.v1.trasig` med originalet intakt. Rapportfliken 2026-07-28 → 1–31 juli,
+ingen deadline-rad (fönstret stängt) — precis som avsett.
+
+### Beslut (med alternativ)
+- **Kurerad yrkeslista, inte typeahead eller brute force.** JobTechs `/complete` viker inte heller
+  diakriter (testat: `underskoterska` → tom, `undersk` → träff), så den kan inte rädda den vanligaste
+  felstavningen. Listan är deterministisk, kostar noll anrop och blir yrkesväljaren senare.
+- **Kryssrutan "Bara enkel ansökan" står kvar PÅ.** Granskningen ville ha den av (den döljer ~74 %
+  av annonserna). Kritikern hade rätt: filtret ÄR produkten — utan det möter deltagaren
+  Workbuster-/Teamtailor-formulär hen inte kan slutföra, och lär sig på ett möte att appen inte
+  fungerar. Kompromissen är siffror på kryssrutan och en väg ut ur det tomma läget.
+- **Säkerhetskopia före export/import.** Granskningen ville bygga import/export först. Den hjälper
+  bara den som redan hade tagit en kopia — alltså inte den som drabbas. En rad i `load()` räddar
+  alla; import/export ligger kvar som nästa steg.
+- **Perioden ligger i report/, inte i vyerna.** `currentMonthRange()` var kopierad i två vyer med
+  samma fel i båda. Regeln är domänlogik och testas som sådan.
+
+### Byggs INTE (medvetet bortvalt efter kritiken)
+- Slå av "enkel ansökan" som default; automatisk fallback-stege som muterar sökningen i tysthet;
+  filterberget (geo-radie, län, distans, deltid-%, publicerad-efter); print-stylesheet i stället för
+  jsPDF (html2canvas/dompurify laddas aldrig ner i verkligheten — 777 kB-siffran var fel, och
+  ett-tapps-PDF är bättre på Android); hela annonstexten i appen; femstegs statuspipeline;
+  CV-matchningspoäng för deltagaren; paginering.
+- **Aldrig höja `SCHEMA_VERSION` innan `migrate()` finns.**
+
+### Nästa (vecka 2–3, i ordning)
+Manuell "Lägg till ansökan" (idag går bara jobb hittade i Sökt att logga — rapporten blir ofullständig
+och det är ett efterlevnadsproblem, inte en saknad finess) → applied-markering + dubblettvarning +
+synlig bekräftelse + koppla in `undo()` som "Ångra" → `navigator.storage.persist()` + export/import
+med CV-blobben → PWA-manifest, QR-onboarding och ett coach-manus → minimal telemetri (idag går det
+inte att skilja "inga användare" från "tyst dataförlust").
+
 ## 2026-07-08 — Milestone 11: PDF-export av aktivitetsrapporten
 
 ### Byggt

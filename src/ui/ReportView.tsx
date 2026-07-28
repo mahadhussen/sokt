@@ -3,24 +3,20 @@ import { useSoktStore } from '../app/store'
 import { useT } from '../i18n/useT'
 import { uiEmploymentTypeLabel, uiSurveyLabel } from '../i18n/translations'
 import { activityReport, reportToCsv, reportToText } from '../report/activityReport'
-
-function currentMonthRange(): { start: string; end: string } {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month + 1, 0).getDate()
-  const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  return { start, end }
-}
+import { daysUntilDeadline, isReportingWindow, reportPeriod } from '../report/periods'
 
 export function ReportView() {
   const applications = useSoktStore((s) => s.applications)
   const { t, lang } = useT()
-  const initial = currentMonthRange()
+  // AF's report is filed the 1st to the 14th and covers the PREVIOUS month —
+  // so during the reporting window that is the period to open on.
+  const now = new Date()
+  const [initial] = useState(() => reportPeriod(now))
   const [start, setStart] = useState(initial.start)
   const [end, setEnd] = useState(initial.end)
   const [copied, setCopied] = useState(false)
+  const inWindow = isReportingWindow(now)
+  const daysLeft = daysUntilDeadline(now)
 
   const rows = activityReport(applications, start, end)
 
@@ -44,6 +40,11 @@ export function ReportView() {
   return (
     <section>
       <p className="muted">{t('report.intro')}</p>
+      {inWindow && (
+        <p className="deadline">
+          {daysLeft > 0 ? t('report.deadline', { n: daysLeft }) : t('report.deadlineLastDay')}
+        </p>
+      )}
       <div className="period-row">
         <label>
           {t('report.from')}
@@ -73,30 +74,34 @@ export function ReportView() {
       {rows.length === 0 ? (
         <p className="muted">{t('report.emptyPeriod')}</p>
       ) : (
-        <table className="report-table">
-          <thead>
-            <tr>
-              <th>{t('table.jobTitle')}</th>
-              <th>{t('table.employer')}</th>
-              <th>{t('table.employmentType')}</th>
-              <th>{t('table.date')}</th>
-              <th>{t('table.survey')}</th>
-              <th>{t('table.ort')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                <td>{r.jobTitle}</td>
-                <td>{r.employerName}</td>
-                <td>{uiEmploymentTypeLabel(lang, r.employmentType)}</td>
-                <td>{r.appliedAt}</td>
-                <td>{uiSurveyLabel(lang, r.surveyAnswered)}</td>
-                <td>{r.municipality}</td>
+        // The wrapper scrolls, not the page — a six-column table is wider than
+        // a phone screen.
+        <div className="table-wrap">
+          <table className="report-table">
+            <thead>
+              <tr>
+                <th>{t('table.jobTitle')}</th>
+                <th>{t('table.employer')}</th>
+                <th>{t('table.employmentType')}</th>
+                <th>{t('table.date')}</th>
+                <th>{t('table.survey')}</th>
+                <th>{t('table.ort')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i}>
+                  <td>{r.jobTitle}</td>
+                  <td>{r.employerName}</td>
+                  <td>{uiEmploymentTypeLabel(lang, r.employmentType)}</td>
+                  <td>{r.appliedAt}</td>
+                  <td>{uiSurveyLabel(lang, r.surveyAnswered)}</td>
+                  <td>{r.municipality}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )

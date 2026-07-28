@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SCHEMA_VERSION } from '../model/serialization'
 import type { PersistedModel } from '../model/serialization'
-import { createLocalStorage } from './storage'
+import { createLocalStorage, StorageReadError } from './storage'
 import type { KeyValueStore } from './storage'
 
 function fakeStore(): KeyValueStore {
@@ -51,5 +51,54 @@ describe('local storage adapter', () => {
     await storage.save(model)
     await storage.clear()
     expect(await storage.load()).toBeNull()
+  })
+})
+
+describe('unreadable data', () => {
+  it('throws instead of reporting empty, and keeps the raw data as a backup', async () => {
+    const store = fakeStore()
+    store.setItem('sokt.model.v1', '{"schemaVersion":99,"applications":[]}')
+    const storage = createLocalStorage(store)
+
+    await expect(storage.load()).rejects.toBeInstanceOf(StorageReadError)
+    // The original bytes survive: a wipe would be unrecoverable.
+    expect(await storage.backup()).toBe('{"schemaVersion":99,"applications":[]}')
+  })
+
+  it('backs up corrupt JSON too', async () => {
+    const store = fakeStore()
+    store.setItem('sokt.model.v1', '{"schemaVersion":1,"applic')
+    const storage = createLocalStorage(store)
+
+    await expect(storage.load()).rejects.toBeInstanceOf(StorageReadError)
+    expect(await storage.backup()).toBe('{"schemaVersion":1,"applic')
+  })
+
+  it('keeps the FIRST backup — a later failure must not overwrite it', async () => {
+    const store = fakeStore()
+    store.setItem('sokt.model.v1', 'original-and-precious')
+    const storage = createLocalStorage(store)
+    await expect(storage.load()).rejects.toThrow()
+
+    store.setItem('sokt.model.v1', 'later-and-worthless')
+    await expect(storage.load()).rejects.toThrow()
+
+    expect(await storage.backup()).toBe('original-and-precious')
+  })
+
+  it('reports no backup when nothing failed', async () => {
+    const storage = createLocalStorage(fakeStore())
+    await storage.save(model)
+    expect(await storage.backup()).toBeNull()
+  })
+
+  it('clear removes the backup as well — delete must mean delete', async () => {
+    const store = fakeStore()
+    store.setItem('sokt.model.v1', 'trasig')
+    const storage = createLocalStorage(store)
+    await expect(storage.load()).rejects.toThrow()
+
+    await storage.clear()
+    expect(await storage.backup()).toBeNull()
   })
 })
