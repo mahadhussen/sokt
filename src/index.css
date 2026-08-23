@@ -788,3 +788,25 @@ footer {
     grid-template-columns: minmax(70px, 110px) 1fr auto;
   }
 }
+
+.account-danger {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 4px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.account-danger button.danger {
+  background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}

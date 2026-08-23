@@ -26,6 +26,9 @@ export interface AuthPort {
   sendCode(email: string): Promise<void>
   verifyCode(email: string, code: string): Promise<Account>
   signOut(): Promise<void>
+  // Whoever can create an account must be able to remove it, in the app,
+  // without emailing anyone. Without this "delete" is a claim, not a feature.
+  deleteAccount(): Promise<void>
 }
 
 export function authConfigured(): boolean {
@@ -42,6 +45,7 @@ export function createDisabledAuth(): AuthPort {
     sendCode: off,
     verifyCode: off,
     signOut: () => Promise.resolve(),
+    deleteAccount: off,
   }
 }
 
@@ -104,6 +108,18 @@ export function createSupabaseAuth(): AuthPort {
     async signOut() {
       const { error } = await (await getSupabase()).auth.signOut()
       if (error) throw new Error(readable(error.message))
+    },
+
+    async deleteAccount() {
+      const db = await getSupabase()
+      // A SECURITY DEFINER function in the database: the anon key must never
+      // touch auth.users, and the function reads auth.uid() from the JWT, so
+      // one user cannot ask for another user's account to be removed.
+      const { error } = await db.rpc('delete_own_account')
+      if (error) throw new Error(readable(error.message))
+      // The session is now pointing at a user that no longer exists; clear it
+      // so the app does not keep trying to sync to a deleted account.
+      await db.auth.signOut().catch(() => undefined)
     },
   }
 }

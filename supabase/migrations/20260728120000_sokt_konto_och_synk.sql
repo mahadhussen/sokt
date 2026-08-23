@@ -119,6 +119,30 @@ CREATE TRIGGER profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ── 5. GDPR: radera betyder radera ─────────────────────────────────
--- ON DELETE CASCADE ovan gör att allt försvinner när kontot tas bort i
--- Supabase. "Radera all data" i appen rensar enheten; den som vill bli av med
--- kontot måste kunna göra det också — spårat som nästa steg, inte påstått här.
+-- Den som kan skapa ett konto måste kunna ta bort det, i appen, utan att mejla
+-- någon. Utan det här är "radera" ett påstående och inte en funktion.
+--
+-- SECURITY DEFINER krävs: anon-nyckeln får aldrig röra auth.users direkt.
+-- Funktionen raderar BARA den inloggades egen rad — auth.uid() kommer från
+-- JWT:n och går inte att skicka med som argument, så en användare kan inte
+-- begära att någon annans konto tas bort.
+--
+-- ON DELETE CASCADE på applications och profiles gör att allt innehåll följer
+-- med. Deltagarens data på den egna enheten rörs inte; den raderas separat med
+-- "Radera all data", och det står uttryckligen i appen.
+CREATE OR REPLACE FUNCTION public.delete_own_account()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Inte inloggad';
+  END IF;
+  DELETE FROM auth.users WHERE id = auth.uid();
+END; $$;
+
+-- Bara inloggade, aldrig anon.
+REVOKE ALL ON FUNCTION public.delete_own_account() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_own_account() TO authenticated;

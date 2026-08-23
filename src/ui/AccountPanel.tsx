@@ -17,6 +17,7 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
   const sendCode = useSoktStore((s) => s.sendCode)
   const verifyCode = useSoktStore((s) => s.verifyCode)
   const signOut = useSoktStore((s) => s.signOut)
+  const deleteAccount = useSoktStore((s) => s.deleteAccount)
   const syncing = useSoktStore((s) => s.syncing)
   const syncError = useSoktStore((s) => s.syncError)
   const syncedAt = useSoktStore((s) => s.syncedAt)
@@ -25,6 +26,7 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function requestCode(event: FormEvent) {
@@ -87,6 +89,45 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
           <button type="button" className="ghost" onClick={onClose}>
             {t('account.close')}
           </button>
+        </div>
+        <div className="account-danger">
+          <p className="muted small">{t('account.deleteExplained')}</p>
+          {confirmingDelete ? (
+            <div className="button-row">
+              <button
+                type="button"
+                className="danger"
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true)
+                  setError(null)
+                  void deleteAccount()
+                    .then(() => onClose())
+                    .catch((e: unknown) =>
+                      setError(e instanceof Error ? e.message : String(e)),
+                    )
+                    .finally(() => setBusy(false))
+                }}
+              >
+                {t('account.deleteConfirm')}
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setConfirmingDelete(false)}
+              >
+                {t('data.cancel')}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="link-button danger-text"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              {t('account.delete')}
+            </button>
+          )}
         </div>
         {error && <p className="error">{error}</p>}
       </section>

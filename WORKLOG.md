@@ -7,6 +7,31 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 17: Radera kontot
+
+### Byggt
+- **`delete_own_account()`** i migrationen — SECURITY DEFINER, eftersom anon-nyckeln aldrig får röra
+  `auth.users`. Funktionen läser `auth.uid()` ur JWT:n i stället för att ta ett argument, så en
+  användare kan inte begära att någon annans konto raderas. `ON DELETE CASCADE` tar ansökningar och
+  profil med sig.
+- **"Radera mitt konto"** i kontopanelen med tvåstegsbekräftelse, sv/ar/so. Panelen säger rakt ut att
+  uppgifterna på den egna enheten INTE raderas — de tas bort separat under Profil.
+- `AuthPort.deleteAccount()`; den avstängda implementationen avvisar anropet i stället för att låtsas
+  lyckas.
+
+### Beslut
+- **Den som kan skapa ett konto måste kunna ta bort det, i appen.** Utan det är "radera" ett påstående
+  och inte en funktion, och Sökt är öppet för vem som helst — det finns ingen coach att mejla.
+- **Kontoradering rör inte enhetens data.** Två skilda saker, två skilda knappar. Att smyga med en
+  lokal radering i en molnradering vore precis den sortens överraskning som gör att man inte vågar
+  trycka på något.
+
+### Inte verifierat
+Kräver ett riktigt Supabase-projekt. Knappen syns bara när man är inloggad, så den går inte att köra
+mot attrapp-nycklar. Testfallet ligger i SETUP_KONTO.md steg 7.
+
+144 tester, typkontroll, lint och bygge gröna.
+
 ## 2026-07-28 — Milestone 16: Konto med sexsiffrig kod, och synk mellan enheter
 
 ### Byggt

@@ -122,11 +122,23 @@ projektet och lägger till det som fattas.
 
 ---
 
+## Radera kontot — byggt, men overifierat
+
+Migrationen innehåller `delete_own_account()` (SECURITY DEFINER, läser `auth.uid()`
+ur JWT:n så ingen kan begära någon annans konto), och kontopanelen har "Radera
+mitt konto" med tvåstegsbekräftelse. `ON DELETE CASCADE` tar ansökningar och
+profil med sig. Deltagarens data på enheten rörs inte — det står i panelen.
+
+**Testa det explicit** i steg 7: skapa ett konto, logga en ansökan, radera kontot,
+och kontrollera i SQL Editor att raden är borta:
+
+```sql
+select count(*) from public.applications;
+select count(*) from auth.users;
+```
+
 ## Det jag medvetet inte byggt än
 
-- **Radera kontot.** Appens "Radera all data" rensar enheten. Att ta bort själva
-  kontot går i dag bara via Supabase-dashboarden. Det måste byggas innan riktiga
-  användare släpps in — GDPR, och "radera" ska betyda radera.
 - **CV-synk.** CV:t ligger kvar på enheten. Det står uttryckligen i
   kontopanelen, så ingen tror något annat.
 - **Delning med coach.** Kommer separat, och ska vara deltagarens eget val.

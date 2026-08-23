@@ -105,6 +105,7 @@ export interface SoktStore extends ModelState {
   sendCode(email: string): Promise<void>
   verifyCode(email: string, code: string): Promise<void>
   signOut(): Promise<void>
+  deleteAccount(): Promise<void>
   syncNow(): Promise<void>
 }
 
@@ -239,6 +240,14 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         // Signing out never touches what is on this device. The participant keeps
         // their applications; they are simply no longer connected to an account.
         set({ account: null, syncError: null })
+      },
+
+      async deleteAccount() {
+        await auth.deleteAccount()
+        // Kontot och allt som låg i det är borta. Det som ligger på den här
+        // enheten är deltagarens eget och rörs inte — det raderas separat med
+        // "Radera all data", och kontopanelen säger det rakt ut.
+        set({ account: null, syncError: null, syncedAt: null })
       },
 
       async syncNow() {

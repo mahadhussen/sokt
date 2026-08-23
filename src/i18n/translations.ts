@@ -180,6 +180,10 @@ const sv: Dict = {
   'account.syncExplained':
     'Dina ansökningar och din profil sparas nu både här och på ditt konto, så du ser dem på alla enheter där du loggar in. Ditt CV ligger kvar bara på den här enheten.',
   'account.signOut': 'Logga ut',
+  'account.delete': 'Radera mitt konto',
+  'account.deleteExplained':
+    'Raderar du kontot försvinner det och allt som ligger i det, direkt och för alltid. Dina uppgifter på den här enheten rörs inte — dem raderar du separat under Profil.',
+  'account.deleteConfirm': 'Ja, radera kontot',
   'account.optional': 'Allt fungerar precis lika bra utan konto.',
   'account.syncing': 'Synkar…',
   'account.synced': 'Synkat ✓',
@@ -369,6 +373,10 @@ const ar: Dict = {
   'account.syncExplained':
     'تُحفظ طلباتك وملفك الشخصي الآن هنا وفي حسابك، فتراها على كل جهاز تسجّل الدخول منه. سيرتك الذاتية تبقى على هذا الجهاز فقط.',
   'account.signOut': 'تسجيل الخروج',
+  'account.delete': 'حذف حسابي',
+  'account.deleteExplained':
+    'عند حذف الحساب يختفي هو وكل ما فيه، فورًا ونهائيًا. بياناتك على هذا الجهاز لا تتأثر — تحذفها بشكل منفصل من صفحة الملف الشخصي.',
+  'account.deleteConfirm': 'نعم، احذف الحساب',
   'account.optional': 'كل شيء يعمل بنفس الجودة بدون حساب.',
   'account.syncing': 'جارٍ المزامنة…',
   'account.synced': 'تمت المزامنة ✓',
@@ -559,6 +567,10 @@ const so: Dict = {
   'account.syncExplained':
     'Codsiyadaada iyo astaantaada hadda waxay ku kaydsan yihiin halkan iyo akoonkaaga labadaba, sidaas darteed waad ka arki doontaa qalab kasta oo aad ka gasho. CV-gaagu wuxuu ku hadhayaa qalabkan oo keliya.',
   'account.signOut': 'Ka bax',
+  'account.delete': 'Tirtir akoonkayga',
+  'account.deleteExplained':
+    'Haddii aad akoonka tirtirto wuu baaba\'ayaa isaga iyo wax kasta oo ku jira, isla markiiba oo weligiis. Xogtaada qalabkan kuma taabanayo — taas si gooni ah ayaad uga tirtirtaa bogga Astaanta.',
+  'account.deleteConfirm': 'Haa, tirtir akoonka',
   'account.optional': 'Wax walba si siman ayey u shaqeeyaan akoon la\'aan.',
   'account.syncing': 'Waa la isku dhaafinayaa…',
   'account.synced': 'La isku dhaafiyay ✓',
