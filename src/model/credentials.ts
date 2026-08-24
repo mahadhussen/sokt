@@ -24,14 +24,24 @@ export function isValidEmail(input: string): boolean {
   return domain.includes('.') && !domain.startsWith('.') && !domain.endsWith('.')
 }
 
-export const CODE_LENGTH = 6
+// The code length is a SERVER setting, not ours to assume. Supabase's email OTP
+// length is configurable from 6 to 10 digits, and a real project was seen
+// issuing 8. Hard-coding 6 truncated those codes to a wrong 6 and every login
+// failed silently. So we accept the whole supported range and let the server be
+// the judge of the exact value — the app never decides how long a code "should"
+// be.
+export const MIN_CODE_LENGTH = 6
+export const MAX_CODE_LENGTH = 10
 
 // Codes get pasted from a mail app with spaces, non-breaking spaces, or dashes
 // in them, and read aloud digit by digit. Keep the digits, drop the rest.
 export function normalizeCode(input: string): string {
-  return input.replace(/\D/g, '').slice(0, CODE_LENGTH)
+  return input.replace(/\D/g, '').slice(0, MAX_CODE_LENGTH)
 }
 
+// Enough digits to be worth trying. The server rejects a wrong code with a clear
+// message, so "long enough" beats "exactly N" — the latter is what broke login
+// when N was wrong.
 export function isCompleteCode(input: string): boolean {
-  return normalizeCode(input).length === CODE_LENGTH
+  return normalizeCode(input).length >= MIN_CODE_LENGTH
 }

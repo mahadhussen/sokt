@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useSoktStore } from '../app/store'
 import { useT } from '../i18n/useT'
-import { CODE_LENGTH, isCompleteCode, isValidEmail, normalizeCode, normalizeEmail } from '../model/credentials'
+import { isCompleteCode, isValidEmail, MAX_CODE_LENGTH, normalizeCode, normalizeEmail } from '../model/credentials'
 
 // Signing in is optional and exists for one reason: to move a participant's own
 // applications between devices — the broken phone, the cleared browser, the
@@ -178,7 +178,7 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
               inputMode="numeric"
               autoComplete="one-time-code"
               pattern="[0-9]*"
-              maxLength={CODE_LENGTH + 5}
+              maxLength={MAX_CODE_LENGTH + 4}
               value={code}
               onChange={(e) => setCode(normalizeCode(e.target.value))}
               placeholder="123456"
