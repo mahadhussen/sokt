@@ -98,19 +98,54 @@ function CvSection() {
 }
 
 function DataSection() {
-  const exportData = useSoktStore((s) => s.exportData)
+  const exportBackup = useSoktStore((s) => s.exportBackup)
+  const importBackup = useSoktStore((s) => s.importBackup)
   const deleteAll = useSoktStore((s) => s.deleteAll)
   const { t } = useT()
   const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
-  function download() {
-    const blob = new Blob([exportData()], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'sokt-mina-uppgifter.json'
-    a.click()
-    URL.revokeObjectURL(url)
+  async function download() {
+    setBusy(true)
+    setError(null)
+    try {
+      const json = await exportBackup()
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'sokt-sakerhetskopia.json'
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function restore(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    setError(null)
+    setResult(null)
+    try {
+      const summary = await importBackup(await file.text())
+      const parts = [t('data.restoredApplications', { n: summary.addedApplications })]
+      if (summary.cvRestored) parts.push(t('data.restoredCv'))
+      if (summary.droppedApplications > 0) {
+        parts.push(t('data.restoredDropped', { n: summary.droppedApplications }))
+      }
+      setResult(parts.join(' '))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   return (
@@ -118,9 +153,25 @@ function DataSection() {
       <h2>{t('data.title')}</h2>
       <p className="muted">{t('data.body')}</p>
       <div className="button-row">
-        <button type="button" onClick={download}>
+        <button type="button" onClick={() => void download()} disabled={busy}>
           {t('data.export')}
         </button>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+        >
+          {t('data.import')}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={(e) => void restore(e)}
+          className="hidden-file"
+          aria-label={t('data.import')}
+        />
         {confirming ? (
           <>
             <button type="button" className="danger" onClick={() => void deleteAll()}>
@@ -136,6 +187,8 @@ function DataSection() {
           </button>
         )}
       </div>
+      {result && <p className="ok-text">{result}</p>}
+      {error && <p className="error">{error}</p>}
     </section>
   )
 }

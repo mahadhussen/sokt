@@ -8,8 +8,16 @@ import { SCHEMA_VERSION } from '../model/serialization'
 import type { PersistedModel } from '../model/serialization'
 import { createLocalStorage } from '../services/storage'
 import type { StoragePort } from '../services/storage'
-import { createIndexedDbFileStore, CV_REF } from '../services/fileStore'
+import { base64ToBlob, blobToBase64, createIndexedDbFileStore, CV_REF } from '../services/fileStore'
 import type { CvMeta, FileStore } from '../services/fileStore'
+import { BACKUP_VERSION, mergeBackup, parseBackup } from '../model/backup'
+import type { BackupFile } from '../model/backup'
+import { defaultAuth } from '../services/auth'
+import type { Account, AuthPort } from '../services/auth'
+import { createSupabaseSync } from '../services/cloudSync'
+import type { CloudSync } from '../services/cloudSync'
+import { getSupabase } from '../services/supabaseClient'
+import { mergeRemote } from '../model/sync'
 import type { SavedSearch } from '../jobs/savedSearch'
 import type { CachedSearch } from '../jobs/freshness'
 import type { Lang } from '../i18n/translations'
@@ -36,8 +44,20 @@ function loadLang(): Lang {
   return stored === 'ar' || stored === 'so' ? stored : 'sv'
 }
 
+// A short confirmation of what just happened. `undoable` means the command that
+// produced it is still the last one in history, so undo() will reverse exactly
+// that — the moment anything else is executed the notice is cleared.
+export interface Notice {
+  key: string
+  undoable: boolean
+}
+
 export interface SoktStore extends ModelState {
   hydrated: boolean
+  // Stored data existed but could not be read. The app runs on an empty model,
+  // and the original bytes are kept under a backup key — never overwritten.
+  loadError: boolean
+  backupJson: string | null
   consent: boolean
   history: Command[]
   jobs: Job[]
@@ -47,14 +67,28 @@ export interface SoktStore extends ModelState {
   lang: Lang
   aiKey: string
   lastSearch: CachedSearch | null
+  notice: Notice | null
+  // An account is optional. Null means the app runs exactly as it always has:
+  // everything on this device, nothing sent anywhere.
+  account: Account | null
+  authConfigured: boolean
+  // A write to storage failed. The UI said "saved" while nothing was saved, so
+  // this has to be visible — silence here is how a participant loses a month.
+  saveFailed: boolean
+  syncing: boolean
+  syncError: string | null
+  syncedAt: number | null
   execute(command: Command): void
   undo(): void
-  hydrate(
-    model: PersistedModel | null,
-    cv: CvMeta | null,
-    consent: boolean,
-    savedSearches: SavedSearch[],
-  ): void
+  setNotice(notice: Notice | null): void
+  hydrate(input: {
+    model: PersistedModel | null
+    cv: CvMeta | null
+    consent: boolean
+    savedSearches: SavedSearch[]
+    loadError?: boolean
+    backupJson?: string | null
+  }): void
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
   setLang(lang: Lang): void
@@ -65,8 +99,21 @@ export interface SoktStore extends ModelState {
   saveSearch(input: Omit<SavedSearch, 'id'>): void
   removeSearch(id: string): void
   markSearchSeen(id: string, jobIds: string[]): void
-  exportData(): string
+  exportBackup(): Promise<string>
+  importBackup(json: string): Promise<ImportResult>
   deleteAll(): Promise<void>
+  sendCode(email: string): Promise<void>
+  verifyCode(email: string, code: string): Promise<void>
+  signOut(): Promise<void>
+  deleteAccount(): Promise<void>
+  syncNow(): Promise<void>
+}
+
+export interface ImportResult {
+  addedApplications: number
+  droppedApplications: number
+  cvRestored: boolean
+  profileRestored: boolean
 }
 
 function loadSavedSearches(): SavedSearch[] {
@@ -95,157 +142,373 @@ export function toPersistedModel(state: ModelState): PersistedModel {
   }
 }
 
-export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
-  const store = create<SoktStore>((set, get) => ({
-    profile: null,
-    applications: [],
-    hydrated: false,
-    consent: false,
-    history: [],
-    jobs: [],
-    jobsTotal: 0,
-    cv: null,
-    savedSearches: [],
-    lang: loadLang(),
-    aiKey: window.localStorage.getItem(AI_KEY) ?? '',
-    lastSearch: loadLastSearch(),
-
-    execute(command) {
-      const { profile, applications, history } = get()
-      const next = command.apply({ profile, applications })
-      set({ ...next, history: [...history, command] })
-      void storage.save(toPersistedModel(next))
-    },
-
-    undo() {
-      const { profile, applications, history } = get()
-      const command = history[history.length - 1]
-      if (!command) return
-      const next = command.invert({ profile, applications })
-      set({ ...next, history: history.slice(0, -1) })
-      void storage.save(toPersistedModel(next))
-    },
-
-    hydrate(model, cv, consent, savedSearches) {
-      set({
-        profile: model?.profile ?? null,
-        applications: model?.applications ?? [],
-        cv,
-        consent,
-        savedSearches,
-        hydrated: true,
-      })
-    },
-
-    setJobs(jobs, total) {
-      set({ jobs, jobsTotal: total })
-    },
-
-    setConsent(consent) {
-      set({ consent })
-      if (consent) window.localStorage.setItem(CONSENT_KEY, 'true')
-      else window.localStorage.removeItem(CONSENT_KEY)
-    },
-
-    setLang(lang) {
-      set({ lang })
-      window.localStorage.setItem(LANG_KEY, lang)
-    },
-
-    setAiKey(key) {
-      set({ aiKey: key })
-      // A secret: stored locally only, never included in the data export.
-      if (key.trim()) window.localStorage.setItem(AI_KEY, key)
-      else window.localStorage.removeItem(AI_KEY)
-    },
-
-    cacheLastSearch(entry) {
-      set({ lastSearch: entry })
-      window.localStorage.setItem(LASTSEARCH_KEY, JSON.stringify(entry))
-    },
-
-    async uploadCv(file) {
-      // pdfjs is large; load it only when a CV is actually uploaded.
-      const { extractPdfText } = await import('../services/cvParser')
-      const text = await extractPdfText(file).catch(() => '')
-      const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
-      await fileStore.saveCv({ ...meta, blob: file })
-      set({ cv: meta })
-      const { profile } = get()
-      if (profile && profile.cvFileRef !== CV_REF) {
-        get().execute(setProfileCommand({ ...profile, cvFileRef: CV_REF }))
-      }
-    },
-
-    async removeCv() {
-      await fileStore.clearCv()
-      set({ cv: null })
-      const { profile } = get()
-      if (profile?.cvFileRef) {
-        get().execute(setProfileCommand({ ...profile, cvFileRef: undefined }))
-      }
-    },
-
-    saveSearch(input) {
-      const search: SavedSearch = { id: crypto.randomUUID(), ...input }
-      const savedSearches = [...get().savedSearches, search]
-      set({ savedSearches })
-      persistSavedSearches(savedSearches)
-    },
-
-    removeSearch(id) {
-      const savedSearches = get().savedSearches.filter((s) => s.id !== id)
-      set({ savedSearches })
-      persistSavedSearches(savedSearches)
-    },
-
-    markSearchSeen(id, jobIds) {
-      const savedSearches = get().savedSearches.map((s) =>
-        s.id === id ? { ...s, seenJobIds: jobIds } : s,
+export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth: AuthPort) {
+  const store = create<SoktStore>((set, get) => {
+    // Persisting must never fail silently. `save` is fire-and-forget by design
+    // (an edit should not wait on disk), but a rejected write has to surface —
+    // otherwise the row is on screen, the tab counter went up, and it is gone
+    // on reload. A quota error is a rejected promise here, and both call sites
+    // used to discard it.
+    function persist(model: PersistedModel): void {
+      storage.save(model).then(
+        () => {
+          if (get().saveFailed) set({ saveFailed: false })
+        },
+        () => set({ saveFailed: true }),
       )
-      set({ savedSearches })
-      persistSavedSearches(savedSearches)
-    },
+    }
 
-    exportData() {
-      const { profile, applications, cv, savedSearches } = get()
-      return JSON.stringify(
-        { schemaVersion: SCHEMA_VERSION, profile, applications, cv, savedSearches },
-        null,
-        2,
-      )
-    },
+    // Mirror one edit to the account. The local write has already succeeded, so
+    // a failure here is "not synced yet", not lost data — it is reported as
+    // such, and the next syncNow() picks the row up from the local side.
+    function mirror(run: ((cloud: CloudSync) => Promise<void>) | undefined): void {
+      const { account } = get()
+      if (!account || !run) return
+      void getSupabase()
+        .then((db) => run(createSupabaseSync(db, account.id)))
+        .then(
+          () => {
+            if (get().syncError) set({ syncError: null })
+            set({ syncedAt: Date.now() })
+          },
+          (e: unknown) => set({ syncError: e instanceof Error ? e.message : String(e) }),
+        )
+    }
 
-    async deleteAll() {
-      await storage.clear()
-      await fileStore.clearCv()
-      window.localStorage.removeItem(CONSENT_KEY)
-      window.localStorage.removeItem(SEARCHES_KEY)
-      window.localStorage.removeItem(AI_KEY)
-      window.localStorage.removeItem(LASTSEARCH_KEY)
-      set({
-        profile: null,
-        applications: [],
-        cv: null,
-        consent: false,
-        savedSearches: [],
-        aiKey: '',
-        lastSearch: null,
-        history: [],
-      })
-    },
-  }))
+    return {
+      profile: null,
+      applications: [],
+      hydrated: false,
+      loadError: false,
+      backupJson: null,
+      consent: false,
+      history: [],
+      jobs: [],
+      jobsTotal: 0,
+      cv: null,
+      savedSearches: [],
+      lang: loadLang(),
+      aiKey: window.localStorage.getItem(AI_KEY) ?? '',
+      lastSearch: loadLastSearch(),
+      notice: null,
+      account: null,
+      authConfigured: auth.configured,
+      saveFailed: false,
+      syncing: false,
+      syncError: null,
+      syncedAt: null,
+
+      execute(command) {
+        const { profile, applications, history } = get()
+        const next = command.apply({ profile, applications })
+        // Any new command invalidates a pending undo offer: the notice must never
+        // outlive the command it describes.
+        set({ ...next, history: [...history, command], notice: null })
+        persist(toPersistedModel(next))
+        mirror(command.sync)
+      },
+
+      undo() {
+        const { profile, applications, history } = get()
+        const command = history[history.length - 1]
+        if (!command) return
+        const next = command.invert({ profile, applications })
+        set({ ...next, history: history.slice(0, -1), notice: null })
+        persist(toPersistedModel(next))
+        mirror(command.syncUndo)
+      },
+
+      setNotice(notice) {
+        set({ notice })
+      },
+
+      async sendCode(email) {
+        await auth.sendCode(email)
+      },
+
+      async verifyCode(email, code) {
+        const account = await auth.verifyCode(email, code)
+        set({ account })
+        // Merge immediately: the point of signing in is seeing your own
+        // applications, and an account that shows an empty list would look
+        // like the data was lost.
+        await get().syncNow()
+      },
+
+      async signOut() {
+        await auth.signOut()
+        // Signing out never touches what is on this device. The participant keeps
+        // their applications; they are simply no longer connected to an account.
+        set({ account: null, syncError: null })
+      },
+
+      async deleteAccount() {
+        await auth.deleteAccount()
+        // Kontot och allt som låg i det är borta. Det som ligger på den här
+        // enheten är deltagarens eget och rörs inte — det raderas separat med
+        // "Radera all data", och kontopanelen säger det rakt ut.
+        set({ account: null, syncError: null, syncedAt: null })
+      },
+
+      async syncNow() {
+        const { account, profile, applications } = get()
+        if (!account) return
+        set({ syncing: true, syncError: null })
+        try {
+          const cloud = createSupabaseSync(await getSupabase(), account.id)
+          const remote = await cloud.pull()
+          const merged = mergeRemote({ profile, applications }, remote)
+          const nextModel = { profile: merged.profile, applications: merged.applications }
+          set({ ...nextModel })
+          persist(toPersistedModel(nextModel))
+          // Push what only this device had. Uploading one row at a time means a
+          // single failure costs that row, not the batch.
+          for (const application of merged.toUpload) {
+            await cloud.upsertApplication(application)
+          }
+          if (merged.profile && !remote.profile) await cloud.saveProfile(merged.profile)
+          set({ syncedAt: Date.now() })
+        } catch (e) {
+          set({ syncError: e instanceof Error ? e.message : String(e) })
+        } finally {
+          set({ syncing: false })
+        }
+      },
+
+      hydrate({ model, cv, consent, savedSearches, loadError = false, backupJson = null }) {
+        set({
+          profile: model?.profile ?? null,
+          applications: model?.applications ?? [],
+          cv,
+          consent,
+          savedSearches,
+          loadError,
+          backupJson,
+          hydrated: true,
+        })
+      },
+
+      setJobs(jobs, total) {
+        set({ jobs, jobsTotal: total })
+      },
+
+      setConsent(consent) {
+        set({ consent })
+        if (consent) window.localStorage.setItem(CONSENT_KEY, 'true')
+        else window.localStorage.removeItem(CONSENT_KEY)
+      },
+
+      setLang(lang) {
+        set({ lang })
+        window.localStorage.setItem(LANG_KEY, lang)
+      },
+
+      setAiKey(key) {
+        set({ aiKey: key })
+        // A secret: stored locally only, never included in the data export.
+        if (key.trim()) window.localStorage.setItem(AI_KEY, key)
+        else window.localStorage.removeItem(AI_KEY)
+      },
+
+      cacheLastSearch(entry) {
+        set({ lastSearch: entry })
+        window.localStorage.setItem(LASTSEARCH_KEY, JSON.stringify(entry))
+      },
+
+      async uploadCv(file) {
+        // pdfjs is large; load it only when a CV is actually uploaded.
+        const { extractPdfText } = await import('../services/cvParser')
+        const text = await extractPdfText(file).catch(() => '')
+        const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
+        await fileStore.saveCv({ ...meta, blob: file })
+        set({ cv: meta })
+        const { profile } = get()
+        if (profile && profile.cvFileRef !== CV_REF) {
+          get().execute(setProfileCommand({ ...profile, cvFileRef: CV_REF }))
+        }
+      },
+
+      async removeCv() {
+        await fileStore.clearCv()
+        set({ cv: null })
+        const { profile } = get()
+        if (profile?.cvFileRef) {
+          get().execute(setProfileCommand({ ...profile, cvFileRef: undefined }))
+        }
+      },
+
+      saveSearch(input) {
+        const search: SavedSearch = { id: crypto.randomUUID(), ...input }
+        const savedSearches = [...get().savedSearches, search]
+        set({ savedSearches })
+        persistSavedSearches(savedSearches)
+      },
+
+      removeSearch(id) {
+        const savedSearches = get().savedSearches.filter((s) => s.id !== id)
+        set({ savedSearches })
+        persistSavedSearches(savedSearches)
+      },
+
+      markSearchSeen(id, jobIds) {
+        const savedSearches = get().savedSearches.map((s) =>
+          s.id === id ? { ...s, seenJobIds: jobIds } : s,
+        )
+        set({ savedSearches })
+        persistSavedSearches(savedSearches)
+      },
+
+      async exportBackup() {
+        const { profile, applications, savedSearches } = get()
+        // The CV blob travels with the file. The old export named itself "all
+        // your data" while leaving the CV behind, so a restore left the
+        // participant re-uploading a document they thought they had saved.
+        // The AI key is deliberately absent: it is a secret, not their data.
+        const stored = await fileStore.loadCv().catch(() => null)
+        const cv = stored
+          ? {
+              fileName: stored.fileName,
+              text: stored.text,
+              byteSize: stored.byteSize,
+              dataBase64: await blobToBase64(stored.blob),
+            }
+          : undefined
+        const backup: BackupFile = {
+          sokt: 'backup',
+          version: BACKUP_VERSION,
+          exportedAt: new Date().toISOString(),
+          profile,
+          applications,
+          savedSearches,
+          cv,
+        }
+        return JSON.stringify(backup, null, 2)
+      },
+
+      async importBackup(json) {
+        // Restoring never destroys: applications merge by id, an existing profile
+        // wins, and a CV already on the device is left alone.
+        const { backup, droppedApplications } = parseBackup(json)
+        const { profile, applications } = get()
+        const merged = mergeBackup({ profile, applications }, backup)
+
+        let cvRestored = false
+        if (backup.cv && !get().cv) {
+          const meta: CvMeta = {
+            fileName: backup.cv.fileName,
+            text: backup.cv.text,
+            byteSize: backup.cv.byteSize,
+          }
+          await fileStore.saveCv({
+            ...meta,
+            blob: base64ToBlob(backup.cv.dataBase64),
+          })
+          set({ cv: meta })
+          cvRestored = true
+        }
+
+        const nextModel = {
+          profile: merged.profile,
+          applications: merged.applications,
+        }
+        // A restore is not undoable through the command history — it is a bulk
+        // write, and offering "Ångra" for it would be a lie.
+        set({ ...nextModel, history: [], notice: null })
+        await storage.save(toPersistedModel(nextModel))
+
+        const known = new Set(get().savedSearches.map((s) => s.id))
+        const restoredSearches = (backup.savedSearches as SavedSearch[]).filter(
+          (s) => s && typeof s.id === 'string' && !known.has(s.id),
+        )
+        if (restoredSearches.length > 0) {
+          const savedSearches = [...get().savedSearches, ...restoredSearches]
+          set({ savedSearches })
+          persistSavedSearches(savedSearches)
+        }
+
+        return {
+          addedApplications: merged.addedApplications,
+          droppedApplications,
+          cvRestored,
+          profileRestored: profile === null && merged.profile !== null,
+        }
+      },
+
+      async deleteAll() {
+        await storage.clear()
+        await fileStore.clearCv()
+        window.localStorage.removeItem(CONSENT_KEY)
+        window.localStorage.removeItem(SEARCHES_KEY)
+        window.localStorage.removeItem(AI_KEY)
+        window.localStorage.removeItem(LASTSEARCH_KEY)
+        set({
+          profile: null,
+          applications: [],
+          cv: null,
+          consent: false,
+          savedSearches: [],
+          aiKey: '',
+          lastSearch: null,
+          history: [],
+          loadError: false,
+          backupJson: null,
+          notice: null,
+        })
+      },
+    }
+  })
+
+  // Ask the browser to keep this origin's data. Without it Safari's ITP clears
+  // everything after seven days without a visit — and a jobseeker is job
+  // hunting, not app-checking. Best effort: never block boot, never surface a
+  // failure the participant cannot act on.
+  function requestPersistence(): void {
+    try {
+      void navigator.storage?.persist?.().catch(() => false)
+    } catch {
+      /* not supported here */
+    }
+  }
 
   async function boot() {
+    requestPersistence()
+    // A failed load is NOT an empty model. Distinguishing the two is the whole
+    // point: treating "unreadable" as "empty" would let the next edit write
+    // over a participant's entire application history. The adapter has already
+    // set the raw bytes aside; we surface that so the UI can say so and offer
+    // the file back.
+    let loadError = false
     const [model, cv] = await Promise.all([
-      storage.load().catch(() => null),
+      storage.load().catch(() => {
+        loadError = true
+        return null
+      }),
       fileStore.loadCv().catch(() => null),
     ])
+    const backupJson = loadError ? await storage.backup().catch(() => null) : null
     const consent = window.localStorage.getItem(CONSENT_KEY) === 'true'
     const cvMeta: CvMeta | null = cv
       ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize }
       : null
-    store.getState().hydrate(model, cvMeta, consent, loadSavedSearches())
+    store.getState().hydrate({
+      model,
+      cv: cvMeta,
+      consent,
+      savedSearches: loadSavedSearches(),
+      loadError,
+      backupJson,
+    })
+    // Restoring a session must not delay the app: someone without an account —
+    // the common case — should never wait on an auth round trip to see a job.
+    void auth
+      .currentAccount()
+      .then((account) => {
+        if (!account) return
+        store.setState({ account })
+        // Pick up anything logged on another device since this one was last open.
+        void store.getState().syncNow()
+      })
+      .catch(() => undefined)
   }
   void boot()
 
@@ -253,4 +516,4 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore) {
 }
 
 export const fileStore = createIndexedDbFileStore()
-export const useSoktStore = createSoktStore(defaultStorage(), fileStore)
+export const useSoktStore = createSoktStore(defaultStorage(), fileStore, defaultAuth())

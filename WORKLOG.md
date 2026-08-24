@@ -7,6 +7,297 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-07-28 — Milestone 17: Radera kontot
+
+### Byggt
+- **`delete_own_account()`** i migrationen — SECURITY DEFINER, eftersom anon-nyckeln aldrig får röra
+  `auth.users`. Funktionen läser `auth.uid()` ur JWT:n i stället för att ta ett argument, så en
+  användare kan inte begära att någon annans konto raderas. `ON DELETE CASCADE` tar ansökningar och
+  profil med sig.
+- **"Radera mitt konto"** i kontopanelen med tvåstegsbekräftelse, sv/ar/so. Panelen säger rakt ut att
+  uppgifterna på den egna enheten INTE raderas — de tas bort separat under Profil.
+- `AuthPort.deleteAccount()`; den avstängda implementationen avvisar anropet i stället för att låtsas
+  lyckas.
+
+### Beslut
+- **Den som kan skapa ett konto måste kunna ta bort det, i appen.** Utan det är "radera" ett påstående
+  och inte en funktion, och Sökt är öppet för vem som helst — det finns ingen coach att mejla.
+- **Kontoradering rör inte enhetens data.** Två skilda saker, två skilda knappar. Att smyga med en
+  lokal radering i en molnradering vore precis den sortens överraskning som gör att man inte vågar
+  trycka på något.
+
+### Inte verifierat
+Kräver ett riktigt Supabase-projekt. Knappen syns bara när man är inloggad, så den går inte att köra
+mot attrapp-nycklar. Testfallet ligger i SETUP_KONTO.md steg 7.
+
+144 tester, typkontroll, lint och bygge gröna.
+
+## 2026-07-28 — Milestone 16: Konto med sexsiffrig kod, och synk mellan enheter
+
+### Byggt
+- **`services/auth.ts` + `services/supabaseClient.ts`** — inloggning med e-post och sexsiffrig
+  engångskod (Supabase Auth `signInWithOtp`/`verifyOtp`, mejlet levererat av Resend som SMTP).
+  Vi genererar, lagrar och kontrollerar **inte** koder själva: rate limiting, brute force-skydd,
+  token-förnyelse och sessionslagring är precis de delar som är lätta att göra subtilt och farligt
+  fel. Inget lösenord — att hitta på, minnas och återställa ett är tre separata sätt att bli utelåst
+  för den här målgruppen.
+- **Kontot är frivilligt.** Utan `VITE_SOKT_SUPABASE_*` finns ingen inloggningsknapp, och
+  supabase-js laddas aldrig ner (verifierat: bara vår egen 3,6 kB-modul hämtas). Appen fungerar
+  exakt som förut lokalt. Det är inte en reservlösning utan produktens grundläge.
+- **`model/sync.ts`** (ren, testad) — `mergeRemote`. Reglerna finns för att synken ska vara
+  *oförmögen* att tappa en ansökan: rader bara denna enhet har LADDAS UPP (en månad offline får inte
+  kosta en månad), rader bara kontot har LÄGGS TILL, rader kontot markerat raderade TAS BORT även
+  här, och en lokal rad skrivs aldrig över av kontots kopia.
+- **Mjuk radering (`deleted_at`).** Utan den går en saknad rad inte att skilja från en rad som ännu
+  inte laddats upp — nästa synk skulle återuppliva den och deltagaren blir aldrig av med den.
+- **Per-post-skrivningar.** `Command` fick `sync`/`syncUndo`, så varje ändring speglas som EN rad.
+  Den gamla `save(hela modellen)` var last-write-wins och fire-and-forget: med två enheter (eller
+  två flikar) hade den andra skrivningen tyst raderat den förstas arbete. Det var den kända
+  blockeraren för allt molnarbete, och den är borta nu.
+- **Sparfel syns.** `persist()` fångar ett avvisat `save` och visar en banner. Tidigare svaldes
+  ett `QuotaExceededError` av `void storage.save(...)` — raden låg på skärmen, räknaren tickade upp,
+  och allt var borta vid omladdning.
+- **`model/credentials.ts`** (ren, testad) — normaliserar e-post och kod. Koden klistras in med
+  mellanslag, hårda mellanslag eller bindestreck ur mejlappen; adressen kommer med stor
+  begynnelsebokstav från telefonens tangentbord. Att avvisa det är inte stringens, det är en låst
+  dörr.
+- **`supabase/migrations/20260728120000_sokt_konto_och_synk.sql`** — `applications` + `profiles`
+  med RLS där varje användare bara når sina egna rader. `WITH CHECK` på insert/update, inte bara
+  `USING`, annars kan man skriva rader åt någon annan.
+- **`SETUP_KONTO.md`** — de steg som kräver Mahads konton (Supabase-projekt, Resend-domän, DNS,
+  SMTP, mallen med `{{ .Token }}`).
+
+### Beslut (med alternativ)
+- **Eget Supabase-projekt, inte Pathlys.** Sökt är öppet för vem som helst. Publika användare ska
+  inte ligga i en leverantörs tenant-databas när verktyget ska säljas till flera R&M-leverantörer,
+  och Pathlys `handle_new_user` gör dessutom varje ny inloggning till handläggare i company 1.
+  Bonus: deltagaren äger sitt eget konto och kan senare VÄLJA att dela med en coach — det är det
+  enda sättet att få ett samtycke som är frivilligt enligt GDPR art. 7.4, eftersom coachen annars
+  styr deltagarens programdeltagande.
+- **Supabase Auth, inte egen OTP mot Resend.** Alternativet (egen kod, egen tabell, egna sessioner)
+  är en stor säkerhetsyta för en ensam utvecklare. Resend används där det hör hemma: som SMTP.
+- **`noValidate` på formulären.** `type="email"` behålls för tangentbordet, men webbläsarens egen
+  valideringsbubbla kommer på *webbläsarens* språk — en arabisk- eller somalisktalande på en svensk
+  telefon hade rättats på svenska. Vår text är översatt.
+- **Synkfel är inte dataförlust.** Den lokala skrivningen har redan lyckats, så ett misslyckat
+  moln-anrop rapporteras som "inte synkat än" och nästa `syncNow()` tar raden från den lokala sidan.
+
+### Verifierat i webbläsare (375 px)
+Utan nycklar: ingen inloggningsknapp, supabase-js hämtas inte alls, appen oförändrad.
+Med attrapp-nycklar: knappen syns, panelen renderar, felaktig adress ger "Kontrollera
+e-postadressen." (vår översatta text, inte webbläsarens), och "Skicka kod" mot en påhittad
+Supabase-URL ger "Ingen kontakt med servern. Kontrollera din uppkoppling." och lämnar användaren kvar
+på e-poststeget. 144 tester.
+
+**Inte verifierat mot ett riktigt projekt** — det kräver Supabase + Resend enligt SETUP_KONTO.md.
+Hela kedjan (kod i mejlet → inloggning → synk mellan två enheter) ska köras igenom när nycklarna
+finns.
+
+### Öppet innan riktiga användare släpps in
+- **Radera kontot** går i dag bara via Supabase-dashboarden. "Radera" måste betyda radera.
+- CV-synk saknas (står uttryckligen i kontopanelen).
+- Delning med coach: separat, och deltagarens eget val.
+
+## 2026-07-28 — Milestone 15: Säkerhetskopia som faktiskt går att läsa tillbaka
+
+### Byggt
+- **`model/backup.ts`** (ren, testad) — filformatet `{sokt:'backup', version, exportedAt, profile,
+  applications, savedSearches, cv}`. `parseBackup` validerar och **räddar det som går att läsa**
+  i stället för att kasta allt: en trasig rad hoppas över och räknas, resten återställs. Vägrar med
+  ett begripligt skäl när filen inte är en Sökt-kopia eller kommer från en nyare version.
+- **`mergeBackup`** — återställning får aldrig förstöra. Ansökningar slås ihop på id, en profil som
+  redan finns på enheten vinner över filens, och ett CV som redan finns rörs inte. Att läsa in samma
+  fil två gånger lägger till noll.
+- **CV:t följer med filen** (base64, chunkad kodning — att spreada en flermegabyte-Uint8Array in i
+  `String.fromCharCode` spränger stacken). Den gamla exporten kallade sig "allt du sparat" men
+  lämnade kvar CV-blobben, och **ingenting i hela kodbasen kunde läsa tillbaka den**. En
+  säkerhetskopia är bara en säkerhetskopia om den återställer.
+- **AI-nyckeln är avsiktligt inte med.** Den är en hemlighet, inte deltagarens data.
+- **`model/validate.ts`** (ren, testad indirekt) — riktiga typvakter för `Application`/`Profile`.
+  `deserializeModel` validerade tidigare bara `Array.isArray`, så en enda trasig rad gick rakt in i
+  render-trädet och blankade appen — varefter deltagaren inte ens kunde nå Exportera eller Radera,
+  eftersom de knapparna satt i appen som just dog. Nu kastar den i stället, vilket leder till
+  säkerhetskopie-vägen från M12 där rådata bevaras och lämnas tillbaka.
+- **`navigator.storage.persist()`** begärs vid boot. Utan den rensar Safaris ITP allt efter sju dagar
+  utan besök — och en arbetssökande söker jobb, hen kollar inte appar.
+
+### Beslut (med alternativ)
+- **Sammanslagning, inte överskrivning.** En återställning på en enhet som redan har data behåller
+  allt den hade. Alternativet (ersätt allt) är enklare att resonera om men gör en felklickad
+  återställning till en katastrof.
+- **Ingen "Ångra" på återställning.** Det är en bulkskrivning, inte ett kommando i historiken; att
+  erbjuda Ångra hade varit en lögn. Historiken nollställs i stället.
+- **Vakterna kastar i stället för att tyst filtrera bort rader.** Att tappa en rad ur en rapport som
+  går till Arbetsförmedlingen får inte ske i tysthet. Kastet leder till bannern med säkerhetskopian.
+
+### Verifierat i webbläsare (375 px)
+Export → filen innehåller `sokt:'backup'`, version 1, tidsstämpel och ansökan (CV-fältet saknas
+korrekt när inget CV finns). Ta bort ansökan → import → "1 ansökningar tillagda", raden tillbaka i
+localStorage. Samma fil igen → "0 ansökningar tillagda" (inga dubbletter). Främmande JSON → "Filen är
+inte en säkerhetskopia från Sökt" och orörd data. `navigator.storage.persist()` returnerar false på
+en färsk localhost-origin — webbläsaren avslår själv, verifierat med ett direkt anrop; Chrome ger
+persistens vid engagemang/installation, vilket är ännu ett argument för PWA-manifestet härnäst.
+
+### Noterat, inte åtgärdat
+Efter "Radera all data" (och i en färsk webbläsare) måste samtycket ges innan Profil-fliken renderas,
+alltså innan man kommer åt "Läs in säkerhetskopia". Ett tryck extra, men det hör till den större
+frågan om samtyckesgrinden som ändå ska omprövas.
+
+129 tester.
+
+## 2026-07-28 — Milestone 14: Dubbletter, sökt-markering och en väg tillbaka
+
+### Byggt
+- **`apply/duplicates.ts`** (ren, testad) — `appliedTo(applications, job)` och
+  `findDuplicate(applications, kandidat, withinDays = 60)`. Ingenting kontrollerade detta tidigare:
+  nästa vecka kom samma annonser tillbaka och såg orörda ut, så deltagaren antingen sökte igen eller
+  loggade samma ansökan två gånger. En dubblettrad är precis vad som får en aktivitetsrapport
+  ifrågasatt — och samma annons finns på riktigt två gånger i Sökt, en gång från Platsbanken och en
+  gång via JobAd Links, med olika id och olika url.
+- **Matchning på annonsens url först, annars arbetsgivare + titel** — vikta genom `fold` från
+  `jobs/occupations`, så "Städare" och "stadare" är samma jobb. Tidsfönstret gäller bara
+  arbetsgivare+titel: samma roll hos samma arbetsgivare ett halvår senare är en riktig andra
+  ansökan, inte ett misstag. Url-matchningen är tidlös — samma annons är samma annons.
+- **Sökt-markering på jobbkortet** — "✓ Du sökte den {datum}" och grön ram.
+- **Dubblettvarning** i både Ansök-panelen och det manuella formuläret. Varnar, blockerar aldrig:
+  bara deltagaren vet om den andra ansökan var avsiktlig.
+- **Bekräftelse med Ångra.** Att logga en ansökan fällde tidigare ihop panelen utan någon signal
+  alls, och "Ta bort" var ett enda oåterkalleligt klick — medan `undo()` låg färdigimplementerad i
+  store.ts utan en enda anropare i hela UI:t. Nu sätter både logga och ta bort en `notice` som visas
+  som en rad högst upp med knappen "Ångra".
+
+### Beslut (med alternativ)
+- **Ångra i stället för bekräftelsedialog före radering.** En dialog framför varje radering straffar
+  alla för ett sällsynt misstag; en ångra-knapp efteråt kostar ingenting förrän man behöver den.
+  Dessutom fanns maskineriet redan — det saknades bara en knapp.
+- **`notice` nollställs i `execute()`.** Ett ångra-erbjudande får aldrig överleva kommandot det
+  beskriver: `undo()` ångrar sista kommandot i historiken, så om något annat hunnit köras skulle
+  knappen ta bort fel sak. Rensas också automatiskt efter åtta sekunder.
+- **Varning, inte spärr, vid dubblett.** Alternativet (blockera) hade gjort en legitim andra ansökan
+  omöjlig att logga, och rapporten hade blivit fel åt andra hållet.
+
+### Verifierat i webbläsare (375 px, riktiga API:t)
+Manuell ansökan → grön rad "Ansökan loggad ✓" med Ångra. Ta bort → "Ansökan borttagen." → Ångra →
+raden tillbaka i listan OCH i localStorage. Manuellt formulär med "lagerarbetare" / "AHMEDS LOGISTIK
+AB" → dubblettvarning trots annan skiftläge. Sökning på städare → logga ansökan från kortet → kortet
+får grön ram och "✓ Du sökte den 2026-07-28".
+
+119 tester.
+
+## 2026-07-28 — Milestone 13: Manuell ansökan (rapporten blir fullständig)
+
+### Byggt
+- **`apply/buildManualApplication.ts`** (ren, testad) — bygger en `Application` av det deltagaren
+  själv skriver in, för jobb hen sökt utanför Sökt: på plats, via telefon, från coachens tips, från
+  en annons hittad någon annanstans. Fram tills nu gick `addApplicationCommand` att nå från exakt
+  ETT ställe (Ansök-panelen på ett sökträffskort), så allt annat gick helt enkelt inte att registrera.
+  Aktivitetsrapporten täckte alltså bara den del av aktiviteten som råkat gå genom appens sökruta.
+- **`validateManualApply`** returnerar fältnycklar, inte meningar. Rena moduler kan inte översätta,
+  och ett kastat svenskt felmeddelande hade varit oläsbart i en app som skeppar arabiska och somaliska.
+  UI:t översätter nycklarna till fältnära fel i stället för en textrad längst ned.
+- **Formulär i Ansökningar-vyn** bakom "+ Lägg till en ansökan du gjort själv". Sex AF-fält, inget
+  mer: datum förifyllt med dagens (lokala) datum, ort förifylld från profilen. i18n sv/ar/so.
+
+### Beslut (med alternativ)
+- **Samma vägran att gissa som `buildApplication`.** Ofullständig post byggs inte — rapporten går
+  till Arbetsförmedlingen, och en påhittad arbetsgivare eller anställningsform i ett myndighets-
+  dokument är värre än en saknad rad. Alternativet (spara som utkast med tomma fält) valdes bort:
+  ett utkast som ser färdigt ut i listan är en fälla.
+- **`channel: 'manual'`, ingen fråga om hur man sökte.** Kanalen är spårbarhet, inte ett rapportfält
+  (`activityReport` läser bara de sex AF-fälten). Att fråga hade lagt till en ruta utan att göra
+  rapporten mer korrekt.
+- **Inga nya aktivitetstyper (kontakt med arbetsgivare, rekryteringsträff, utbildning) ännu.** De hör
+  hemma i AF:s rapport men kräver en modelländring och därmed `SCHEMA_VERSION` 2 — som är spärrat
+  tills `migrate()` finns (M12). Nästa steg, i rätt ordning.
+
+### Verifierat i webbläsare (375 px)
+Tomt formulär → fyra fältfel, ingenting skrivet till localStorage. Ifyllt → rad i Ansökningar,
+`channel: "manual"` i lagringen, formuläret stängs, och raden syns i aktivitetsrapporten för juli.
+Formuläret renderar rent på arabiska (`dir=rtl`) utan att sidan scrollar i sidled.
+
+108 tester.
+
+## 2026-07-28 — Milestone 12: Vecka 1 efter granskningen (grund för deltagaren)
+
+Föregicks av en granskning med tre agenter (deltagar-UX, Pathly-integration, teknik) plus en
+adversariell kritiker. Kritikern kullkastade flera av förslagen; det som byggdes här är kritikerns
+prioritering, inte granskarnas. Se "Byggs INTE" nedan — den listan är lika viktig som det byggda.
+
+### Byggt
+- **`report/periods.ts`** (ren, testad) — `todayIso`/`toIsoDate` läser LOKALT datum, aldrig
+  `toISOString()`. Sverige är UTC+1/+2, så mellan midnatt och 01/02 gav den gamla `todayIso()` i
+  JobsView gårdagens datum som default på en ansökan — in i en månad vars rapport kan vara inlämnad.
+  Samma modul äger nu perioden: `reportPeriod(now)` ger FÖREGÅENDE månad så länge AF:s
+  rapportfönster (1–14) är öppet, annars innevarande. Rapport- och översiktsvyn delade tidigare en
+  kopierad `currentMonthRange()` som defaultade fel under exakt de två veckor någon öppnar fliken.
+- **Deadline-rad i rapportvyn** — "Lämna rapporten i Mina sidor senast den 14:e — {n} dagar kvar",
+  bara medan fönstret är öppet.
+- **`jobs/occupations.ts`** (ren, testad) — JobTech-API:t viker inte diakriter. Verifierat live:
+  `stadare` → 0 träffar, `städare` → 733; `underskoterska` → 0, `undersköterska` → 26. Deltagare med
+  arabiskt/somaliskt tangentbord gick alltså in i en tyst återvändsgränd på appens viktigaste
+  kontroll. Vid noll träffar viks sökningen och matchas mot en kurerad yrkeslista → knappen
+  "Menade du städare?". Brute force är uteslutet (54 stavningar för "lokalvardare" = 54 anrop).
+  Listan är samtidigt fröet till en yrkesväljare, som är den riktiga långsiktiga lösningen.
+- **Ärliga siffror i sökningen.** Kryssrutan visar nu "Bara enkel ansökan — 47 av 100 jobb", och
+  resultatraden syns även när filtret tömmer listan. Den gamla texten ("43 enkla ansökningar av 729
+  annonser") blandade två olika populationer: 43 kom ur de 100 hämtade, 729 var API:ts totalsumma.
+- **Tomt läge är aldrig en återvändsgränd.** Noll enkla ansökningar ger knappen "Visa alla
+  ansökningssätt (100 jobb)"; noll träffar totalt ger stavningsförslaget. Filtret filtrerar nu
+  lokalt på redan hämtade annonser — omedelbart, utan nytt anrop.
+- **Säkerhetskopia vid oläsbar data.** `storage.load()` kastar `StorageReadError` i stället för att
+  se ut som "tomt", och lägger undan råsträngen under `sokt.model.v1.trasig` (första kopian vinner)
+  innan appen börjar skriva över den. Store skiljer nu "saknas" från "gick inte att läsa" och visar
+  en banner: ingenting är raderat, ladda ner kopian och visa den för din coach.
+  Detta var den enda vägen till total dataförlust i produkten: `deserializeModel` kastar på ALLA
+  schemaversioner ≠ 1 och det finns ingen migrate(), så en framtida `SCHEMA_VERSION`-höjning hade
+  tömt varje installation vid nästa klick.
+- **E-post före formulärlänk** i `mapApplicationChannel`. En annons kan bära båda; att läsa url
+  först stängde ute dem från enkel ansökan trots att ett vanligt mail gick lika bra. Mätt effekt
+  live: städare 43 → 47 enkla av 100 hämtade.
+- **Mobil-CSS.** Filen hade noll `@media` på 545 rader. Dokumentet var 492 px brett vid 375 px
+  viewport, så två flikar låg utanför skärmen och tabellerna sköt ut sidan till 794 px. Nu:
+  `overflow-x: hidden` på body, scrollande flikremsa med snap, `.table-wrap` runt båda tabellerna,
+  44 px träffytor, 16 px inputs (annars zoomar iOS Safari), staplad sökform och jobbkort på telefon.
+  RTL: `.tag` och chips använder logiska egenskaper, så arabiskan får rätt sida.
+- **Tom sökning cachas inte längre** — den skrev över offline-cachen och gav ett blankt flöde vid
+  nästa kallstart. Cachen sparar nu ofiltrerade annonser, så filtret går att slå om offline.
+
+### Verifierat i webbläsare (375 px, riktiga API:t)
+`stadare` → 0 träffar → "Menade du städare?" → 47 jobb. Kryssrutan "47 av 100 jobb", raden
+"47 jobb med enkel ansökan. 730 annonser finns totalt." Toggle av → 100 kort utan nytt anrop.
+`document.scrollWidth` 375 = viewport (var 492). Femte fliken nåbar via remsan. Planterad v2-modell
+→ banner + `sokt.model.v1.trasig` med originalet intakt. Rapportfliken 2026-07-28 → 1–31 juli,
+ingen deadline-rad (fönstret stängt) — precis som avsett.
+
+### Beslut (med alternativ)
+- **Kurerad yrkeslista, inte typeahead eller brute force.** JobTechs `/complete` viker inte heller
+  diakriter (testat: `underskoterska` → tom, `undersk` → träff), så den kan inte rädda den vanligaste
+  felstavningen. Listan är deterministisk, kostar noll anrop och blir yrkesväljaren senare.
+- **Kryssrutan "Bara enkel ansökan" står kvar PÅ.** Granskningen ville ha den av (den döljer ~74 %
+  av annonserna). Kritikern hade rätt: filtret ÄR produkten — utan det möter deltagaren
+  Workbuster-/Teamtailor-formulär hen inte kan slutföra, och lär sig på ett möte att appen inte
+  fungerar. Kompromissen är siffror på kryssrutan och en väg ut ur det tomma läget.
+- **Säkerhetskopia före export/import.** Granskningen ville bygga import/export först. Den hjälper
+  bara den som redan hade tagit en kopia — alltså inte den som drabbas. En rad i `load()` räddar
+  alla; import/export ligger kvar som nästa steg.
+- **Perioden ligger i report/, inte i vyerna.** `currentMonthRange()` var kopierad i två vyer med
+  samma fel i båda. Regeln är domänlogik och testas som sådan.
+
+### Byggs INTE (medvetet bortvalt efter kritiken)
+- Slå av "enkel ansökan" som default; automatisk fallback-stege som muterar sökningen i tysthet;
+  filterberget (geo-radie, län, distans, deltid-%, publicerad-efter); print-stylesheet i stället för
+  jsPDF (html2canvas/dompurify laddas aldrig ner i verkligheten — 777 kB-siffran var fel, och
+  ett-tapps-PDF är bättre på Android); hela annonstexten i appen; femstegs statuspipeline;
+  CV-matchningspoäng för deltagaren; paginering.
+- **Aldrig höja `SCHEMA_VERSION` innan `migrate()` finns.**
+
+### Nästa (vecka 2–3, i ordning)
+Manuell "Lägg till ansökan" (idag går bara jobb hittade i Sökt att logga — rapporten blir ofullständig
+och det är ett efterlevnadsproblem, inte en saknad finess) → applied-markering + dubblettvarning +
+synlig bekräftelse + koppla in `undo()` som "Ångra" → `navigator.storage.persist()` + export/import
+med CV-blobben → PWA-manifest, QR-onboarding och ett coach-manus → minimal telemetri (idag går det
+inte att skilja "inga användare" från "tyst dataförlust").
+
 ## 2026-07-08 — Milestone 11: PDF-export av aktivitetsrapporten
 
 ### Byggt

@@ -17,6 +17,9 @@
 body {
   margin: 0;
   background: var(--bg);
+  /* The page itself must never scroll sideways on a phone. Anything wider than
+     the screen (tables) scrolls inside its own .table-wrap. */
+  overflow-x: hidden;
 }
 
 .app {
@@ -68,16 +71,29 @@ header h1 {
   gap: 4px;
   border-bottom: 1px solid var(--line);
   margin-bottom: 20px;
+  /* Five tabs are wider than a 375px phone. Scroll the strip, never the page —
+     before this, two tabs sat off-screen with no way to reach them. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
   border: none;
   background: none;
-  padding: 10px 14px;
+  padding: 12px 14px;
+  min-height: 44px;
   font-size: 0.95rem;
   color: var(--muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .tab.active {
@@ -90,12 +106,16 @@ button[type='submit'],
 .period-row button,
 .job-actions button,
 .search-form button,
+.empty-state button,
+.banner button,
 .button-row button {
   background: var(--accent);
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 8px 16px;
+  padding: 10px 16px;
+  /* 44px: the smallest target a thumb hits reliably. */
+  min-height: 44px;
   font-size: 0.95rem;
   cursor: pointer;
 }
@@ -410,8 +430,15 @@ label.checkbox input {
   width: auto;
 }
 
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .report-table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   background: var(--card);
   border: 1px solid var(--line);
@@ -433,7 +460,8 @@ label.checkbox input {
 
 .tag {
   display: inline-block;
-  margin-left: 8px;
+  /* Logical, not physical: in Arabic the chip must sit on the other side. */
+  margin-inline-start: 8px;
   padding: 1px 8px;
   border-radius: 999px;
   background: #eef2ff;
@@ -477,7 +505,8 @@ label.checkbox input {
 .chip-main {
   border: none;
   background: none;
-  padding: 5px 6px 5px 12px;
+  padding-block: 8px;
+  padding-inline: 14px 6px;
   font-size: 0.85rem;
   color: var(--ink);
   cursor: pointer;
@@ -486,9 +515,11 @@ label.checkbox input {
 .chip-x {
   border: none;
   background: none;
-  padding: 0 10px 0 4px;
+  /* Was a ~20px target next to a ~90px one — the easiest mis-tap in the app. */
+  padding-block: 8px;
+  padding-inline: 8px 14px;
   color: var(--muted);
-  font-size: 1rem;
+  font-size: 1.1rem;
   line-height: 1;
   cursor: pointer;
 }
@@ -542,4 +573,240 @@ footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.banner {
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.banner p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.banner-warning {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #7c2d12;
+}
+
+.banner-warning button {
+  background: #b45309;
+}
+
+.banner-ok {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.banner-ok button.ghost {
+  background: var(--card);
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-height: 44px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hidden-file {
+  display: none;
+}
+
+.account-link {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 0 4px;
+}
+
+.account-panel {
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.code-input {
+  font-size: 1.5rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.ok-text {
+  color: #065f46;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.warn {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #7c2d12;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.tag-applied {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.job-card-applied {
+  border-color: #6ee7b7;
+}
+
+.deadline {
+  margin: -6px 0 14px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #b45309;
+}
+
+.add-manual {
+  color: var(--accent);
+  font-size: 0.95rem;
+  min-height: 44px;
+  align-self: flex-start;
+  text-align: start;
+}
+
+.manual-form {
+  width: 100%;
+  gap: 12px;
+}
+
+.manual-form .error {
+  margin-top: 2px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0 4px;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Phones. The app is used standing up, on mobile data, one-handed. */
+@media (max-width: 600px) {
+  .app {
+    padding: 16px 12px 40px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+  }
+
+  .lang-select {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .search-form input,
+  .search-form select {
+    flex: 1 1 100%;
+    min-height: 44px;
+    /* 16px keeps iOS Safari from zooming in on focus. */
+    font-size: 1rem;
+  }
+
+  .search-form button {
+    flex: 1 1 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+    min-height: 44px;
+  }
+
+  label.checkbox input {
+    width: 22px;
+    height: 22px;
+    min-height: 0;
+  }
+
+  .job-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .job-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .period-row {
+    gap: 8px;
+  }
+
+  .period-row button {
+    flex: 1 1 auto;
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .bar-row {
+    grid-template-columns: minmax(70px, 110px) 1fr auto;
+  }
+}
+
+.account-danger {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 4px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.account-danger button.danger {
+  background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  cursor: pointer;
 }

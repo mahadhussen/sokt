@@ -44,11 +44,15 @@ export function mapEmploymentType(ad: JobTechAd): Job['employmentType'] {
   return 'unknown'
 }
 
+// E-post före formulärlänk. En annons kan bära båda, och då är e-posten den
+// väg vår målgrupp faktiskt klarar: namn, CV och brev i ett mail, i stället för
+// ett svenskt rekryteringsformulär med konto och tjugo fält. Att läsa url först
+// stängde ute de annonser som erbjöd båda från "enkel ansökan".
 export function mapApplicationChannel(ad: JobTechAd): Job['applicationChannel'] {
-  const url = ad.application_details?.url
-  if (url) return { kind: 'url', value: url }
   const email = ad.application_details?.email
   if (email) return { kind: 'email', value: email }
+  const url = ad.application_details?.url
+  if (url) return { kind: 'url', value: url }
   return { kind: 'unknown' }
 }
 

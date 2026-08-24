@@ -6,17 +6,8 @@ import type { Lang } from '../i18n/translations'
 import { activityReport } from '../report/activityReport'
 import { applicationStats } from '../report/applicationStats'
 import type { Count } from '../report/applicationStats'
+import { reportPeriod } from '../report/periods'
 import type { EmploymentType } from '../model/types'
-
-function currentMonthRange(): { start: string; end: string } {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month + 1, 0).getDate()
-  const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  return { start, end }
-}
 
 function BarList({ items, max }: { items: { label: string; count: number }[]; max: number }) {
   return (
@@ -37,7 +28,9 @@ function BarList({ items, max }: { items: { label: string; count: number }[]; ma
 export function OverviewView() {
   const applications = useSoktStore((s) => s.applications)
   const { t, lang } = useT()
-  const initial = currentMonthRange()
+  // Same period as the report tab, so the coach conversation and the document
+  // being filed never disagree about which month they are looking at.
+  const [initial] = useState(() => reportPeriod(new Date()))
   const [start, setStart] = useState(initial.start)
   const [end, setEnd] = useState(initial.end)
 

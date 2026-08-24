@@ -81,18 +81,21 @@ describe('mapEmploymentType', () => {
 })
 
 describe('mapApplicationChannel', () => {
-  it('prefers url over email', () => {
+  it('prefers email over url — the ad offers both, the user can only do one', () => {
+    // Measured live: 4 in 100 lokalvårdare ads carry both. Reading url first
+    // excluded every one of them from "enkel ansökan" even though a plain mail
+    // was on offer.
     expect(
       mapApplicationChannel({
         application_details: { url: 'https://a.se', email: 'x@y.se' },
       }),
-    ).toEqual({ kind: 'url', value: 'https://a.se' })
+    ).toEqual({ kind: 'email', value: 'x@y.se' })
   })
 
-  it('falls back to email, then unknown', () => {
+  it('falls back to url, then unknown', () => {
     expect(
-      mapApplicationChannel({ application_details: { url: null, email: 'x@y.se' } }),
-    ).toEqual({ kind: 'email', value: 'x@y.se' })
+      mapApplicationChannel({ application_details: { url: 'https://a.se', email: null } }),
+    ).toEqual({ kind: 'url', value: 'https://a.se' })
     expect(mapApplicationChannel({})).toEqual({ kind: 'unknown' })
   })
 })

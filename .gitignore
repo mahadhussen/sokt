@@ -26,4 +26,6 @@ dist-ssr
 # Env and secrets
 .env
 .env.*
+# ...utom mallen, som bara innehåller variabelnamn och ska följa med repot.
+!.env.example
 .vercel

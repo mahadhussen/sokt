@@ -51,21 +51,30 @@ const sv: Dict = {
   'search.save': '+ Spara sökningen',
   'search.savePrompt': 'Namn på sökningen',
   'filter.simpleApply': 'Bara enkel ansökan (namn, CV och brev räcker)',
+  'filter.simpleApplyCount': 'Bara enkel ansökan — {shown} av {fetched} jobb',
+  'search.didYouMean': 'Menade du {name}?',
   'results.count': '{total} annonser hittade, visar {shown}.',
-  'results.simpleCount': '{shown} enkla ansökningar (av {total} annonser för sökningen).',
+  'results.simpleCount': '{shown} jobb med enkel ansökan. {total} annonser finns totalt.',
+  'results.showAllChannels': 'Visa alla ansökningssätt ({n} jobb)',
   'freshness.now': 'Senast hämtad just nu.',
   'freshness.minutes': 'Senast hämtad för {n} min sedan.',
   'freshness.hours': 'Senast hämtad för {n} tim sedan.',
   'results.newSince': '{n} nya sedan du senast körde sökningen.',
   'results.newSinceNone': 'Inga nya sedan du senast körde sökningen.',
-  'results.none': 'Inga annonser matchade sökningen. Prova andra filter.',
+  'results.none': 'Inga annonser matchade sökningen. Prova ett annat yrke eller en annan ort.',
   'results.noneSimple':
-    'Inga enkla ansökningar här — arbetsgivarna kräver mer än namn, CV och brev. Prova ett annat yrke eller stäng av “Bara enkel ansökan”.',
+    'Inget av de {fetched} jobben går att söka med bara namn, CV och brev — arbetsgivarna kräver mer.',
   'external.show': 'Visa {n} jobb från andra sajter',
   'external.hide': 'Dölj jobb från andra sajter',
   'external.note':
     'Dessa annonser kommer från andra jobbsajter (via Arbetsförmedlingens öppna data) och ansökan sker med formulär på deras sajt — de omfattas inte av enkel ansökan.',
   'savedSearch.removeAria': 'Ta bort sparad sökning: {name}',
+  'job.alreadyApplied': '✓ Du sökte den {date}',
+  'apply.duplicate':
+    'Du loggade redan en ansökan till det här jobbet den {date}. Dubbletter i aktivitetsrapporten kan bli ifrågasatta — logga bara om du verkligen sökte igen.',
+  'notice.logged': 'Ansökan loggad ✓ Den kommer med i aktivitetsrapporten.',
+  'notice.removed': 'Ansökan borttagen.',
+  'notice.undo': 'Ångra',
   'job.ad': 'Annons ↗',
   'job.apply': 'Ansök',
   'job.close': 'Stäng',
@@ -122,8 +131,12 @@ const sv: Dict = {
 
   'data.title': 'Dina uppgifter',
   'data.body':
-    'Exportera allt du sparat, eller radera det helt. Radering tar bort profil, ansökningar och CV från den här webbläsaren och går inte att ångra.',
-  'data.export': 'Exportera som JSON',
+    'Ta en säkerhetskopia av allt du sparat — profil, ansökningar, sparade sökningar och ditt CV — i en fil. Spara den någonstans säkert: om webbläsaren rensas, telefonen går sönder eller du byter dator kan du läsa tillbaka den här. Du kan också radera allt.',
+  'data.export': 'Ladda ner säkerhetskopia',
+  'data.import': 'Läs in säkerhetskopia',
+  'data.restoredApplications': '{n} ansökningar tillagda.',
+  'data.restoredCv': 'CV återställt.',
+  'data.restoredDropped': '{n} rader gick inte att läsa och hoppades över.',
   'data.deleteConfirm': 'Ja, radera allt',
   'data.cancel': 'Avbryt',
   'data.delete': 'Radera all data',
@@ -144,6 +157,41 @@ const sv: Dict = {
   'apps.removeAria': 'Ta bort ansökan: {title}',
   'apps.remove': 'Ta bort',
 
+  'manual.add': '+ Lägg till en ansökan du gjort själv',
+  'manual.intro':
+    'Sökte du ett jobb utanför Sökt — på plats, via telefon, från ett tips eller en annons du hittat någon annanstans? Lägg till den här så kommer den med i aktivitetsrapporten.',
+  'manual.save': 'Spara ansökan',
+  'manual.required': 'Fyll i det här',
+
+  'account.title': 'Ditt konto',
+  'account.signIn': 'Logga in',
+  'account.signedIn': 'Ditt konto',
+  'account.intro':
+    'Du behöver inget konto för att använda Sökt. Loggar du in kan du nå dina ansökningar från flera enheter — om telefonen går sönder, webbläsaren rensas eller du sitter vid en annan dator. Inget lösenord: vi mejlar en sexsiffrig kod.',
+  'account.sendCode': 'Skicka kod',
+  'account.sending': 'Skickar…',
+  'account.codeSent': 'Vi skickade en sexsiffrig kod till {email}. Kolla skräpposten om den dröjer.',
+  'account.codeLabel': 'Koden från mejlet',
+  'account.verifying': 'Loggar in…',
+  'account.changeEmail': 'Byt e-postadress',
+  'account.close': 'Stäng',
+  'account.badEmail': 'Kontrollera e-postadressen.',
+  'account.signedInAs': 'Inloggad som {email}.',
+  'account.syncExplained':
+    'Dina ansökningar och din profil sparas nu både här och på ditt konto, så du ser dem på alla enheter där du loggar in. Ditt CV ligger kvar bara på den här enheten.',
+  'account.signOut': 'Logga ut',
+  'account.delete': 'Radera mitt konto',
+  'account.deleteExplained':
+    'Raderar du kontot försvinner det och allt som ligger i det, direkt och för alltid. Dina uppgifter på den här enheten rörs inte — dem raderar du separat under Profil.',
+  'account.deleteConfirm': 'Ja, radera kontot',
+  'account.optional': 'Allt fungerar precis lika bra utan konto.',
+  'account.syncing': 'Synkar…',
+  'account.synced': 'Synkat ✓',
+  'account.syncFailed': 'Kunde inte synka just nu. Dina uppgifter finns kvar på den här enheten och synkas när det går igen.',
+  'save.failedTitle': 'Kunde inte spara på den här enheten',
+  'save.failedBody':
+    'Din senaste ändring finns på skärmen men kunde inte sparas — lagringen kan vara full. Ladda ner en säkerhetskopia under Profil innan du stänger appen.',
+
   'report.intro':
     'Rapporten byggs direkt från dina loggade ansökningar. Granska den och för in uppgifterna i Mina sidor hos Arbetsförmedlingen — Sökt skickar aldrig in något åt dig.',
   'report.from': 'Från',
@@ -153,6 +201,13 @@ const sv: Dict = {
   'report.downloadCsv': 'Ladda ner CSV',
   'report.downloadPdf': 'Ladda ner PDF',
   'report.emptyPeriod': 'Inga ansökningar i den valda perioden.',
+  'report.deadline': 'Lämna rapporten i Mina sidor senast den 14:e — {n} dagar kvar.',
+  'report.deadlineLastDay': 'Sista dagen att lämna rapporten i Mina sidor är idag.',
+
+  'storage.brokenTitle': 'Vi kunde inte läsa dina sparade uppgifter',
+  'storage.brokenBody':
+    'Appen startade tom, men ingenting är raderat — dina gamla uppgifter ligger kvar som en säkerhetskopia. Ladda ner den och visa den för din coach.',
+  'storage.downloadBackup': 'Ladda ner säkerhetskopia',
 
   'table.jobTitle': 'Jobbtitel',
   'table.employer': 'Arbetsgivare',
@@ -190,21 +245,30 @@ const ar: Dict = {
   'search.save': '+ احفظ البحث',
   'search.savePrompt': 'اسم البحث',
   'filter.simpleApply': 'التقديم السهل فقط (يكفي الاسم والسيرة الذاتية والرسالة)',
+  'filter.simpleApplyCount': 'التقديم السهل فقط — {shown} من {fetched} وظيفة',
+  'search.didYouMean': 'هل تقصد {name}؟',
   'results.count': 'تم العثور على {total} إعلانًا، عرض {shown}.',
-  'results.simpleCount': '{shown} وظائف بتقديم سهل (من أصل {total} إعلانًا للبحث).',
+  'results.simpleCount': '{shown} وظيفة بتقديم سهل. يوجد {total} إعلانًا إجمالًا.',
+  'results.showAllChannels': 'اعرض كل طرق التقديم ({n} وظيفة)',
   'freshness.now': 'آخر تحديث الآن.',
   'freshness.minutes': 'آخر تحديث قبل {n} دقيقة.',
   'freshness.hours': 'آخر تحديث قبل {n} ساعة.',
   'results.newSince': '{n} جديدة منذ آخر مرة شغّلت فيها البحث.',
   'results.newSinceNone': 'لا جديد منذ آخر مرة شغّلت فيها البحث.',
-  'results.none': 'لا توجد إعلانات مطابقة. جرّب مرشحات أخرى.',
+  'results.none': 'لا توجد إعلانات مطابقة. جرّب مهنة أخرى أو مدينة أخرى.',
   'results.noneSimple':
-    'لا توجد وظائف بتقديم سهل هنا — يطلب أصحاب العمل أكثر من الاسم والسيرة الذاتية والرسالة. جرّب مهنة أخرى أو أوقف «التقديم السهل فقط».',
+    'لا يمكن التقديم على أي من الوظائف الـ{fetched} بالاسم والسيرة الذاتية والرسالة فقط — يطلب أصحاب العمل أكثر من ذلك.',
   'external.show': 'عرض {n} وظائف من مواقع أخرى',
   'external.hide': 'إخفاء وظائف المواقع الأخرى',
   'external.note':
     'هذه الإعلانات تأتي من مواقع توظيف أخرى (عبر البيانات المفتوحة لمصلحة التوظيف) ويتم التقديم عبر نموذج على موقعها — لا يشملها التقديم السهل.',
   'savedSearch.removeAria': 'حذف البحث المحفوظ: {name}',
+  'job.alreadyApplied': '✓ قدّمت في {date}',
+  'apply.duplicate':
+    'سجّلت طلبًا لهذه الوظيفة في {date}. التكرار في تقرير النشاط قد يُثير تساؤلات — سجّل فقط إذا قدّمت فعلًا مرة أخرى.',
+  'notice.logged': 'تم تسجيل الطلب ✓ سيظهر في تقرير النشاط.',
+  'notice.removed': 'تم حذف الطلب.',
+  'notice.undo': 'تراجع',
   'job.ad': 'الإعلان ↗',
   'job.apply': 'تقديم',
   'job.close': 'إغلاق',
@@ -261,8 +325,12 @@ const ar: Dict = {
 
   'data.title': 'بياناتك',
   'data.body':
-    'صدّر كل ما حفظته، أو احذفه بالكامل. الحذف يزيل الملف الشخصي والطلبات والسيرة الذاتية من هذا المتصفح ولا يمكن التراجع عنه.',
-  'data.export': 'تصدير بصيغة JSON',
+    'خذ نسخة احتياطية من كل ما حفظته — الملف الشخصي والطلبات وعمليات البحث المحفوظة وسيرتك الذاتية — في ملف واحد. احفظه في مكان آمن: إذا مُسح المتصفح أو تعطّل هاتفك أو غيّرت الحاسوب يمكنك استعادته هنا. ويمكنك أيضًا حذف كل شيء.',
+  'data.export': 'تنزيل نسخة احتياطية',
+  'data.import': 'استعادة من نسخة احتياطية',
+  'data.restoredApplications': 'تمت إضافة {n} طلبًا.',
+  'data.restoredCv': 'تمت استعادة السيرة الذاتية.',
+  'data.restoredDropped': 'تعذّرت قراءة {n} صفًا وتم تخطيها.',
   'data.deleteConfirm': 'نعم، احذف كل شيء',
   'data.cancel': 'إلغاء',
   'data.delete': 'حذف جميع البيانات',
@@ -279,9 +347,43 @@ const ar: Dict = {
   'profile.save': 'حفظ الملف الشخصي',
   'profile.saved': 'تم الحفظ ✓',
 
+  'manual.add': '+ أضِف طلبًا قدّمته بنفسك',
+  'manual.intro':
+    'هل قدّمت على وظيفة خارج Sökt — في المكان، عبر الهاتف، من نصيحة أو من إعلان وجدته في مكان آخر؟ أضِفه هنا ليدخل في تقرير النشاط.',
+  'manual.save': 'احفظ الطلب',
+  'manual.required': 'املأ هذا الحقل',
   'apps.empty': 'لا توجد طلبات مسجّلة بعد. ابحث عن وظائف وقدّم لتظهر هنا.',
   'apps.removeAria': 'حذف الطلب: {title}',
   'apps.remove': 'حذف',
+
+  'account.title': 'حسابك',
+  'account.signIn': 'تسجيل الدخول',
+  'account.signedIn': 'حسابك',
+  'account.intro':
+    'لا تحتاج إلى حساب لاستخدام Sökt. بتسجيل الدخول يمكنك الوصول إلى طلباتك من أكثر من جهاز — إذا تعطّل الهاتف أو مُسح المتصفح أو كنت على حاسوب آخر. بلا كلمة مرور: نرسل لك رمزًا من ستة أرقام.',
+  'account.sendCode': 'أرسل الرمز',
+  'account.sending': 'جارٍ الإرسال…',
+  'account.codeSent': 'أرسلنا رمزًا من ستة أرقام إلى {email}. تحقّق من البريد غير المرغوب فيه إذا تأخر.',
+  'account.codeLabel': 'الرمز من البريد',
+  'account.verifying': 'جارٍ تسجيل الدخول…',
+  'account.changeEmail': 'تغيير البريد',
+  'account.close': 'إغلاق',
+  'account.badEmail': 'تحقّق من عنوان البريد.',
+  'account.signedInAs': 'مسجّل الدخول باسم {email}.',
+  'account.syncExplained':
+    'تُحفظ طلباتك وملفك الشخصي الآن هنا وفي حسابك، فتراها على كل جهاز تسجّل الدخول منه. سيرتك الذاتية تبقى على هذا الجهاز فقط.',
+  'account.signOut': 'تسجيل الخروج',
+  'account.delete': 'حذف حسابي',
+  'account.deleteExplained':
+    'عند حذف الحساب يختفي هو وكل ما فيه، فورًا ونهائيًا. بياناتك على هذا الجهاز لا تتأثر — تحذفها بشكل منفصل من صفحة الملف الشخصي.',
+  'account.deleteConfirm': 'نعم، احذف الحساب',
+  'account.optional': 'كل شيء يعمل بنفس الجودة بدون حساب.',
+  'account.syncing': 'جارٍ المزامنة…',
+  'account.synced': 'تمت المزامنة ✓',
+  'account.syncFailed': 'تعذّرت المزامنة الآن. بياناتك محفوظة على هذا الجهاز وستُزامن لاحقًا.',
+  'save.failedTitle': 'تعذّر الحفظ على هذا الجهاز',
+  'save.failedBody':
+    'آخر تغيير ظاهر على الشاشة لكن لم يُحفظ — قد تكون الذاكرة ممتلئة. نزّل نسخة احتياطية من صفحة الملف الشخصي قبل إغلاق التطبيق.',
 
   'report.intro':
     'يُبنى التقرير مباشرة من طلباتك المسجّلة. راجعه وأدخِل البيانات في صفحاتك لدى مصلحة التوظيف — لا يرسل Sökt أي شيء نيابةً عنك.',
@@ -292,6 +394,13 @@ const ar: Dict = {
   'report.downloadCsv': 'تنزيل CSV',
   'report.downloadPdf': 'تنزيل PDF',
   'report.emptyPeriod': 'لا توجد طلبات في الفترة المحددة.',
+  'report.deadline': 'سلّم التقرير في صفحاتك قبل يوم 14 — بقي {n} يومًا.',
+  'report.deadlineLastDay': 'اليوم هو آخر يوم لتسليم التقرير في صفحاتك.',
+
+  'storage.brokenTitle': 'تعذّرت قراءة بياناتك المحفوظة',
+  'storage.brokenBody':
+    'بدأ التطبيق فارغًا، لكن لم يُحذف شيء — بياناتك القديمة محفوظة كنسخة احتياطية. نزّلها واعرضها على مرشدك.',
+  'storage.downloadBackup': 'تنزيل النسخة الاحتياطية',
 
   'table.jobTitle': 'المسمى الوظيفي',
   'table.employer': 'صاحب العمل',
@@ -330,21 +439,30 @@ const so: Dict = {
   'search.save': '+ Kaydi raadinta',
   'search.savePrompt': 'Magaca raadinta',
   'filter.simpleApply': 'Kaliya codsi fudud (magac, CV iyo warqad ayaa ku filan)',
+  'filter.simpleApplyCount': 'Kaliya codsi fudud — {shown} ka mid ah {fetched} shaqo',
+  'search.didYouMean': 'Ma waxaad ula jeeday {name}?',
   'results.count': '{total} xayeysiis ayaa la helay, waxaa la tusayaa {shown}.',
-  'results.simpleCount': '{shown} shaqo oo codsi fudud leh (ka mid ah {total} xayeysiis).',
+  'results.simpleCount': '{shown} shaqo oo codsi fudud leh. Wadarta guud waa {total} xayeysiis.',
+  'results.showAllChannels': 'Tus dhammaan siyaabaha codsiga ({n} shaqo)',
   'freshness.now': 'Waa la soo helay hadda.',
   'freshness.minutes': 'Waa la soo helay {n} daqiiqo ka hor.',
   'freshness.hours': 'Waa la soo helay {n} saac ka hor.',
   'results.newSince': '{n} cusub tan iyo markii ugu dambaysay ee aad raadisay.',
   'results.newSinceNone': 'Wax cusub ma jiraan tan iyo markii ugu dambaysay ee aad raadisay.',
-  'results.none': 'Ma jiraan xayeysiisyo ku habboon. Isku day shaandhayn kale.',
+  'results.none': 'Ma jiraan xayeysiisyo ku habboon. Isku day xirfad kale ama magaalo kale.',
   'results.noneSimple':
-    'Halkan ma jiraan codsiyo fudud — shaqo bixiyayaashu waxay dalbanayaan wax ka badan magac, CV iyo warqad. Isku day xirfad kale ama dami “Kaliya codsi fudud”.',
+    'Midna ka mid ah {fetched} shaqo laguma codsan karo magac, CV iyo warqad oo keliya — shaqo bixiyayaashu waxay dalbanayaan wax ka badan.',
   'external.show': 'Tus {n} shaqo oo ka yimid bogag kale',
   'external.hide': 'Qari shaqooyinka bogagga kale',
   'external.note':
     'Xayeysiisyadan waxay ka yimaadeen bogag shaqo oo kale (iyada oo loo marayo xogta furan ee Xafiiska Shaqada), codsigana wuxuu ku dhacaa foom boggooda — kuma jiraan codsiga fudud.',
   'savedSearch.removeAria': 'Tirtir raadinta la kaydiyay: {name}',
+  'job.alreadyApplied': '✓ Waad codsatay {date}',
+  'apply.duplicate':
+    'Horey ayaad u diiwaan gelisay codsi shaqadan {date}. Codsiyo isku mid ah warbixinta waa la su’aali karaa — kaliya diiwaan geli haddii aad dhab ahaan mar labaad codsatay.',
+  'notice.logged': 'Codsiga waa la diiwaan geliyay ✓ Wuxuu ku jiri doonaa warbixinta.',
+  'notice.removed': 'Codsiga waa la tirtiray.',
+  'notice.undo': 'Ka noqo',
   'job.ad': 'Xayeysiis ↗',
   'job.apply': 'Codso',
   'job.close': 'Xir',
@@ -401,8 +519,12 @@ const so: Dict = {
 
   'data.title': 'Xogtaada',
   'data.body':
-    'Soo deji wax walba oo aad kaydisay, ama gebi ahaanba tirtir. Tirtiristu waxay ka saaraysaa astaanta, codsiyada iyo CV-ga browserkan, mana laga noqon karo.',
-  'data.export': 'U soo deji JSON',
+    'Qaado nuqul kayd ah oo ka mid ah wax walba oo aad kaydisay — astaanta, codsiyada, raadinta la kaydiyay iyo CV-gaaga — hal fayl. Meel ammaan ah dhig: haddii browserka la nadiifiyo, taleefanku jabo ama aad kombuyuutar beddesho halkan ayaad ku soo celin kartaa. Sidoo kale wax walba waad tirtiri kartaa.',
+  'data.export': 'Soo deji nuqulka kaydka',
+  'data.import': 'Ka soo celi nuqulka',
+  'data.restoredApplications': '{n} codsi ayaa lagu daray.',
+  'data.restoredCv': 'CV-ga waa la soo celiyay.',
+  'data.restoredDropped': '{n} saf lama akhrin karin waana laga booday.',
   'data.deleteConfirm': 'Haa, tirtir wax walba',
   'data.cancel': 'Jooji',
   'data.delete': 'Tirtir dhammaan xogta',
@@ -419,9 +541,43 @@ const so: Dict = {
   'profile.save': 'Kaydi astaanta',
   'profile.saved': 'La kaydiyay ✓',
 
+  'manual.add': '+ Ku dar codsi aad adigu samaysay',
+  'manual.intro':
+    'Ma waxaad shaqo ka codsatay Sökt dibaddiisa — goobta, telefoonka, talo lagu siiyay ama xayeysiis meel kale ka helay? Halkan ku dar si uu ugu jiro warbixinta dhaqdhaqaaqa.',
+  'manual.save': 'Kaydi codsiga',
+  'manual.required': 'Buuxi tan',
   'apps.empty': 'Weli ma jiraan codsiyo la diiwaan geliyay. Raadi shaqo oo codso si ay halkan uga muuqdaan.',
   'apps.removeAria': 'Tirtir codsiga: {title}',
   'apps.remove': 'Tirtir',
+
+  'account.title': 'Akoonkaaga',
+  'account.signIn': 'Gal',
+  'account.signedIn': 'Akoonkaaga',
+  'account.intro':
+    'Uma baahnid akoon si aad u isticmaasho Sökt. Haddii aad gasho waxaad codsiyadaada ka arki kartaa qalab kasta — haddii taleefanku jabo, browserka la nadiifiyo ama aad kombuyuutar kale fadhido. Furaha sirta ah ma jiro: waxaan kuu soo dirnaa kood lix god ah.',
+  'account.sendCode': 'Soo dir koodka',
+  'account.sending': 'Waa la dirayaa…',
+  'account.codeSent': 'Waxaan kood lix god ah u dirnay {email}. Hubi qashinka boostada haddii uu daaho.',
+  'account.codeLabel': 'Koodka emailka',
+  'account.verifying': 'Waa la galayaa…',
+  'account.changeEmail': 'Beddel emailka',
+  'account.close': 'Xir',
+  'account.badEmail': 'Hubi cinwaanka emailka.',
+  'account.signedInAs': 'Waxaad u gashay {email}.',
+  'account.syncExplained':
+    'Codsiyadaada iyo astaantaada hadda waxay ku kaydsan yihiin halkan iyo akoonkaaga labadaba, sidaas darteed waad ka arki doontaa qalab kasta oo aad ka gasho. CV-gaagu wuxuu ku hadhayaa qalabkan oo keliya.',
+  'account.signOut': 'Ka bax',
+  'account.delete': 'Tirtir akoonkayga',
+  'account.deleteExplained':
+    'Haddii aad akoonka tirtirto wuu baaba\'ayaa isaga iyo wax kasta oo ku jira, isla markiiba oo weligiis. Xogtaada qalabkan kuma taabanayo — taas si gooni ah ayaad uga tirtirtaa bogga Astaanta.',
+  'account.deleteConfirm': 'Haa, tirtir akoonka',
+  'account.optional': 'Wax walba si siman ayey u shaqeeyaan akoon la\'aan.',
+  'account.syncing': 'Waa la isku dhaafinayaa…',
+  'account.synced': 'La isku dhaafiyay ✓',
+  'account.syncFailed': 'Hadda lama isku dhaafin karin. Xogtaadu waxay ku jirtaa qalabkan waana la isku dhaafin doonaa markay suurtogal noqoto.',
+  'save.failedTitle': 'Lagama kaydin karin qalabkan',
+  'save.failedBody':
+    'Beddelkaagii ugu dambeeyay wuu muuqdaa laakiin lama kaydin — kaydku wuu buuxsami karaa. Ka soo deji nuqul kayd ah bogga Astaanta ka hor inta aadan xirin.',
 
   'report.intro':
     'Warbixinta waxaa toos looga dhisaa codsiyadaada la diiwaan geliyay. Dib u eeg oo gali xogta boggaaga Xafiiska Shaqada — Sökt waxba kuuma diro adiga.',
@@ -432,6 +588,13 @@ const so: Dict = {
   'report.downloadCsv': 'Soo deji CSV',
   'report.downloadPdf': 'Soo deji PDF',
   'report.emptyPeriod': 'Ma jiraan codsiyo muddada la doortay.',
+  'report.deadline': 'Warbixinta gudbi Mina sidor ka hor 14-ka — {n} maalmood ayaa haray.',
+  'report.deadlineLastDay': 'Maanta waa maalintii ugu dambaysay ee aad Mina sidor ku gudbin karto warbixinta.',
+
+  'storage.brokenTitle': 'Ma aan akhrisan karin xogtaadii la kaydiyay',
+  'storage.brokenBody':
+    'Barnaamijku wuxuu ku bilaabmay madhan, laakiin waxba lama tirtirin — xogtaadii hore waa la hayaa nuqul ahaan. Soo deji oo tus lataliyahaaga.',
+  'storage.downloadBackup': 'Soo deji nuqulka',
 
   'table.jobTitle': 'Cinwaanka shaqada',
   'table.employer': 'Shaqo bixiyaha',
