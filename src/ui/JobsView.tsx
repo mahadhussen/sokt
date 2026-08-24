@@ -178,12 +178,34 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </a>
         )}
         {channel.kind === 'email' && (
-          <a
-            href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
-            onClick={() => setAwaitingSend(true)}
-          >
-            {t('apply.email', { email: channel.value ?? '' })}
-          </a>
+          <span className="mail-links">
+            <a
+              href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
+              onClick={() => setAwaitingSend(true)}
+            >
+              {t('apply.email', { email: channel.value ?? '' })}
+            </a>
+            <span className="mail-alt muted">
+              {t('apply.mailAlt')}{' '}
+              <a
+                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setAwaitingSend(true)}
+              >
+                Gmail
+              </a>
+              {' · '}
+              <a
+                href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setAwaitingSend(true)}
+              >
+                Outlook
+              </a>
+            </span>
+          </span>
         )}
         {channel.kind === 'unknown' && (
           <a href={job.url} target="_blank" rel="noreferrer" onClick={() => setAwaitingSend(true)}>

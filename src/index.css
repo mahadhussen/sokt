@@ -830,3 +830,17 @@ footer {
   font-weight: 600;
   min-height: 44px;
 }
+
+.mail-links {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mail-alt {
+  font-size: 0.88rem;
+}
+
+.mail-alt a {
+  font-weight: 600;
+}

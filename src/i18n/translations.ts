@@ -110,6 +110,7 @@ const sv: Dict = {
   'apply.sentQuestion': 'Skickade du ansökan till {employer}?',
   'apply.sentYes': 'Ja, logga den',
   'apply.sentNotYet': 'Inte än',
+  'apply.mailAlt': 'Öppnas inget mejlprogram? Skicka via',
 
   'employment.heltid': 'Heltid',
   'employment.deltid': 'Deltid',
@@ -308,6 +309,7 @@ const ar: Dict = {
   'apply.sentQuestion': 'هل أرسلت الطلب إلى {employer}؟',
   'apply.sentYes': 'نعم، سجّله',
   'apply.sentNotYet': 'ليس بعد',
+  'apply.mailAlt': 'لم يفتح برنامج البريد؟ أرسل عبر',
 
   'employment.heltid': 'دوام كامل',
   'employment.deltid': 'دوام جزئي',
@@ -506,6 +508,7 @@ const so: Dict = {
   'apply.sentQuestion': 'Ma u dirtay codsiga {employer}?',
   'apply.sentYes': 'Haa, diiwaan geli',
   'apply.sentNotYet': 'Weli maya',
+  'apply.mailAlt': 'Barnaamijka boostadu ma furmin? Ku dir',
 
   'employment.heltid': 'Waqti buuxa',
   'employment.deltid': 'Waqti dhiman',
