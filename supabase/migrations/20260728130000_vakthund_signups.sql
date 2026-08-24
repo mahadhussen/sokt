@@ -81,7 +81,7 @@ BEGIN
   END IF;
 END; $$;
 
-REVOKE ALL ON FUNCTION public.check_signup_rate() FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.check_signup_rate() FROM PUBLIC, anon, authenticated;
 
 -- Kör var 15:e minut. Kör om det här blocket byter schemat utan dubblett.
 SELECT cron.unschedule('sokt-signup-watchdog')
