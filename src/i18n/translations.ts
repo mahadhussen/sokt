@@ -106,6 +106,10 @@ const sv: Dict = {
   'apply.ort': 'Ort',
   'apply.surveyAnswered': 'Besvarade urvalsfrågor',
   'apply.log': 'Logga ansökan',
+  'apply.downloadCv': 'Ladda ner CV',
+  'apply.sentQuestion': 'Skickade du ansökan till {employer}?',
+  'apply.sentYes': 'Ja, logga den',
+  'apply.sentNotYet': 'Inte än',
 
   'employment.heltid': 'Heltid',
   'employment.deltid': 'Deltid',
@@ -300,6 +304,10 @@ const ar: Dict = {
   'apply.ort': 'المدينة',
   'apply.surveyAnswered': 'أجبت على أسئلة الفرز',
   'apply.log': 'سجّل الطلب',
+  'apply.downloadCv': 'نزّل السيرة الذاتية',
+  'apply.sentQuestion': 'هل أرسلت الطلب إلى {employer}؟',
+  'apply.sentYes': 'نعم، سجّله',
+  'apply.sentNotYet': 'ليس بعد',
 
   'employment.heltid': 'دوام كامل',
   'employment.deltid': 'دوام جزئي',
@@ -494,6 +502,10 @@ const so: Dict = {
   'apply.ort': 'Magaalada',
   'apply.surveyAnswered': 'Waan ka jawaabay su’aalaha xulashada',
   'apply.log': 'Diiwaan geli codsiga',
+  'apply.downloadCv': 'Soo deji CV-ga',
+  'apply.sentQuestion': 'Ma u dirtay codsiga {employer}?',
+  'apply.sentYes': 'Haa, diiwaan geli',
+  'apply.sentNotYet': 'Weli maya',
 
   'employment.heltid': 'Waqti buuxa',
   'employment.deltid': 'Waqti dhiman',

@@ -22,6 +22,7 @@ import { useSoktStore } from '../app/store'
 import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
 import { uiEmploymentTypeLabel } from '../i18n/translations'
+import { downloadStoredCv } from './cvDownload'
 
 const municipalityName = (id: string) => MUNICIPALITIES.find((m) => m.id === id)?.name
 const worktimeName = (id: string) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label
@@ -76,6 +77,20 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const [improving, setImproving] = useState(false)
   const [aiHint, setAiHint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The apply flow leaks without this: tapping the send link hands the phone to
+  // the mail app, and coming back nothing asks the participant to log it — so
+  // the application never reaches the report. On return we ask the one question
+  // that matters: did it go?
+  const [awaitingSend, setAwaitingSend] = useState(false)
+  const [askLogged, setAskLogged] = useState(false)
+  useEffect(() => {
+    if (!awaitingSend) return
+    function onVisible() {
+      if (document.visibilityState === 'visible') setAskLogged(true)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [awaitingSend])
 
   async function improveWithAi() {
     if (!profile) return
@@ -95,8 +110,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
     }
   }
 
-  function logApplication(event: FormEvent) {
-    event.preventDefault()
+  function doLog() {
     try {
       const application = buildApplication(job, {
         id: crypto.randomUUID(),
@@ -111,6 +125,11 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
+  }
+
+  function logApplication(event: FormEvent) {
+    event.preventDefault()
+    doLog()
   }
 
   // Warn, never block: applying to the same employer twice can be deliberate,
@@ -132,19 +151,42 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const mailtoBody = letter ? `&body=${encodeURIComponent(letter)}` : ''
   return (
     <form className="apply-panel" onSubmit={logApplication}>
+      {askLogged && (
+        <div className="sent-prompt" role="status">
+          <p>{t('apply.sentQuestion', { employer: job.employer })}</p>
+          <div className="button-row">
+            <button type="button" onClick={doLog}>
+              {t('apply.sentYes')}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => {
+                setAskLogged(false)
+                setAwaitingSend(false)
+              }}
+            >
+              {t('apply.sentNotYet')}
+            </button>
+          </div>
+        </div>
+      )}
       <p className="apply-channel">
         {channel.kind === 'url' && (
-          <a href={channel.value} target="_blank" rel="noreferrer">
+          <a href={channel.value} target="_blank" rel="noreferrer" onClick={() => setAwaitingSend(true)}>
             {t('apply.openUrl')}
           </a>
         )}
         {channel.kind === 'email' && (
-          <a href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}>
+          <a
+            href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
+            onClick={() => setAwaitingSend(true)}
+          >
             {t('apply.email', { email: channel.value ?? '' })}
           </a>
         )}
         {channel.kind === 'unknown' && (
-          <a href={job.url} target="_blank" rel="noreferrer">
+          <a href={job.url} target="_blank" rel="noreferrer" onClick={() => setAwaitingSend(true)}>
             {t('apply.instructions')}
           </a>
         )}
@@ -174,7 +216,16 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         <p className="muted">{t('apply.noProfileTip')}</p>
       )}
       {cv ? (
-        <p className="muted">{t('apply.cvReady', { fileName: cv.fileName })}</p>
+        <p className="muted">
+          {t('apply.cvReady', { fileName: cv.fileName })}{' '}
+          <button
+            type="button"
+            className="link-button cv-download"
+            onClick={() => void downloadStoredCv()}
+          >
+            {t('apply.downloadCv')}
+          </button>
+        </p>
       ) : (
         <p className="muted">{t('apply.cvTip')}</p>
       )}

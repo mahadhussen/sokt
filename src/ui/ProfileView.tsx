@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { useSoktStore, fileStore } from '../app/store'
+import { useSoktStore } from '../app/store'
 import { CV_REF } from '../services/fileStore'
+import { downloadStoredCv } from './cvDownload'
 import { setProfileCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
 
@@ -49,14 +50,7 @@ function CvSection() {
   }
 
   async function download() {
-    const stored = await fileStore.loadCv()
-    if (!stored) return
-    const url = URL.createObjectURL(stored.blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = stored.fileName
-    a.click()
-    URL.revokeObjectURL(url)
+    await downloadStoredCv()
   }
 
   return (
