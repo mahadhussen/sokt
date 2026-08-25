@@ -25,8 +25,9 @@ export function getSupabase(): Promise<SupabaseClient> {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // No magic links, so there is never a token in the address bar.
-        detectSessionInUrl: false,
+        // OAuth-återkomsten (Google) landar med tokens i URL:en — de måste
+        // plockas upp här. OTP-flödet påverkas inte.
+        detectSessionInUrl: true,
         storageKey: 'sokt.auth.v1',
       },
     }),

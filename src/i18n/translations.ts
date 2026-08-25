@@ -111,6 +111,10 @@ const sv: Dict = {
   'apply.sentYes': 'Ja, logga den',
   'apply.sentNotYet': 'Inte än',
   'apply.mailAlt': 'Öppnas inget mejlprogram? Skicka via',
+  'apply.draftInGmail': '✉️ Lägg utkast i min Gmail — CV:t bifogas',
+  'apply.drafting': 'Skapar utkast…',
+  'apply.draftDoneCv': 'Klart! Utkastet med CV ligger i din Gmail under Utkast — öppna, granska och skicka.',
+  'apply.draftDone': 'Klart! Utkastet ligger i din Gmail under Utkast — öppna, granska och skicka.',
 
   'employment.heltid': 'Heltid',
   'employment.deltid': 'Deltid',
@@ -310,6 +314,10 @@ const ar: Dict = {
   'apply.sentYes': 'نعم، سجّله',
   'apply.sentNotYet': 'ليس بعد',
   'apply.mailAlt': 'لم يفتح برنامج البريد؟ أرسل عبر',
+  'apply.draftInGmail': '✉️ ضع مسودة في Gmail الخاص بي — مع السيرة الذاتية',
+  'apply.drafting': 'جارٍ إنشاء المسودة…',
+  'apply.draftDoneCv': 'تم! المسودة مع السيرة الذاتية في Gmail لديك ضمن المسودات — افتحها وراجعها وأرسلها.',
+  'apply.draftDone': 'تم! المسودة في Gmail لديك ضمن المسودات — افتحها وراجعها وأرسلها.',
 
   'employment.heltid': 'دوام كامل',
   'employment.deltid': 'دوام جزئي',
@@ -509,6 +517,10 @@ const so: Dict = {
   'apply.sentYes': 'Haa, diiwaan geli',
   'apply.sentNotYet': 'Weli maya',
   'apply.mailAlt': 'Barnaamijka boostadu ma furmin? Ku dir',
+  'apply.draftInGmail': '✉️ Qabyo ku samee Gmail-kayga — CV-ga waa lagu lifaaqayaa',
+  'apply.drafting': 'Qabyada waa la samaynayaa…',
+  'apply.draftDoneCv': 'Dhammaad! Qabyada iyo CV-gu waxay ku jiraan Gmail-kaaga qaybta Qabyada — fur, eeg oo dir.',
+  'apply.draftDone': 'Dhammaad! Qabyadu waxay ku jirtaa Gmail-kaaga qaybta Qabyada — fur, eeg oo dir.',
 
   'employment.heltid': 'Waqti buuxa',
   'employment.deltid': 'Waqti dhiman',

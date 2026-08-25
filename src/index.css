@@ -844,3 +844,22 @@ footer {
 .mail-alt a {
   font-weight: 600;
 }
+
+.gmail-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 4px;
+}
+
+.gmail-draft button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}

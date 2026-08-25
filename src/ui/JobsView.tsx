@@ -23,6 +23,9 @@ import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
 import { uiEmploymentTypeLabel } from '../i18n/translations'
 import { downloadStoredCv } from './cvDownload'
+import { connectGoogle, createGmailDraft, googleToken } from '../services/gmailDraft'
+import { fileStore } from '../app/store'
+import { blobToBase64 } from '../services/fileStore'
 
 const municipalityName = (id: string) => MUNICIPALITIES.find((m) => m.id === id)?.name
 const worktimeName = (id: string) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label
@@ -161,6 +164,46 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
     setAwaitingSend(true)
     if (cv) void downloadStoredCv()
   }
+
+  const authConfigured = useSoktStore((s) => s.authConfigured)
+  const [drafting, setDrafting] = useState(false)
+  const [draftMsg, setDraftMsg] = useState<string | null>(null)
+  const [draftErr, setDraftErr] = useState<string | null>(null)
+
+  // Utkast i användarens EGEN Gmail, med PDF-CV:t bifogat. Kräver att de
+  // kopplat Google en gång; utan token skickas de till Googles samtyckesskärm.
+  async function draftInGmail() {
+    if (channel.kind !== 'email' || !channel.value) return
+    setDrafting(true)
+    setDraftErr(null)
+    setDraftMsg(null)
+    try {
+      const token = await googleToken()
+      if (!token) {
+        await connectGoogle() // navigerar bort till Google
+        return
+      }
+      const stored = cv ? await fileStore.loadCv() : null
+      await createGmailDraft(token, {
+        to: channel.value,
+        subject: `Ansökan: ${job.title}`,
+        textBody: letter,
+        attachment: stored
+          ? {
+              filename: stored.fileName,
+              mimeType: 'application/pdf',
+              contentBase64: await blobToBase64(stored.blob),
+            }
+          : undefined,
+      })
+      setDraftMsg(t(stored ? 'apply.draftDoneCv' : 'apply.draftDone'))
+      setAwaitingSend(true)
+    } catch (e) {
+      setDraftErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setDrafting(false)
+    }
+  }
   return (
     <form className="apply-panel" onSubmit={logApplication}>
       {askLogged && (
@@ -191,6 +234,15 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         )}
         {channel.kind === 'email' && (
           <span className="mail-links">
+            {authConfigured && (
+              <span className="gmail-draft">
+                <button type="button" onClick={() => void draftInGmail()} disabled={drafting}>
+                  {drafting ? t('apply.drafting') : t('apply.draftInGmail')}
+                </button>
+                {draftMsg && <span className="ok-text">{draftMsg}</span>}
+                {draftErr && <span className="error">{draftErr}</span>}
+              </span>
+            )}
             <a
               href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
               onClick={() => setAwaitingSend(true)}
