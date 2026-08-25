@@ -61,6 +61,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const setNotice = useSoktStore((s) => s.setNotice)
   const applications = useSoktStore((s) => s.applications)
   const profile = useSoktStore((s) => s.profile)
+  const account = useSoktStore((s) => s.account)
   const cv = useSoktStore((s) => s.cv)
   const aiKey = useSoktStore((s) => s.aiKey)
   const { t } = useT()
@@ -149,6 +150,17 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
 
   const channel = job.applicationChannel
   const mailtoBody = letter ? `&body=${encodeURIComponent(letter)}` : ''
+  // Gmail öppnar annars alltid konto u/0 — för många är det jobbkontot, inte
+  // adressen de söker jobb med. authuser pekar ut rätt konto; profilens mejl
+  // är adressen de presenterar för arbetsgivare, så den vinner.
+  const gmailUser = (profile?.email || account?.email || '').trim()
+  const gmailAuth = gmailUser ? `&authuser=${encodeURIComponent(gmailUser)}` : ''
+  // En länk kan aldrig bifoga en fil (webbläsarbegränsning). Näst bäst: ladda
+  // ner CV:t i samma klick, så det ligger överst i filväljaren vid gemet.
+  function startSend() {
+    setAwaitingSend(true)
+    if (cv) void downloadStoredCv()
+  }
   return (
     <form className="apply-panel" onSubmit={logApplication}>
       {askLogged && (
@@ -188,10 +200,10 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             <span className="mail-alt muted">
               {t('apply.mailAlt')}{' '}
               <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
+                href={`https://mail.google.com/mail/?view=cm&fs=1${gmailAuth}&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
                 target="_blank"
                 rel="noreferrer"
-                onClick={() => setAwaitingSend(true)}
+                onClick={startSend}
               >
                 Gmail
               </a>
@@ -200,7 +212,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
                 href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
                 target="_blank"
                 rel="noreferrer"
-                onClick={() => setAwaitingSend(true)}
+                onClick={startSend}
               >
                 Outlook
               </a>
