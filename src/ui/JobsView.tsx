@@ -23,6 +23,7 @@ import { addApplicationCommand } from '../app/commands'
 import { useT } from '../i18n/useT'
 import { uiEmploymentTypeLabel } from '../i18n/translations'
 import { downloadStoredCv } from './cvDownload'
+import { sendApplicationEmail, sendMailConfigured } from '../services/sendApplication'
 import { connectGoogle, createGmailDraft, googleToken } from '../services/gmailDraft'
 import { fileStore } from '../app/store'
 import { blobToBase64 } from '../services/fileStore'
@@ -66,8 +67,6 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const profile = useSoktStore((s) => s.profile)
   const account = useSoktStore((s) => s.account)
   const cv = useSoktStore((s) => s.cv)
-  const cvLink = useSoktStore((s) => s.cvLink)
-  const ensureCvLink = useSoktStore((s) => s.ensureCvLink)
   const aiKey = useSoktStore((s) => s.aiKey)
   const { t } = useT()
   // Local calendar date. toISOString() would hand a participant applying after
@@ -116,7 +115,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
     }
   }
 
-  function doLog() {
+  function doLog(noticeKey = 'notice.logged') {
     try {
       const application = buildApplication(job, {
         id: crypto.randomUUID(),
@@ -126,7 +125,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         municipality: municipality || undefined,
       })
       execute(addApplicationCommand(application))
-      setNotice({ key: 'notice.logged', undoable: true })
+      setNotice({ key: noticeKey, undoable: true })
       onDone()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -154,25 +153,52 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   }
 
   const channel = job.applicationChannel
-  // Inloggad med CV i molnet → en signerad länk läggs direkt i mejltexten, så
-  // CV:t följer med utan att någon laddar ner och bifogar något. Alltid på
-  // svenska: mejlet går till en svensk arbetsgivare oavsett appens språk.
-  useEffect(() => {
-    if (account && cv) void ensureCvLink()
-  }, [account, cv, ensureCvLink])
-  const letterWithCv = cvLink ? `${letter}\n\nMitt CV: ${cvLink}` : letter
-  const mailtoBody = letterWithCv ? `&body=${encodeURIComponent(letterWithCv)}` : ''
+  const mailtoBody = letter ? `&body=${encodeURIComponent(letter)}` : ''
   // Gmail öppnar annars alltid konto u/0 — för många är det jobbkontot, inte
   // adressen de söker jobb med. authuser pekar ut rätt konto; profilens mejl
   // är adressen de presenterar för arbetsgivare, så den vinner.
   const gmailUser = (profile?.email || account?.email || '').trim()
   const gmailAuth = gmailUser ? `&authuser=${encodeURIComponent(gmailUser)}` : ''
-  // Utan molnlänk kan en mejllänk aldrig bifoga en fil (webbläsarbegränsning).
-  // Näst bäst: ladda ner CV:t i samma klick, så det ligger överst i
-  // filväljaren vid gemet. Med länk i brödtexten behövs ingen nedladdning.
+  // En mejllänk kan aldrig bifoga en fil (webbläsarbegränsning). Näst bäst:
+  // ladda ner CV:t i samma klick, så det ligger överst i filväljaren vid gemet.
   function startSend() {
     setAwaitingSend(true)
-    if (cv && !cvLink) void downloadStoredCv()
+    if (cv) void downloadStoredCv()
+  }
+
+  // Skicka direkt från appen med CV:t bifogat på riktigt — inga manuella steg.
+  // Kräver konto + CV + att servern har Resend påslaget; annars visas bara de
+  // vanliga mejllänkarna precis som förut.
+  const [mailConfigured, setMailConfigured] = useState(false)
+  const [sendStep, setSendStep] = useState<'idle' | 'confirm' | 'sending' | 'sent'>('idle')
+  const [sendError, setSendError] = useState<string | null>(null)
+  useEffect(() => {
+    if (account && channel.kind === 'email') {
+      void sendMailConfigured().then(setMailConfigured)
+    }
+  }, [account, channel.kind])
+  const canSendDirect =
+    mailConfigured && Boolean(account) && Boolean(cv) && channel.kind === 'email' && Boolean(channel.value)
+
+  async function sendDirect() {
+    if (!channel.value) return
+    setSendStep('sending')
+    setSendError(null)
+    try {
+      await sendApplicationEmail({
+        to: channel.value,
+        subject: `Ansökan: ${job.title}`,
+        text: letter,
+      })
+      setSendStep('sent')
+      // Skickat på riktigt = loggat direkt. Kan fälten inte byggas (t.ex.
+      // anställningsform saknas i annonsen) står frågorna redan i panelen —
+      // doLog visar felet och deltagaren fyller i och loggar själv.
+      doLog('notice.sentLogged')
+    } catch (e) {
+      setSendStep('confirm')
+      setSendError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   const authConfigured = useSoktStore((s) => s.authConfigured)
@@ -220,7 +246,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         <div className="sent-prompt" role="status">
           <p>{t('apply.sentQuestion', { employer: job.employer })}</p>
           <div className="button-row">
-            <button type="button" onClick={doLog}>
+            <button type="button" onClick={() => doLog()}>
               {t('apply.sentYes')}
             </button>
             <button
@@ -242,7 +268,44 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             {t('apply.openUrl')}
           </a>
         )}
-        {channel.kind === 'email' && (
+        {channel.kind === 'email' && canSendDirect && (
+          <span className="direct-send">
+            {sendStep === 'idle' && (
+              <button type="button" onClick={() => setSendStep('confirm')}>
+                {t('apply.sendWithCv')}
+              </button>
+            )}
+            {sendStep === 'confirm' && (
+              <span className="send-confirm">
+                <span className="muted">
+                  {t('apply.sendConfirm', {
+                    email: channel.value ?? '',
+                    fileName: cv?.fileName ?? '',
+                    reply: (profile?.email || account?.email || '').trim(),
+                  })}
+                </span>{' '}
+                <button type="button" onClick={() => void sendDirect()}>
+                  {t('apply.sendNow')}
+                </button>{' '}
+                <button type="button" className="ghost" onClick={() => setSendStep('idle')}>
+                  {t('apply.sendCancel')}
+                </button>
+              </span>
+            )}
+            {sendStep === 'sending' && <span className="muted">{t('apply.sending')}</span>}
+            {sendError && <span className="error">{sendError}</span>}
+            <span className="mail-alt muted">
+              {t('apply.mailAlt')}{' '}
+              <a
+                href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
+                onClick={() => setAwaitingSend(true)}
+              >
+                {t('apply.email', { email: channel.value ?? '' })}
+              </a>
+            </span>
+          </span>
+        )}
+        {channel.kind === 'email' && !canSendDirect && (
           <span className="mail-links">
             {authConfigured && (
               <span className="gmail-draft">
@@ -262,7 +325,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             <span className="mail-alt muted">
               {t('apply.mailAlt')}{' '}
               <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1${gmailAuth}&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letterWithCv)}`}
+                href={`https://mail.google.com/mail/?view=cm&fs=1${gmailAuth}&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={startSend}
@@ -271,7 +334,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
               </a>
               {' · '}
               <a
-                href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letterWithCv)}`}
+                href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={startSend}
@@ -313,8 +376,8 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
       )}
       {cv ? (
         <p className="muted">
-          {cvLink
-            ? t('apply.cvLinked', { fileName: cv.fileName })
+          {canSendDirect
+            ? t('apply.cvAuto', { fileName: cv.fileName })
             : t('apply.cvReady', { fileName: cv.fileName })}{' '}
           <button
             type="button"

@@ -863,3 +863,44 @@ footer {
   font-size: 0.95rem;
   cursor: pointer;
 }
+
+/* Direktutskicket: en primär knapp, bekräftelsen under, allt vänsterställt
+   i samma kolumnrytm som mejllänkarna. */
+.direct-send {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.direct-send > button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.send-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.send-confirm button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.send-confirm button:not(.ghost) {
+  background: var(--accent);
+  color: white;
+  border: none;
+}
