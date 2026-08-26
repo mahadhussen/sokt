@@ -12,6 +12,7 @@
 
 import type { Application, Profile } from '../model/types'
 import { isApplication } from '../model/validate'
+import type { StoredCv } from './cvBytes'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface RemoteState {
@@ -21,6 +22,9 @@ export interface RemoteState {
   // resurrected by the next sync from another — the row is simply absent, which
   // is indistinguishable from "not uploaded yet".
   deletedIds: string[]
+  // Whether the account has a CV in cloud storage, and its labels — so a fresh
+  // device knows to download it. Filnamn/text kommer från profiles-raden.
+  cvMeta: { fileName: string; text: string; byteSize: number } | null
 }
 
 export interface CloudSync {
@@ -28,7 +32,13 @@ export interface CloudSync {
   upsertApplication(application: Application): Promise<void>
   deleteApplication(id: string): Promise<void>
   saveProfile(profile: Profile): Promise<void>
+  uploadCvFile(cv: StoredCv): Promise<void>
+  downloadCvFile(): Promise<StoredCv | null>
+  removeCvFile(): Promise<void>
 }
+
+const CV_BUCKET = 'cvs'
+const cvPath = (userId: string) => `${userId}/cv`
 
 interface Row {
   id: string
@@ -110,12 +120,22 @@ export function createSupabaseSync(db: SupabaseClient, userId: string): CloudSyn
             email: string
             base_letter: string
             details: Record<string, string>
+            cv_file_name: string | null
+            cv_text: string | null
+            cv_byte_size: number | null
           }
         | undefined
 
       return {
         applications: live,
         deletedIds,
+        cvMeta: profileRow?.cv_file_name
+          ? {
+              fileName: profileRow.cv_file_name,
+              text: profileRow.cv_text ?? '',
+              byteSize: profileRow.cv_byte_size ?? 0,
+            }
+          : null,
         profile: profileRow
           ? {
               id: profileRow.user_id,
@@ -162,6 +182,66 @@ export function createSupabaseSync(db: SupabaseClient, userId: string): CloudSyn
         { onConflict: 'user_id' },
       )
       fail('Kunde inte spara profilen i molnet', error)
+    },
+
+    async uploadCvFile(cv) {
+      // Ett CV per konto: samma väg, upsert skriver över. Filen i bucketen,
+      // etiketterna på profilraden så en ny enhet kan visa namn/storlek direkt.
+      const up = await db.storage
+        .from(CV_BUCKET)
+        .upload(cvPath(userId), cv.blob, {
+          upsert: true,
+          contentType: cv.blob.type || 'application/pdf',
+        })
+      fail('Kunde inte ladda upp CV:t', up.error)
+      // Upsert, inte update: en ny enhet kan ladda upp CV:t innan profilraden
+      // hunnit synkas. En update hade då träffat noll rader tyst, och en annan
+      // enhet skulle aldrig se att CV:t finns. Vid konflikt uppdateras bara
+      // CV-kolumnerna — namn/mejl på en befintlig rad rörs inte, och på en ny
+      // rad tar övriga NOT NULL-kolumner sitt DEFAULT ''.
+      const meta = await db.from('profiles').upsert(
+        {
+          user_id: userId,
+          cv_file_name: cv.fileName,
+          cv_text: cv.text,
+          cv_byte_size: cv.byteSize,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      )
+      fail('Kunde inte spara CV-uppgifterna', meta.error)
+    },
+
+    async downloadCvFile() {
+      const meta = await db
+        .from('profiles')
+        .select('cv_file_name, cv_text, cv_byte_size')
+        .eq('user_id', userId)
+        .maybeSingle()
+      fail('Kunde inte hämta CV-uppgifterna', meta.error)
+      const row = meta.data as
+        | { cv_file_name: string | null; cv_text: string | null; cv_byte_size: number | null }
+        | null
+      if (!row?.cv_file_name) return null
+      const dl = await db.storage.from(CV_BUCKET).download(cvPath(userId))
+      // 404 = filen finns inte (t.ex. metadata utan fil) — behandla som inget CV.
+      if (dl.error || !dl.data) return null
+      return {
+        fileName: row.cv_file_name,
+        text: row.cv_text ?? '',
+        byteSize: row.cv_byte_size ?? dl.data.size,
+        blob: dl.data,
+      }
+    },
+
+    async removeCvFile() {
+      const rm = await db.storage.from(CV_BUCKET).remove([cvPath(userId)])
+      fail('Kunde inte ta bort CV:t i molnet', rm.error)
+      const meta = await db
+        .from('profiles')
+        .update({ cv_file_name: null, cv_text: null, cv_byte_size: null })
+        .eq('user_id', userId)
+      fail('Kunde inte nolla CV-uppgifterna', meta.error)
     },
   }
 }

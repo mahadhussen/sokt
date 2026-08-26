@@ -333,6 +333,14 @@ export function createSoktStore(
       },
 
       async deleteAccount() {
+        // Ta bort CV:t ur bucketen först — auth-CASCADE når inte storage-objekt,
+        // så annars blir filen kvar föräldralös.
+        const acc = get().account
+        if (acc) {
+          await createSupabaseSync(await getSupabase(), acc.id)
+            .removeCvFile()
+            .catch(() => undefined)
+        }
         await auth.deleteAccount()
         // Kontot och allt som låg i det är borta. Det som ligger på den här
         // enheten är deltagarens eget och rörs inte — det raderas separat med
@@ -342,7 +350,7 @@ export function createSoktStore(
       },
 
       async syncNow() {
-        const { account, profile, applications } = get()
+        const { account, profile, applications, cv } = get()
         if (!account) return
         set({ syncing: true, syncError: null })
         try {
@@ -358,6 +366,25 @@ export function createSoktStore(
             await cloud.upsertApplication(application)
           }
           if (merged.profile && !remote.profile) await cloud.saveProfile(merged.profile)
+
+          // CV:t: ingen lokalt men kontot har ett → hämta hem (ny enhet). Ett
+          // lokalt men molnet saknar → ladda upp (nyss inloggad/claim-flytt).
+          if (!cv && remote.cvMeta) {
+            const stored = await cloud.downloadCvFile()
+            if (stored) {
+              await files.saveCv(stored)
+              set({
+                cv: { fileName: stored.fileName, text: stored.text, byteSize: stored.byteSize },
+              })
+              const p = get().profile
+              if (p && p.cvFileRef !== CV_REF) {
+                get().execute(setProfileCommand({ ...p, cvFileRef: CV_REF }))
+              }
+            }
+          } else if (cv && !remote.cvMeta) {
+            const local = await files.loadCv()
+            if (local) await cloud.uploadCvFile(local)
+          }
           set({ syncedAt: Date.now() })
         } catch (e) {
           set({ syncError: e instanceof Error ? e.message : String(e) })
@@ -398,20 +425,38 @@ export function createSoktStore(
         const { extractPdfText } = await import('../services/cvParser')
         const text = await extractPdfText(file).catch(() => '')
         const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
-        await files.saveCv({ ...meta, blob: file })
+        const stored = { ...meta, blob: file }
+        await files.saveCv(stored)
         set({ cv: meta })
-        const { profile } = get()
+        const { profile, account } = get()
         if (profile && profile.cvFileRef !== CV_REF) {
           get().execute(setProfileCommand({ ...profile, cvFileRef: CV_REF }))
+        }
+        // Inloggad → CV:t följer kontot. Molnfel = "inte synkat än", aldrig
+        // blockerande: den lokala kopian finns kvar och nästa synk laddar upp.
+        if (account) {
+          try {
+            await createSupabaseSync(await getSupabase(), account.id).uploadCvFile(stored)
+            set({ syncedAt: Date.now(), syncError: null })
+          } catch (e) {
+            set({ syncError: e instanceof Error ? e.message : String(e) })
+          }
         }
       },
 
       async removeCv() {
         await files.clearCv()
         set({ cv: null })
-        const { profile } = get()
+        const { profile, account } = get()
         if (profile?.cvFileRef) {
           get().execute(setProfileCommand({ ...profile, cvFileRef: undefined }))
+        }
+        if (account) {
+          try {
+            await createSupabaseSync(await getSupabase(), account.id).removeCvFile()
+          } catch (e) {
+            set({ syncError: e instanceof Error ? e.message : String(e) })
+          }
         }
       },
 

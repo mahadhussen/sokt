@@ -13,7 +13,10 @@ eget. Tre lager garanterar det:
    låst till `user_id = auth.uid()`. Verifierat skarpt: anonym läsning ger noll
    rader, inloggad ser bara sina egna. `WITH CHECK` på insert/update hindrar att
    någon skriver rader åt en annan användare. Det finns ingen coach- eller
-   adminroll i projektet — ingen kan läsa på tvärs.
+   adminroll i projektet — ingen kan läsa på tvärs. Samma lås gäller CV-filerna:
+   den privata bucketen `cvs` har RLS på ägarmappen
+   (`(storage.foldername(name))[1] = auth.uid()::text`), så varje konto når bara
+   sin egen fil på vägen `<user_id>/cv` och bucketen är aldrig publik.
 2. **Signerade JWT.** `auth.uid()` kommer ur en token Supabase signerar med en
    hemlighet bara de har. Den går inte att förfalska, så man kan inte utge sig
    för att vara någon annan. `delete_own_account()` läser `auth.uid()` ur token,

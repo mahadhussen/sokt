@@ -137,8 +137,21 @@ select count(*) from public.applications;
 select count(*) from auth.users;
 ```
 
+## CV-synk — byggt
+
+CV:t följer nu kontot mellan enheter. Filen ligger i en privat Storage-bucket
+`cvs`, en fil per konto på vägen `<user_id>/cv`, skyddad av RLS på ägarmappen
+(bara ägaren når sin egen fil). Filnamn, textinnehåll och storlek ligger på
+`profiles`-raden (`cv_file_name`, `cv_text`, `cv_byte_size`) så en ny enhet kan
+visa CV:t direkt utan att tolka om PDF:en.
+
+Kräver migrationen `20260826120000_cv_lagring.sql` (skapar bucketen, RLS-policys
+och de tre kolumnerna). Kör den i SQL Editor på samma sätt som kontomigrationen.
+
+Lokalt lagras CV:t som `ArrayBuffer`, inte råa `File`/`Blob` — iOS Safari vägrar
+strukturklona en Blob till IndexedDB, vilket gav felet "Error preparing
+Blob/File data to be stored in object store" på telefonen.
+
 ## Det jag medvetet inte byggt än
 
-- **CV-synk.** CV:t ligger kvar på enheten. Det står uttryckligen i
-  kontopanelen, så ingen tror något annat.
 - **Delning med coach.** Kommer separat, och ska vara deltagarens eget val.

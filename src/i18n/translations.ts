@@ -131,7 +131,7 @@ const sv: Dict = {
 
   'consent.title': 'Samtycke',
   'consent.body':
-    'För att spara din profil, ditt CV och dina ansökningar behöver du samtycka till att Sökt lagrar dina personuppgifter. Allt sparas bara lokalt i den här webbläsaren — inget skickas till någon server och inget delas. Du kan när som helst exportera eller radera allt.',
+    'För att spara din profil, ditt CV och dina ansökningar behöver du samtycka till att Sökt lagrar dina personuppgifter. Utan konto sparas allt bara lokalt i den här webbläsaren. Loggar du in synkas din profil, dina ansökningar och ditt CV till ditt konto hos Sökt, så att du når dem från alla dina enheter. Inget delas med någon annan, och du kan när som helst exportera eller radera allt.',
   'consent.checkbox': 'Jag samtycker till att mina uppgifter sparas lokalt.',
   'consent.continue': 'Fortsätt',
   'profile.loading': 'Laddar…',
@@ -194,7 +194,7 @@ const sv: Dict = {
   'account.badEmail': 'Kontrollera e-postadressen.',
   'account.signedInAs': 'Inloggad som {email}.',
   'account.syncExplained':
-    'Dina ansökningar och din profil sparas nu både här och på ditt konto, så du ser dem på alla enheter där du loggar in. Ditt CV ligger kvar bara på den här enheten.',
+    'Din profil, dina ansökningar och ditt CV sparas nu både här och på ditt konto, så du ser dem på alla enheter där du loggar in.',
   'account.signOut': 'Logga ut',
   'account.delete': 'Radera mitt konto',
   'account.deleteExplained':
@@ -341,7 +341,7 @@ const ar: Dict = {
 
   'consent.title': 'الموافقة',
   'consent.body':
-    'لحفظ ملفك الشخصي وسيرتك الذاتية وطلباتك، عليك الموافقة على أن يقوم Sökt بتخزين بياناتك الشخصية. كل شيء يُحفظ محليًا في هذا المتصفح فقط — لا يُرسل شيء إلى أي خادم ولا تتم مشاركة أي شيء. يمكنك تصدير كل شيء أو حذفه في أي وقت.',
+    'لحفظ ملفك الشخصي وسيرتك الذاتية وطلباتك، عليك الموافقة على أن يقوم Sökt بتخزين بياناتك الشخصية. بدون حساب، يُحفظ كل شيء محليًا في هذا المتصفح فقط. وإذا سجّلت الدخول، تتم مزامنة ملفك الشخصي وطلباتك وسيرتك الذاتية مع حسابك لدى Sökt، حتى تصل إليها من جميع أجهزتك. لا تتم مشاركة أي شيء مع أي شخص آخر، ويمكنك تصدير كل شيء أو حذفه في أي وقت.',
   'consent.checkbox': 'أوافق على تخزين بياناتي محليًا.',
   'consent.continue': 'متابعة',
   'profile.loading': 'جارٍ التحميل…',
@@ -403,7 +403,7 @@ const ar: Dict = {
   'account.badEmail': 'تحقّق من عنوان البريد.',
   'account.signedInAs': 'مسجّل الدخول باسم {email}.',
   'account.syncExplained':
-    'تُحفظ طلباتك وملفك الشخصي الآن هنا وفي حسابك، فتراها على كل جهاز تسجّل الدخول منه. سيرتك الذاتية تبقى على هذا الجهاز فقط.',
+    'يُحفظ الآن ملفك الشخصي وطلباتك وسيرتك الذاتية هنا وفي حسابك معًا، فتراها على كل جهاز تسجّل الدخول منه.',
   'account.signOut': 'تسجيل الخروج',
   'account.delete': 'حذف حسابي',
   'account.deleteExplained':
@@ -551,7 +551,7 @@ const so: Dict = {
 
   'consent.title': 'Oggolaansho',
   'consent.body':
-    'Si aad u kaydiso astaantaada, CV-gaaga iyo codsiyadaada, waa inaad oggolaato in Sökt uu kaydiyo xogtaada shakhsiyeed. Wax walba waxaa lagu kaydiyaa oo keliya browserkan gudihiisa — waxba looma diro server, waxbana lama wadaago. Waqti kasta waad soo dejin kartaa ama tirtiri kartaa wax walba.',
+    'Si aad u kaydiso astaantaada, CV-gaaga iyo codsiyadaada, waa inaad oggolaato in Sökt uu kaydiyo xogtaada shakhsiyeed. Haddii aadan lahayn akoon, wax walba waxaa lagu kaydiyaa oo keliya browserkan gudihiisa. Haddii aad gasho, astaantaada, codsiyadaada iyo CV-gaaga waxaa lagu kaydiyaa akoonkaaga Sökt, si aad uga hesho dhammaan qalabkaaga. Waxba lama wadaago qof kale, waqti kastana waad soo dejin kartaa ama tirtiri kartaa wax walba.',
   'consent.checkbox': 'Waan oggolahay in xogtayda lagu kaydiyo browserka gudihiisa.',
   'consent.continue': 'Sii wad',
   'profile.loading': 'Waa soo dhacayaa…',
@@ -613,7 +613,7 @@ const so: Dict = {
   'account.badEmail': 'Hubi cinwaanka emailka.',
   'account.signedInAs': 'Waxaad u gashay {email}.',
   'account.syncExplained':
-    'Codsiyadaada iyo astaantaada hadda waxay ku kaydsan yihiin halkan iyo akoonkaaga labadaba, sidaas darteed waad ka arki doontaa qalab kasta oo aad ka gasho. CV-gaagu wuxuu ku hadhayaa qalabkan oo keliya.',
+    'Astaantaada, codsiyadaada iyo CV-gaaga hadda waxay ku kaydsan yihiin halkan iyo akoonkaaga labadaba, sidaas darteed waad ka arki doontaa qalab kasta oo aad ka gasho.',
   'account.signOut': 'Ka bax',
   'account.delete': 'Tirtir akoonkayga',
   'account.deleteExplained':

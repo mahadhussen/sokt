@@ -1,19 +1,14 @@
 // Binary CV storage. A PDF is too large for localStorage (~5MB cap), so the
-// CV blob and its metadata live in IndexedDB, keyed by a constant. The model
-// (profile, applications) stays in localStorage; Profile.cvFileRef marks that
-// a CV exists.
+// CV lives in IndexedDB, keyed per account. The model (profile, applications)
+// stays in localStorage; Profile.cvFileRef marks that a CV exists.
 //
-// GDPR: everything here is deletable via clear() and never leaves the browser.
+// Stored as ArrayBuffer bytes, not a Blob: iOS Safari refuses to structured-
+// clone a File/Blob into IndexedDB. See cvBytes.ts.
 
-export interface CvMeta {
-  fileName: string
-  text: string // extracted PDF text (may be empty if parsing found none)
-  byteSize: number
-}
+import { fromCvRecord, toCvRecord } from './cvBytes'
+import type { CvMeta, CvRecord, StoredCv } from './cvBytes'
 
-export interface StoredCv extends CvMeta {
-  blob: Blob
-}
+export type { CvMeta, StoredCv }
 
 export interface FileStore {
   saveCv(cv: StoredCv): Promise<void>
@@ -73,15 +68,18 @@ export function createIndexedDbFileStore(userId?: string | null): FileStore {
   const key = userId ? `cv.u.${userId}` : CV_REF
   return {
     async saveCv(cv) {
+      // Convert to ArrayBuffer bytes before the transaction — a Blob would
+      // throw on iOS. The whole record must be clonable.
+      const record = await toCvRecord(cv)
       const db = await openDb()
-      await tx(db, 'readwrite', (store) => store.put(cv, key))
+      await tx(db, 'readwrite', (store) => store.put(record, key))
       db.close()
     },
     async loadCv() {
       const db = await openDb()
-      const result = await tx<StoredCv | undefined>(db, 'readonly', (store) => store.get(key))
+      const result = await tx<CvRecord | undefined>(db, 'readonly', (store) => store.get(key))
       db.close()
-      return result ?? null
+      return result ? fromCvRecord(result) : null
     },
     async clearCv() {
       const db = await openDb()
