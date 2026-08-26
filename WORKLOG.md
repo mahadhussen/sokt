@@ -7,6 +7,31 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-08-26 — CV:t följer med som länk i ansökningsmejlet
+
+### Byggt
+Deltagaren skulle förut ladda ner CV:t och bifoga det manuellt — för många steg.
+Nu skapas en signerad nedladdningslänk (90 dagar, `createSignedUrl` med
+`download: filnamn`) till CV:t i bucketen, och läggs automatiskt i mejltexten
+för mailto/Gmail/Outlook: "Mitt CV: <länk>". `ensureCvLink` i storen laddar upp
+CV:t först om det bara finns lokalt. Utan konto, eller om länken inte hunnit
+skapas vid klick, faller flödet tillbaka på nedladdning + bifogning — inget
+glapp. Länken nollas vid CV-byte/borttagning/kontobyte. Statustext (sv/ar/so):
+"följer automatiskt med som länk". Även självläkning av inaktuella chunk-namn
+efter deploy (`vite:preloadError` → en omladdning med loopvakt).
+
+### Beslut
+- **Länk i brödtexten, inte bilaga.** En webblänk kan aldrig bifoga en fil, och
+  Gmail-API-vägen kräver per-användare-OAuth (pausad). Signerad länk fungerar i
+  alla mejlklienter, på telefon, utan Google-krångel. Gmail-utkastknappen (med
+  äkta bilaga) finns kvar för den som kopplat Google.
+- **Alltid svenska i mejlraden** ("Mitt CV:") — mejlet går till svensk
+  arbetsgivare oavsett appens språk, samma regel som AF-rapporten.
+
+### Kvalitetsgrindar
+- typecheck ✅, lint ✅, test ✅ (158), build ✅. Deployad till produktion
+  (`2e728b0`), laddar utan konsolfel. Inloggat E2E-flöde verifieras av Mahad.
+
 ## 2026-08-26 — CV följer kontot mellan enheter + iOS-fix
 
 ### Bakgrund
