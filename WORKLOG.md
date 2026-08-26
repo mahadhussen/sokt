@@ -7,6 +7,39 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-08-26 — Skicka ansökan direkt med CV:t som riktig bilaga
+
+### Byggt
+Mahads dom över länklösningen: "länk ser shady ut, ingen vågar klicka". Rätt
+svar är riktig bilaga, och en mejllänk kan aldrig bifoga en fil — alltså
+server-side: `api/send-application.ts` (Vercel-funktion) skickar via Resend
+från verifierade `arbetsklivet.se` med PDF:en bifogad. En knapp i appen
+("Skicka ansökan med CV"), bekräftelse med mottagare/bilaga/svarsadress,
+lyckat utskick loggar ansökan direkt. Svar går till deltagaren (reply_to),
+kopia till deltagaren (bcc).
+
+### Säkerhetsmodell
+- Funktionen kräver deltagarens egen Supabase-JWT och läser namn, svarsadress
+  och CV med deltagarens token — RLS avgör ägarskap, ingen service_role,
+  omöjligt att skicka i någon annans namn eller med någon annans CV.
+- Dagstak 20/konto/dygn via `sokt_send_log` (RLS, append-only, migration
+  20260826150000 — körd och verifierad) så domänen inte blir spamrelä.
+- Utan `RESEND_API_KEY` i Vercel svarar GET `{configured:false}` och appen
+  visar exakt gamla flödet — funktionen vilar tills nyckeln läggs in.
+
+### Beslut
+- **Resend, inte Gmail-API, som huvudväg.** Gmail-utkast kräver per-användare-
+  OAuth och Googles granskning över 100 användare — osäljbart, och utestänger
+  alla med Hotmail. Resend fungerar för varje deltagare oavsett mejlleverantör.
+  Gmail-utkastknappen finns kvar som fallback för den som kopplat Google.
+- **Signerade CV-länken borttagen** (createCvLink/ensureCvLink) — ersatt av
+  riktig bilaga, ingen död kod kvar.
+
+### Kvalitetsgrindar
+typecheck ✅ lint ✅ test ✅ (158) build ✅. Prod `6a2591b`, endpointen svarar.
+Skarp sändning testas mot Mahads egen adress när RESEND_API_KEY lagts in —
+aldrig mot riktiga arbetsgivare.
+
 ## 2026-08-26 — CV:t följer med som länk i ansökningsmejlet
 
 ### Byggt
