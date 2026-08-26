@@ -102,6 +102,8 @@ const sv: Dict = {
   'ai.keyLabel': 'Anthropic API-nyckel',
   'ai.saved': 'Sparad ✓',
   'apply.noProfileTip': 'Tips: fyll i din profil och ditt grundbrev så anpassas brevet per jobb.',
+  'apply.cvLinked':
+    'Ditt CV ({fileName}) följer automatiskt med som länk i mejlet — inget behöver bifogas.',
   'apply.cvReady': 'Ditt CV ({fileName}) laddas ner när du klickar på en mejllänk — bifoga det sedan med gemet i mejlet.',
   'apply.cvTip': 'Tips: ladda upp ditt CV under Profil så har du det redo att bifoga.',
   'apply.yourDetails': 'Dina uppgifter (klicka för att kopiera)',
@@ -312,6 +314,8 @@ const ar: Dict = {
   'ai.keyLabel': 'مفتاح Anthropic API',
   'ai.saved': 'تم الحفظ ✓',
   'apply.noProfileTip': 'نصيحة: املأ ملفك الشخصي ورسالتك الأساسية لتُخصَّص الرسالة لكل وظيفة.',
+  'apply.cvLinked':
+    'سيرتك الذاتية ({fileName}) تُرفق تلقائيًا كرابط في الرسالة — لا حاجة لإرفاق أي شيء.',
   'apply.cvReady': 'سيتم تنزيل سيرتك الذاتية ({fileName}) عند النقر على رابط البريد — أرفقها بعد ذلك بمشبك الورق في الرسالة.',
   'apply.cvTip': 'نصيحة: ارفع سيرتك الذاتية في الملف الشخصي لتكون جاهزة للإرفاق.',
   'apply.yourDetails': 'بياناتك (انقر للنسخ)',
@@ -522,6 +526,8 @@ const so: Dict = {
   'ai.keyLabel': 'Furaha Anthropic API',
   'ai.saved': 'La kaydiyay ✓',
   'apply.noProfileTip': 'Talo: buuxi astaantaada iyo warqaddaada aasaasiga ah si warqaddu ugu habboonaato shaqo kasta.',
+  'apply.cvLinked':
+    'CV-gaaga ({fileName}) wuxuu si toos ah ugu raacayaa emailka sidii xiriir — waxba looma baahna in la lifaaqo.',
   'apply.cvReady': 'CV-gaaga ({fileName}) waa la soo dejin doonaa markaad gujiso xiriirka emailka — kadib ku lifaaq biinka warqadda ee emailka.',
   'apply.cvTip': 'Talo: soo geli CV-gaaga qaybta Astaanta si aad diyaar ugu haysato.',
   'apply.yourDetails': 'Xogtaada (guji si aad u nuqusho)',

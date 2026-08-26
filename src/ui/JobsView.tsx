@@ -66,6 +66,8 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   const profile = useSoktStore((s) => s.profile)
   const account = useSoktStore((s) => s.account)
   const cv = useSoktStore((s) => s.cv)
+  const cvLink = useSoktStore((s) => s.cvLink)
+  const ensureCvLink = useSoktStore((s) => s.ensureCvLink)
   const aiKey = useSoktStore((s) => s.aiKey)
   const { t } = useT()
   // Local calendar date. toISOString() would hand a participant applying after
@@ -152,17 +154,25 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   }
 
   const channel = job.applicationChannel
-  const mailtoBody = letter ? `&body=${encodeURIComponent(letter)}` : ''
+  // Inloggad med CV i molnet → en signerad länk läggs direkt i mejltexten, så
+  // CV:t följer med utan att någon laddar ner och bifogar något. Alltid på
+  // svenska: mejlet går till en svensk arbetsgivare oavsett appens språk.
+  useEffect(() => {
+    if (account && cv) void ensureCvLink()
+  }, [account, cv, ensureCvLink])
+  const letterWithCv = cvLink ? `${letter}\n\nMitt CV: ${cvLink}` : letter
+  const mailtoBody = letterWithCv ? `&body=${encodeURIComponent(letterWithCv)}` : ''
   // Gmail öppnar annars alltid konto u/0 — för många är det jobbkontot, inte
   // adressen de söker jobb med. authuser pekar ut rätt konto; profilens mejl
   // är adressen de presenterar för arbetsgivare, så den vinner.
   const gmailUser = (profile?.email || account?.email || '').trim()
   const gmailAuth = gmailUser ? `&authuser=${encodeURIComponent(gmailUser)}` : ''
-  // En länk kan aldrig bifoga en fil (webbläsarbegränsning). Näst bäst: ladda
-  // ner CV:t i samma klick, så det ligger överst i filväljaren vid gemet.
+  // Utan molnlänk kan en mejllänk aldrig bifoga en fil (webbläsarbegränsning).
+  // Näst bäst: ladda ner CV:t i samma klick, så det ligger överst i
+  // filväljaren vid gemet. Med länk i brödtexten behövs ingen nedladdning.
   function startSend() {
     setAwaitingSend(true)
-    if (cv) void downloadStoredCv()
+    if (cv && !cvLink) void downloadStoredCv()
   }
 
   const authConfigured = useSoktStore((s) => s.authConfigured)
@@ -252,7 +262,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
             <span className="mail-alt muted">
               {t('apply.mailAlt')}{' '}
               <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1${gmailAuth}&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
+                href={`https://mail.google.com/mail/?view=cm&fs=1${gmailAuth}&to=${encodeURIComponent(channel.value ?? '')}&su=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letterWithCv)}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={startSend}
@@ -261,7 +271,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
               </a>
               {' · '}
               <a
-                href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letter)}`}
+                href={`https://outlook.live.com/mail/deeplink/compose?to=${encodeURIComponent(channel.value ?? '')}&subject=${encodeURIComponent(`Ansökan: ${job.title}`)}&body=${encodeURIComponent(letterWithCv)}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={startSend}
@@ -303,7 +313,9 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
       )}
       {cv ? (
         <p className="muted">
-          {t('apply.cvReady', { fileName: cv.fileName })}{' '}
+          {cvLink
+            ? t('apply.cvLinked', { fileName: cv.fileName })
+            : t('apply.cvReady', { fileName: cv.fileName })}{' '}
           <button
             type="button"
             className="link-button cv-download"

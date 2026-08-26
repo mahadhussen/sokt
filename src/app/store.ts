@@ -81,6 +81,9 @@ export interface SoktStore extends ModelState {
   // Okopplad data fanns på enheten när ett konto loggade in. Frågan ställs —
   // aldrig automatisk flytt: på en delad dator kan datan tillhöra någon annan.
   claimOffer: { apps: number; hasCv: boolean } | null
+  // Signerad länk till CV:t i molnet, för ansökningsmejlens brödtext. Skapas
+  // lat av ensureCvLink och nollas när CV:t byts eller kontot loggas ut.
+  cvLink: string | null
   execute(command: Command): void
   undo(): void
   setNotice(notice: Notice | null): void
@@ -104,6 +107,7 @@ export interface SoktStore extends ModelState {
   signOut(): Promise<void>
   deleteAccount(): Promise<void>
   syncNow(): Promise<void>
+  ensureCvLink(): Promise<void>
 }
 
 export interface ImportResult {
@@ -208,6 +212,7 @@ export function createSoktStore(
         history: [],
         notice: null,
         claimOffer: null,
+        cvLink: null,
         loadError,
         backupJson,
         hydrated: true,
@@ -254,6 +259,7 @@ export function createSoktStore(
       syncError: null,
       syncedAt: null,
       claimOffer: null,
+      cvLink: null,
 
       execute(command) {
         const { profile, applications, history } = get()
@@ -393,6 +399,29 @@ export function createSoktStore(
         }
       },
 
+      // Signerad CV-länk till ansökningsmejlets brödtext, så CV:t följer med
+      // utan att någon behöver ladda ner och bifoga något. 90 dagar räcker gott
+      // för en rekryteringsprocess. Saknar molnet CV:t laddas det upp först,
+      // så länken fungerar även direkt efter inloggning på en gammal enhet.
+      async ensureCvLink() {
+        const { account, cv, cvLink } = get()
+        if (!account || !cv || cvLink) return
+        try {
+          const cloud = createSupabaseSync(await getSupabase(), account.id)
+          let link = await cloud.createCvLink(90 * 24 * 3600)
+          if (!link) {
+            const local = await files.loadCv()
+            if (!local) return
+            await cloud.uploadCvFile(local)
+            link = await cloud.createCvLink(90 * 24 * 3600)
+          }
+          if (link) set({ cvLink: link })
+        } catch {
+          // Ingen länk är inget fel värt att blockera med — mejlflödet faller
+          // tillbaka på nedladdning + bifogning precis som utan konto.
+        }
+      },
+
       setJobs(jobs, total) {
         set({ jobs, jobsTotal: total })
       },
@@ -427,7 +456,8 @@ export function createSoktStore(
         const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
         const stored = { ...meta, blob: file }
         await files.saveCv(stored)
-        set({ cv: meta })
+        // Gammal länk pekar på samma väg men fel filnamn — skapas om vid behov.
+        set({ cv: meta, cvLink: null })
         const { profile, account } = get()
         if (profile && profile.cvFileRef !== CV_REF) {
           get().execute(setProfileCommand({ ...profile, cvFileRef: CV_REF }))
@@ -446,7 +476,7 @@ export function createSoktStore(
 
       async removeCv() {
         await files.clearCv()
-        set({ cv: null })
+        set({ cv: null, cvLink: null })
         const { profile, account } = get()
         if (profile?.cvFileRef) {
           get().execute(setProfileCommand({ ...profile, cvFileRef: undefined }))

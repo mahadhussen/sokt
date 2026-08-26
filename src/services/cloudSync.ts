@@ -35,6 +35,9 @@ export interface CloudSync {
   uploadCvFile(cv: StoredCv): Promise<void>
   downloadCvFile(): Promise<StoredCv | null>
   removeCvFile(): Promise<void>
+  // Signerad nedladdningslänk till CV:t, för att läggas i ansökningsmejlet.
+  // null när inget CV finns i molnet.
+  createCvLink(expiresInSeconds: number): Promise<string | null>
 }
 
 const CV_BUCKET = 'cvs'
@@ -232,6 +235,23 @@ export function createSupabaseSync(db: SupabaseClient, userId: string): CloudSyn
         byteSize: row.cv_byte_size ?? dl.data.size,
         blob: dl.data,
       }
+    },
+
+    async createCvLink(expiresInSeconds) {
+      // Filnamnet från profilraden blir nedladdningsnamn hos arbetsgivaren —
+      // "Mahad Hussen CV.pdf", inte "cv". Ingen metadata = inget CV i molnet.
+      const meta = await db
+        .from('profiles')
+        .select('cv_file_name')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const fileName = (meta.data as { cv_file_name: string | null } | null)?.cv_file_name
+      if (!fileName) return null
+      const signed = await db.storage
+        .from(CV_BUCKET)
+        .createSignedUrl(cvPath(userId), expiresInSeconds, { download: fileName })
+      if (signed.error || !signed.data?.signedUrl) return null
+      return signed.data.signedUrl
     },
 
     async removeCvFile() {
