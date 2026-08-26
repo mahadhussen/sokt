@@ -7,6 +7,48 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-08-26 — CV följer kontot mellan enheter + iOS-fix
+
+### Bakgrund
+En deltagare fick sitt CV inlagt på datorn (inloggad), men på telefonen (samma
+konto) syntes ingenting, och uppladdning på telefonen gav *"Error preparing
+Blob/File data to be stored in object store"*. Två grundorsaker, båda i koden.
+
+### Byggt
+- **iOS-säker lagring.** `fileStore` lagrade det råa `File`-objektet i IndexedDB.
+  iOS Safari vägrar strukturklona en Blob dit — exakt felet ovan. Ny ren modul
+  `cvBytes` konverterar till `ArrayBuffer` + mimetyp vid skrivning och återskapar
+  `Blob` vid läsning, med bakåtkompatibel läsning av gamla blob-poster. Rundturstest.
+- **CV-synk via privat Storage-bucket.** Ny migration `20260826120000_cv_lagring.sql`:
+  bucket `cvs` (privat, 10 MB), RLS på ägarmappen (`(storage.foldername(name))[1]
+  = auth.uid()::text`), väg `<user_id>/cv`, plus tre kolumner på `profiles`
+  (`cv_file_name`, `cv_text`, `cv_byte_size`).
+- **`cloudSync`:** `uploadCvFile` / `downloadCvFile` / `removeCvFile`. Metadata
+  skrivs med **upsert**, inte update — en ny enhet kan ladda upp CV:t innan
+  profilraden hunnit synkas; en update hade träffat noll rader tyst och CV:t
+  aldrig synts på nästa enhet. `pull()` returnerar `cvMeta`.
+- **`store`:** `uploadCv` speglar till molnet (fel = `syncError`, aldrig
+  blockerande), `syncNow` laddar ner CV:t på en ny enhet och laddar upp ett
+  lokalt-bara CV, `removeCv` och `deleteAccount` städar bucketen.
+- **Ärliga samtyckestexter** (sv/ar/so): den gamla "inget skickas till någon
+  server" stämde inte längre för inloggade — nu synkas även CV:t till kontot.
+
+### Beslut
+- **CV:t måste lämna enheten.** Den dokumenterade begränsningen "CV-synk saknas"
+  var medveten, men en riktig deltagare träffade den. Cross-device kräver
+  molnlagring — privat bucket med ägarmapp-RLS, samma isoleringsmodell som raderna.
+- **Upsert av CV-metadata, inte update.** Se ovan: annars osynligt CV på nästa enhet.
+- **En fil per konto** (`<user_id>/cv`, upsert) — inget versionsträd, CV:t är en
+  ersätt-och-glöm-artefakt.
+
+### Kvalitetsgrindar
+- `npm run typecheck` ✅, `npm run lint` ✅, `npm test` ✅ (158), `npm run build` ✅.
+- Röktest i webbläsare: appen laddar utan konsolfel, nya samtyckestexten live.
+
+### Kräver att Mahad kör (mot riktig databas — jag rör den aldrig)
+- Migrationen `20260826120000_cv_lagring.sql` i Supabase SQL Editor.
+- Därefter: be deltagaren logga in igen på telefonen — CV + profil ska komma ner.
+
 ## 2026-07-28 — Milestone 17: Radera kontot
 
 ### Byggt
