@@ -75,6 +75,13 @@ const sv: Dict = {
   'notice.logged': 'Ansökan loggad ✓ Den kommer med i aktivitetsrapporten.',
   'notice.removed': 'Ansökan borttagen.',
   'notice.undo': 'Ångra',
+  'claim.title': 'Det finns sparade uppgifter på den här enheten',
+  'claim.body':
+    'Innan du loggade in fanns {n} ansökningar sparade på den här enheten, utan konto. Är de dina — vill du flytta in dem i ditt konto?',
+  'claim.bodyCv':
+    'Innan du loggade in fanns {n} ansökningar och ett CV sparade på den här enheten, utan konto. Är de dina — vill du flytta in dem i ditt konto?',
+  'claim.yes': 'Ja, de är mina — flytta in dem',
+  'claim.no': 'Nej, lämna dem utanför mitt konto',
   'job.ad': 'Annons ↗',
   'job.apply': 'Ansök',
   'job.close': 'Stäng',
@@ -278,6 +285,13 @@ const ar: Dict = {
   'notice.logged': 'تم تسجيل الطلب ✓ سيظهر في تقرير النشاط.',
   'notice.removed': 'تم حذف الطلب.',
   'notice.undo': 'تراجع',
+  'claim.title': 'توجد بيانات محفوظة على هذا الجهاز',
+  'claim.body':
+    'قبل تسجيل دخولك كانت هناك {n} طلبات محفوظة على هذا الجهاز بدون حساب. هل هي لك — أتريد نقلها إلى حسابك؟',
+  'claim.bodyCv':
+    'قبل تسجيل دخولك كانت هناك {n} طلبات وسيرة ذاتية محفوظة على هذا الجهاز بدون حساب. هل هي لك — أتريد نقلها إلى حسابك؟',
+  'claim.yes': 'نعم، إنها لي — انقلها',
+  'claim.no': 'لا، اتركها خارج حسابي',
   'job.ad': 'الإعلان ↗',
   'job.apply': 'تقديم',
   'job.close': 'إغلاق',
@@ -481,6 +495,13 @@ const so: Dict = {
   'notice.logged': 'Codsiga waa la diiwaan geliyay ✓ Wuxuu ku jiri doonaa warbixinta.',
   'notice.removed': 'Codsiga waa la tirtiray.',
   'notice.undo': 'Ka noqo',
+  'claim.title': 'Qalabkan waxaa ku kaydsan xog',
+  'claim.body':
+    'Ka hor intaadan gelin waxaa qalabkan ku kaydsanaa {n} codsi, akoon la\'aan. Ma kuwaagii baa — ma rabtaa in aad akoonkaaga u soo guuriso?',
+  'claim.bodyCv':
+    'Ka hor intaadan gelin waxaa qalabkan ku kaydsanaa {n} codsi iyo CV, akoon la\'aan. Ma kuwaagii baa — ma rabtaa in aad akoonkaaga u soo guuriso?',
+  'claim.yes': 'Haa, waa kuwaygii — soo guuri',
+  'claim.no': 'Maya, ka dhig akoonkayga dibaddiisa',
   'job.ad': 'Xayeysiis ↗',
   'job.apply': 'Codso',
   'job.close': 'Xir',

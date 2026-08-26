@@ -89,6 +89,31 @@ function SaveFailedBanner() {
   )
 }
 
+// Enhetens okopplade data när ett konto loggar in: fråga, flytta aldrig
+// automatiskt. På en delad dator kan datan tillhöra någon annan — det var
+// exakt så en persons CV blev synligt i någon annans inloggning.
+function ClaimBanner() {
+  const claimOffer = useSoktStore((s) => s.claimOffer)
+  const claimDeviceData = useSoktStore((s) => s.claimDeviceData)
+  const dismissClaim = useSoktStore((s) => s.dismissClaim)
+  const { t } = useT()
+  if (!claimOffer) return null
+  return (
+    <div className="banner banner-warning" role="alert">
+      <strong>{t('claim.title')}</strong>
+      <p>{t(claimOffer.hasCv ? 'claim.bodyCv' : 'claim.body', { n: claimOffer.apps })}</p>
+      <div className="button-row">
+        <button type="button" onClick={() => void claimDeviceData()}>
+          {t('claim.yes')}
+        </button>
+        <button type="button" className="ghost" onClick={dismissClaim}>
+          {t('claim.no')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('jobb')
   const [accountOpen, setAccountOpen] = useState(false)
@@ -134,6 +159,7 @@ export default function App() {
         <p className="tagline">{t('tagline')}</p>
       </header>
       {loadError && <RecoveryBanner />}
+      <ClaimBanner />
       <SaveFailedBanner />
       <NoticeBar />
       {accountOpen && <AccountPanel onClose={() => setAccountOpen(false)} />}

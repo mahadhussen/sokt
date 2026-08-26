@@ -78,17 +78,14 @@ export interface SoktStore extends ModelState {
   syncing: boolean
   syncError: string | null
   syncedAt: number | null
+  // Okopplad data fanns på enheten när ett konto loggade in. Frågan ställs —
+  // aldrig automatisk flytt: på en delad dator kan datan tillhöra någon annan.
+  claimOffer: { apps: number; hasCv: boolean } | null
   execute(command: Command): void
   undo(): void
   setNotice(notice: Notice | null): void
-  hydrate(input: {
-    model: PersistedModel | null
-    cv: CvMeta | null
-    consent: boolean
-    savedSearches: SavedSearch[]
-    loadError?: boolean
-    backupJson?: string | null
-  }): void
+  claimDeviceData(): Promise<void>
+  dismissClaim(): void
   setJobs(jobs: Job[], total: number): void
   setConsent(consent: boolean): void
   setLang(lang: Lang): void
@@ -130,10 +127,6 @@ function persistSavedSearches(searches: SavedSearch[]): void {
   window.localStorage.setItem(SEARCHES_KEY, JSON.stringify(searches))
 }
 
-function defaultStorage(): StoragePort {
-  return createLocalStorage(window.localStorage)
-}
-
 export function toPersistedModel(state: ModelState): PersistedModel {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -142,7 +135,24 @@ export function toPersistedModel(state: ModelState): PersistedModel {
   }
 }
 
-export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth: AuthPort) {
+// UI:t (CV-nedladdning, Gmail-utkast) behöver alltid det AKTIVA kontots
+// filutrymme — wrappern pekas om vid varje kontobyte.
+let activeFiles: FileStore = createIndexedDbFileStore(null)
+export const fileStore: FileStore = {
+  saveCv: (cv) => activeFiles.saveCv(cv),
+  loadCv: () => activeFiles.loadCv(),
+  clearCv: () => activeFiles.clearCv(),
+}
+
+export function createSoktStore(
+  storageFor: (userId: string | null) => StoragePort,
+  filesFor: (userId: string | null) => FileStore,
+  auth: AuthPort,
+) {
+  let storage = storageFor(null)
+  let files = filesFor(null)
+  let switchNs: (userId: string | null) => Promise<void> = async () => {}
+  let offerClaim: (userId: string) => Promise<void> = async () => {}
   const store = create<SoktStore>((set, get) => {
     // Persisting must never fail silently. `save` is fire-and-forget by design
     // (an edit should not wait on disk), but a rejected write has to surface —
@@ -175,6 +185,52 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         )
     }
 
+    // Byt aktivt utrymme (konto eller enhetens okopplade) och läs in dess data.
+    // Detta är kärnan i "väldigt personligt": inloggning byter ARBETSYTA, den
+    // lägger aldrig någon annans lokala data ovanpå kontot.
+    switchNs = async (userId) => {
+      storage = storageFor(userId)
+      files = filesFor(userId)
+      activeFiles = files
+      let loadError = false
+      const [model, cv] = await Promise.all([
+        storage.load().catch(() => {
+          loadError = true
+          return null
+        }),
+        files.loadCv().catch(() => null),
+      ])
+      const backupJson = loadError ? await storage.backup().catch(() => null) : null
+      set({
+        profile: model?.profile ?? null,
+        applications: model?.applications ?? [],
+        cv: cv ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize } : null,
+        history: [],
+        notice: null,
+        claimOffer: null,
+        loadError,
+        backupJson,
+        hydrated: true,
+      })
+    }
+
+    // Fråga — flytta aldrig automatiskt. På en delad dator kan enhetens
+    // okopplade data tillhöra någon annan än den som just loggade in.
+    offerClaim = async (userId) => {
+      if (window.localStorage.getItem(`sokt.claim.done.u.${userId}`)) return
+      const st = get()
+      if (st.applications.length > 0 || st.profile || st.cv) return
+      const anonModel = await storageFor(null)
+        .load()
+        .catch(() => null)
+      const anonCv = await filesFor(null)
+        .loadCv()
+        .catch(() => null)
+      const apps = anonModel?.applications.length ?? 0
+      if (apps === 0 && !anonModel?.profile && !anonCv) return
+      set({ claimOffer: { apps, hasCv: Boolean(anonCv) } })
+    }
+
     return {
       profile: null,
       applications: [],
@@ -197,6 +253,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
       syncing: false,
       syncError: null,
       syncedAt: null,
+      claimOffer: null,
 
       execute(command) {
         const { profile, applications, history } = get()
@@ -222,6 +279,37 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         set({ notice })
       },
 
+      async claimDeviceData() {
+        const { account } = get()
+        if (!account) return
+        const anonStorage = storageFor(null)
+        const anonFiles = filesFor(null)
+        const anonModel = await anonStorage.load().catch(() => null)
+        const anonCv = await anonFiles.loadCv().catch(() => null)
+        const next = {
+          profile: anonModel?.profile ?? null,
+          applications: anonModel?.applications ?? [],
+        }
+        set({ ...next, claimOffer: null })
+        await storage.save(toPersistedModel(next)).catch(() => set({ saveFailed: true }))
+        if (anonCv) {
+          await files.saveCv(anonCv).catch(() => undefined)
+          set({ cv: { fileName: anonCv.fileName, text: anonCv.text, byteSize: anonCv.byteSize } })
+        }
+        // FLYTT, inte kopia: låg datan kvar okopplad skulle nästa konto på
+        // samma dator erbjudas samma persons uppgifter.
+        await anonStorage.clear().catch(() => undefined)
+        await anonFiles.clearCv().catch(() => undefined)
+        window.localStorage.setItem(`sokt.claim.done.u.${account.id}`, '1')
+        await get().syncNow()
+      },
+
+      dismissClaim() {
+        const { account } = get()
+        if (account) window.localStorage.setItem(`sokt.claim.done.u.${account.id}`, '1')
+        set({ claimOffer: null })
+      },
+
       async sendCode(email) {
         await auth.sendCode(email)
       },
@@ -229,17 +317,19 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
       async verifyCode(email, code) {
         const account = await auth.verifyCode(email, code)
         set({ account })
-        // Merge immediately: the point of signing in is seeing your own
-        // applications, and an account that shows an empty list would look
-        // like the data was lost.
+        // Inloggning byter till KONTOTS utrymme. Enhetens okopplade data följer
+        // aldrig med automatiskt — den erbjuds via claim-frågan. Det var exakt
+        // så en persons CV och profil hamnade synliga i någon annans inloggning.
+        await switchNs(account.id)
+        await offerClaim(account.id)
         await get().syncNow()
       },
 
       async signOut() {
         await auth.signOut()
-        // Signing out never touches what is on this device. The participant keeps
-        // their applications; they are simply no longer connected to an account.
-        set({ account: null, syncError: null })
+        // Tillbaka till enhetens okopplade utrymme — kontots data lämnar skärmen.
+        set({ account: null, syncError: null, syncedAt: null })
+        await switchNs(null)
       },
 
       async deleteAccount() {
@@ -248,6 +338,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         // enheten är deltagarens eget och rörs inte — det raderas separat med
         // "Radera all data", och kontopanelen säger det rakt ut.
         set({ account: null, syncError: null, syncedAt: null })
+        await switchNs(null)
       },
 
       async syncNow() {
@@ -273,19 +364,6 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         } finally {
           set({ syncing: false })
         }
-      },
-
-      hydrate({ model, cv, consent, savedSearches, loadError = false, backupJson = null }) {
-        set({
-          profile: model?.profile ?? null,
-          applications: model?.applications ?? [],
-          cv,
-          consent,
-          savedSearches,
-          loadError,
-          backupJson,
-          hydrated: true,
-        })
       },
 
       setJobs(jobs, total) {
@@ -320,7 +398,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         const { extractPdfText } = await import('../services/cvParser')
         const text = await extractPdfText(file).catch(() => '')
         const meta: CvMeta = { fileName: file.name, text, byteSize: file.size }
-        await fileStore.saveCv({ ...meta, blob: file })
+        await files.saveCv({ ...meta, blob: file })
         set({ cv: meta })
         const { profile } = get()
         if (profile && profile.cvFileRef !== CV_REF) {
@@ -329,7 +407,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
       },
 
       async removeCv() {
-        await fileStore.clearCv()
+        await files.clearCv()
         set({ cv: null })
         const { profile } = get()
         if (profile?.cvFileRef) {
@@ -364,7 +442,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
         // your data" while leaving the CV behind, so a restore left the
         // participant re-uploading a document they thought they had saved.
         // The AI key is deliberately absent: it is a secret, not their data.
-        const stored = await fileStore.loadCv().catch(() => null)
+        const stored = await files.loadCv().catch(() => null)
         const cv = stored
           ? {
               fileName: stored.fileName,
@@ -399,7 +477,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
             text: backup.cv.text,
             byteSize: backup.cv.byteSize,
           }
-          await fileStore.saveCv({
+          await files.saveCv({
             ...meta,
             blob: base64ToBlob(backup.cv.dataBase64),
           })
@@ -436,7 +514,7 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
 
       async deleteAll() {
         await storage.clear()
-        await fileStore.clearCv()
+        await files.clearCv()
         window.localStorage.removeItem(CONSENT_KEY)
         window.localStorage.removeItem(SEARCHES_KEY)
         window.localStorage.removeItem(AI_KEY)
@@ -472,48 +550,30 @@ export function createSoktStore(storage: StoragePort, fileStore: FileStore, auth
 
   async function boot() {
     requestPersistence()
-    // A failed load is NOT an empty model. Distinguishing the two is the whole
-    // point: treating "unreadable" as "empty" would let the next edit write
-    // over a participant's entire application history. The adapter has already
-    // set the raw bytes aside; we surface that so the UI can say so and offer
-    // the file back.
-    let loadError = false
-    const [model, cv] = await Promise.all([
-      storage.load().catch(() => {
-        loadError = true
-        return null
-      }),
-      fileStore.loadCv().catch(() => null),
-    ])
-    const backupJson = loadError ? await storage.backup().catch(() => null) : null
-    const consent = window.localStorage.getItem(CONSENT_KEY) === 'true'
-    const cvMeta: CvMeta | null = cv
-      ? { fileName: cv.fileName, text: cv.text, byteSize: cv.byteSize }
-      : null
-    store.getState().hydrate({
-      model,
-      cv: cvMeta,
-      consent,
+    // Enhetsglobala saker (samtycke, sparade sökningar) läses en gång.
+    store.setState({
+      consent: window.localStorage.getItem(CONSENT_KEY) === 'true',
       savedSearches: loadSavedSearches(),
-      loadError,
-      backupJson,
     })
-    // Restoring a session must not delay the app: someone without an account —
-    // the common case — should never wait on an auth round trip to see a job.
-    void auth
-      .currentAccount()
-      .then((account) => {
-        if (!account) return
-        store.setState({ account })
-        // Pick up anything logged on another device since this one was last open.
-        void store.getState().syncNow()
-      })
-      .catch(() => undefined)
+    // Sedan avgör sessionen vilket UTRYMME som visas: kontots eller enhetens.
+    // Den som är inloggad ser sitt — aldrig det som råkar ligga på datorn.
+    const account = await auth.currentAccount().catch(() => null)
+    if (account) {
+      store.setState({ account })
+      await switchNs(account.id)
+      await offerClaim(account.id)
+      void store.getState().syncNow()
+    } else {
+      await switchNs(null)
+    }
   }
   void boot()
 
   return store
 }
 
-export const fileStore = createIndexedDbFileStore()
-export const useSoktStore = createSoktStore(defaultStorage(), fileStore, defaultAuth())
+export const useSoktStore = createSoktStore(
+  (userId) => createLocalStorage(window.localStorage, userId),
+  (userId) => createIndexedDbFileStore(userId),
+  defaultAuth(),
+)

@@ -67,22 +67,25 @@ export function base64ToBlob(base64: string, type = 'application/pdf'): Blob {
   return new Blob([bytes], { type })
 }
 
-export function createIndexedDbFileStore(): FileStore {
+// Samma kontoavgränsning som modellen: CV:t nyckelas per konto så att en
+// delad dator aldrig visar fel persons CV. null = enhetens okopplade utrymme.
+export function createIndexedDbFileStore(userId?: string | null): FileStore {
+  const key = userId ? `cv.u.${userId}` : CV_REF
   return {
     async saveCv(cv) {
       const db = await openDb()
-      await tx(db, 'readwrite', (store) => store.put(cv, CV_REF))
+      await tx(db, 'readwrite', (store) => store.put(cv, key))
       db.close()
     },
     async loadCv() {
       const db = await openDb()
-      const result = await tx<StoredCv | undefined>(db, 'readonly', (store) => store.get(CV_REF))
+      const result = await tx<StoredCv | undefined>(db, 'readonly', (store) => store.get(key))
       db.close()
       return result ?? null
     },
     async clearCv() {
       const db = await openDb()
-      await tx(db, 'readwrite', (store) => store.delete(CV_REF))
+      await tx(db, 'readwrite', (store) => store.delete(key))
       db.close()
     },
   }

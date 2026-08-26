@@ -35,10 +35,22 @@ export interface KeyValueStore {
   removeItem(key: string): void
 }
 
-const STORAGE_KEY = 'sokt.model.v1'
-const BACKUP_KEY = 'sokt.model.v1.trasig'
+// Varje konto får ett eget utrymme i webbläsaren. Utan detta visades och
+// synkades EN persons lokala data rakt in i nästa persons konto på en delad
+// dator — biblioteksdatorn är målgruppens vardag. null = enhetens okopplade
+// utrymme (nyckeln oförändrad, så befintliga användare behåller sin data).
+export function createLocalStorage(store: KeyValueStore, userId?: string | null): StoragePort {
+  const suffix = userId ? `.u.${userId}` : ''
+  const STORAGE_KEY = `sokt.model.v1${suffix}`
+  const BACKUP_KEY = `sokt.model.v1${suffix}.trasig`
+  return createLocalStorageWithKeys(store, STORAGE_KEY, BACKUP_KEY)
+}
 
-export function createLocalStorage(store: KeyValueStore): StoragePort {
+function createLocalStorageWithKeys(
+  store: KeyValueStore,
+  STORAGE_KEY: string,
+  BACKUP_KEY: string,
+): StoragePort {
   return {
     async load() {
       const json = store.getItem(STORAGE_KEY)
