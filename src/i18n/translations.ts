@@ -176,6 +176,9 @@ const sv: Dict = {
   'profile.baseLetterPlaceholder': 'Skriv ditt grundbrev en gång — det följer med i varje ansökan.',
   'profile.save': 'Spara profil',
   'profile.saved': 'Sparad ✓',
+  'profile.emailDiffers':
+    'Obs: detta är inte adressen du loggar in med. Arbetsgivarnas svar och dina kopior skickas hit — kontrollera stavningen noga.',
+  'profile.useAccountEmail': 'Använd {account}',
 
   'apps.empty': 'Inga loggade ansökningar ännu. Sök jobb och ansök så hamnar de här.',
   'apps.removeAria': 'Ta bort ansökan: {title}',
@@ -394,6 +397,9 @@ const ar: Dict = {
   'profile.baseLetterPlaceholder': 'اكتب رسالتك الأساسية مرة واحدة — سترافق كل طلب.',
   'profile.save': 'حفظ الملف الشخصي',
   'profile.saved': 'تم الحفظ ✓',
+  'profile.emailDiffers':
+    'تنبيه: هذا ليس العنوان الذي تسجّل الدخول به. ردود أصحاب العمل ونسخك تُرسل إلى هنا — تحقّق من الإملاء بدقة.',
+  'profile.useAccountEmail': 'استخدم {account}',
 
   'manual.add': '+ أضِف طلبًا قدّمته بنفسك',
   'manual.intro':
@@ -612,6 +618,9 @@ const so: Dict = {
   'profile.baseLetterPlaceholder': 'Hal mar qor warqaddaada aasaasiga ah — waxay raacaysaa codsi kasta.',
   'profile.save': 'Kaydi astaanta',
   'profile.saved': 'La kaydiyay ✓',
+  'profile.emailDiffers':
+    'Digniin: kan ma aha cinwaanka aad ku gasho. Jawaabaha shaqo-bixiyayaasha iyo nuqulladaadu halkan ayay yimaadaan — si taxaddar leh u hubi higgaadda.',
+  'profile.useAccountEmail': 'Isticmaal {account}',
 
   'manual.add': '+ Ku dar codsi aad adigu samaysay',
   'manual.intro':

@@ -904,3 +904,15 @@ footer {
   color: white;
   border: none;
 }
+
+/* Mejladress som skiljer sig från inloggningen: varna tydligt men blockera
+   inte — en annan adress kan vara avsiktlig, en felstavning är det inte. */
+.email-warn {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.88rem;
+  color: #92400e;
+  background: #fef3c7;
+  border-radius: 6px;
+  padding: 8px 10px;
+}

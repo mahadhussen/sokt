@@ -190,6 +190,7 @@ function DataSection() {
 function ProfileForm() {
   const profile = useSoktStore((s) => s.profile)
   const cv = useSoktStore((s) => s.cv)
+  const account = useSoktStore((s) => s.account)
   const execute = useSoktStore((s) => s.execute)
   const { t } = useT()
   const [firstName, setFirstName] = useState('')
@@ -213,6 +214,23 @@ function ProfileForm() {
     setBirthYear(profile.details.fodelsear ?? '')
     setBaseLetter(profile.baseLetter)
   }, [profile])
+
+  // Ny profil på ett inloggat konto: förifyll mejlfältet med adressen de
+  // bevisligen äger (OTP-verifierad) i stället för att låta dem stava den för
+  // hand. Ett stavfel här skickade en deltagares alla arbetsgivarsvar och
+  // kopior till fel adress — tyst.
+  useEffect(() => {
+    if (!profile && account) {
+      setEmail((current) => current || account.email)
+    }
+  }, [profile, account])
+
+  // Avsiktligt en annan adress är tillåtet — men det ska aldrig kunna vara en
+  // felstavning som ingen ser. Varna och erbjud rättning med ett tryck.
+  const emailMismatch =
+    account &&
+    email.trim() !== '' &&
+    email.trim().toLowerCase() !== account.email.trim().toLowerCase()
 
   function save(event: FormEvent) {
     event.preventDefault()
@@ -254,6 +272,18 @@ function ProfileForm() {
         <label>
           {t('field.email')}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          {emailMismatch && account && (
+            <span className="email-warn">
+              {t('profile.emailDiffers', { account: account.email })}{' '}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setEmail(account.email)}
+              >
+                {t('profile.useAccountEmail', { account: account.email })}
+              </button>
+            </span>
+          )}
         </label>
         <label>
           {t('field.phone')}
