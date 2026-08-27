@@ -7,6 +7,28 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-08-27 — Deltagarincident: felstavad svarsadress + skydd mot det
+
+### Vad hände
+Deltagare (ibrahimabdulkadir222@hotmail.com) skickade 4 ansökningar via
+direktutskicket — allt fungerade, men inga kopior kom fram. Diagnos via
+Management API: profilens mejlfält var felstavat ("abdulkHadir", extra h).
+Kopior + arbetsgivarsvar gick tyst till fel adress. Servern gjorde rätt;
+grundorsaken var att ett handskrivet mejlfält var enda källan till
+svarsadressen, hos en målgrupp som stavar adresser för hand.
+
+### Åtgärdat
+1. Adressen rättad direkt i databasen (villkorad UPDATE, verifierad).
+2. **Skydd i appen** (prod `b0d2faf`): mejlfältet förifylls med den
+   OTP-verifierade inloggningsadressen för nya profiler; skiljer sig fältet
+   från inloggningen visas varning + rättningsknapp "Använd <adress>"
+   (sv/ar/so). Blockerar inte — avsiktligt annan adress tillåten.
+3. Kvarstående risk dokumenterad: lokal profil vinner över molnet
+   (`local.profile ?? remote.profile`), så deltagarens TELEFON måste också
+   rättas — öppna Profil, tryck rättningsknappen, Spara. De 4 redan skickade
+   ansökningarna har fel reply-to; svarar en arbetsgivare på dem studsar det
+   eller når fel adress — går inte att rätta retroaktivt.
+
 ## 2026-08-26 — Skicka ansökan direkt med CV:t som riktig bilaga
 
 ### Byggt
