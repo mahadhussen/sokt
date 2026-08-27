@@ -37,8 +37,15 @@ kopia till deltagaren (bcc).
 
 ### Kvalitetsgrindar
 typecheck ✅ lint ✅ test ✅ (158) build ✅. Prod `6a2591b`, endpointen svarar.
-Skarp sändning testas mot Mahads egen adress när RESEND_API_KEY lagts in —
-aldrig mot riktiga arbetsgivare.
+
+### Skarptest 2026-08-27 — BEVISAT hela vägen (aldrig mot riktiga arbetsgivare)
+RESEND_API_KEY inlagd av Mahad → `{configured:true}`. Testkedjan, helt via
+produktions-API:erna: OTP beställd → koden läst ur Gmail → inloggad →
+profilrad + CV upplagt via kontots egna rättigheter (bucket-RLS släppte in
+ägaren = policyerna verifierade skarpt) → POST till funktionen → 200 →
+sändloggen räknade båda utskicken → mejlet öppnat i inkorgen: avsändare
+`ansokan@arbetsklivet.se`, korrekt brödtext och **bilagan Mahad_Hussen_CV.pdf
+(application/pdf) på plats**. Två testmottagare, båda Mahads egna adresser.
 
 ## 2026-08-26 — CV:t följer med som länk i ansökningsmejlet
 
