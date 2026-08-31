@@ -137,6 +137,12 @@ header h1 {
   text-align: right;
 }
 
+/* Riktningsikoner (pappersflygplanet) pekar i läsriktningen — samma
+   konvention som apparna målgruppen redan kan. */
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
 .tagline {
   margin: 4px 0 20px;
   color: var(--muted);
@@ -336,6 +342,11 @@ button:disabled {
   padding: 0;
   font-size: var(--fs-small);
   cursor: pointer;
+  /* Länkknappar är också tryckytor: 44px hög träffyta även när de ser ut
+     som text (mätt 17px förut på t.ex. visa/dölj-knappen). */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
 }
 
 /* Den primära handlingen på en yta: stor, fyller bredden, omöjlig att missa.
@@ -628,6 +639,13 @@ label.checkbox input {
   white-space: nowrap;
 }
 
+.job-actions a {
+  /* "Annons ↗" mätte 24,8px — samma tumme som trycker på Ansök. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
 /* ---- Ansökningspanelen ---------------------------------------------------
    Viktigaste ytan i appen. En primär väg (stor blå knapp), sekundära vägar
    nedtonade under den. */
@@ -708,6 +726,10 @@ label.checkbox input {
 
 .mail-alt a {
   font-weight: 600;
+  /* Räddningsvägen när mejlappen inte öppnas — mätt 17px hög förut. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
 }
 
 .gmail-draft {
@@ -761,6 +783,19 @@ label.checkbox input {
   width: auto;
 }
 
+/* En primär handling per yta gäller även exportraden: kopiera är primär,
+   filformaten är alternativ. */
+.period-row button.ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.period-row button.ghost:not(:disabled):hover {
+  border-color: var(--muted);
+  background: var(--card);
+}
+
 /* ---- Tabeller (rapporten är ett dokument — den förblir tabell) ----------- */
 
 .table-wrap {
@@ -789,6 +824,12 @@ label.checkbox input {
   background: var(--bg);
   color: var(--muted);
   font-weight: 600;
+}
+
+/* Datum radbryts aldrig mitt i — "2026-08-" på en rad och "31" på nästa
+   är oläsligt. */
+.report-table .nowrap {
+  white-space: nowrap;
 }
 
 /* ---- Ansökningslistan som kort (tabellen krävde sidscroll på mobil) ------ */
@@ -839,6 +880,13 @@ label.checkbox input {
 .app-card-actions .link-button {
   min-height: var(--tap);
   font-size: var(--fs-small);
+}
+
+.app-card-actions a {
+  /* Annonslänken i kortet mätte 25px — samma krav som knappen bredvid. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
 }
 
 /* ---- Taggar och chips ---------------------------------------------------- */
@@ -899,7 +947,10 @@ label.checkbox input {
 .chip-main {
   border: none;
   background: none;
-  padding-block: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding-block: 0;
   padding-inline: 14px 6px;
   font-size: var(--fs-meta);
   color: var(--ink);
@@ -909,8 +960,12 @@ label.checkbox input {
 .chip-x {
   border: none;
   background: none;
-  /* Was a ~20px target next to a ~90px one — the easiest mis-tap in the app. */
-  padding-block: 8px;
+  /* Krysset delar chipens fulla 44px-höjd med egen indragen träffbredd —
+     enbart padding gav 33px och feltryck mot chipens huvudknapp. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding-block: 0;
   padding-inline: 8px 14px;
   color: var(--muted);
   font-size: 1.1rem;
@@ -1030,9 +1085,12 @@ footer {
 }
 
 .toast button.ghost {
-  background: rgb(255 255 255 / 0.15);
+  /* Mörkare än toastens gröna, aldrig ljusare: vit text på halvvit yta
+     mätte 4,13:1 (< AA 4,5:1). Svart 28 % över #047857 ≈ #035741 →
+     vit text ~8,7:1. Mäts i renderad DOM, inte antas. */
+  background: rgb(0 0 0 / 0.28);
   color: #fff;
-  border: 1px solid rgb(255 255 255 / 0.5);
+  border: 1px solid rgb(255 255 255 / 0.7);
   border-radius: 10px;
   padding: 8px 14px;
   min-height: var(--tap);

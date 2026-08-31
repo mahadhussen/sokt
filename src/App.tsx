@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { JobsView } from './ui/JobsView'
 import { ProfileView } from './ui/ProfileView'
@@ -32,7 +32,9 @@ const TAB_ICONS: Record<Tab, ReactNode> = {
     </svg>
   ),
   ansokningar: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    // rtl-flip: pappersflygplanet pekar i läsriktningen, som i mejl- och
+    // chattapparna målgruppen redan använder.
+    <svg className="rtl-flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M22 2 11 13" />
       <path d="M22 2 15 22l-4-9-9-4z" />
     </svg>
@@ -94,20 +96,53 @@ function NoticeBar() {
   const undo = useSoktStore((s) => s.undo)
   const { t } = useT()
 
+  // 15 sekunder, inte 8: målgruppen läser ofta på sitt andra eller tredje
+  // språk. Timern pausar dessutom vid pekning/fokus på toasten, så den som
+  // hunnit fram till Ångra aldrig får knappen bortryckt under fingret.
+  const timerRef = useRef<number | null>(null)
+  function pauseTimer() {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+  function armTimer() {
+    pauseTimer()
+    timerRef.current = window.setTimeout(() => setNotice(null), 15000)
+  }
+
   useEffect(() => {
     if (!notice) return
-    const timer = setTimeout(() => setNotice(null), 8000)
-    return () => clearTimeout(timer)
-  }, [notice, setNotice])
+    armTimer()
+    return pauseTimer
+    // armTimer/pauseTimer är stabila per definition (ref-baserade).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice])
 
   if (!notice) return null
   // Fast nedtill, inte en rad i sidtoppen: den som loggar en ansökan långt ner
   // i listan ska se kvittot utan att skrolla.
   return (
-    <div className="toast" role="status">
+    <div
+      className="toast"
+      role="status"
+      onPointerEnter={pauseTimer}
+      onPointerLeave={armTimer}
+      onFocusCapture={pauseTimer}
+      onBlurCapture={armTimer}
+    >
       <span>{t(notice.key)}</span>
       {notice.undoable && (
-        <button type="button" className="ghost" onClick={undo}>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => {
+            // Tystnad efter Ångra är samma fel som tystnad efter Logga —
+            // kvittera att det ångrades.
+            undo()
+            setNotice({ key: 'notice.undone', undoable: false })
+          }}
+        >
           {t('notice.undo')}
         </button>
       )}

@@ -44,8 +44,8 @@ tokenskala i ren handskriven `src/index.css`.
    nollställd.
 
 ### Övervägda val
-- Rapportflikens tre exportknappar lika i vikt: medvetet — tre format av
-  samma handling, ingen mätbar grund att gissa vilken som dominerar.
+- Rapportflikens tre exportknappar lika i vikt: först medvetet, sedan
+  underkänt av Heisenberg (rond 1, punkt 5) — nu Kopiera primär.
 - 320px-enheter (iPhone SE 1): "Ansökningar" (68px) kan trunkeras vid
   60px flikbredd; ellipsis är skyddsnätet, enheten bedöms marginell.
 - `[dir='rtl'] .tabs { row-reverse }` borttagen: den tvingade LTR-ordning
@@ -55,6 +55,25 @@ tokenskala i ren handskriven `src/index.css`.
 typecheck ✅ lint ✅ test ✅ (158) build ✅. Verifierat i webbläsare på
 375px: Jobb, ansökningspanel, Ansökningar, Profil, Rapport, arabiska
 (RTL-spegling uppmätt korrekt). Heisenberg + Naadir återstår före deploy.
+
+### Heisenberg rond 1: NOT CLEAN → åtta fynd fixade (uppmätta före/efter)
+1. Tryckytor under 44px: `.mail-alt a` 17→44, `.job-actions a` 24,8→44,
+   `.app-card-actions a` 25→44, `.chip-main`/`.chip-x` 33-34→44,
+   `.link-button` generellt 17→44. Kommentaren vid `.chip-x` som påstod
+   att krysset redan var fixat rättad.
+2. Toastens Ångra-knapp: kontrast 4,13:1 → 8,68:1 (svart 28 % över
+   grönt i stället för halvvitt; uppmätt i renderad DOM).
+3. Alla tre `clipboard.writeText` har try/catch + synligt felbesked
+   (copy.failed, 3 språk) — bevisat live med stubbat NotAllowedError.
+4. Ångra-fönstret 8s → 15s och pausar vid pekning/fokus på toasten —
+   uppmätt: kvar 23s under paus, borta 16,5s efter släpp. OBS testfälla:
+   syntetisk icke-bubblande pointerenter når inte Reacts delegering;
+   riktiga pekare skickar pointerover, som fungerar.
+5. Rapportfliken: Kopiera primär (blå), CSV/PDF ghost (uppmätt computed
+   background) — en primär handling per yta.
+6. Datumkolumnen radbryts inte längre (`white-space: nowrap` uppmätt).
+7. Pappersflygplanet speglas i RTL (`matrix(-1,0,0,1,0,0)` uppmätt i ar).
+8. "Ångrat."-kvitto efter Ångra — badge 4→3 verifierat, tystnad borta.
 
 ## 2026-08-27 — Deltagarincident: felstavad svarsadress + skydd mot det
 

@@ -35,14 +35,22 @@ function CopyFields() {
   const profile = useSoktStore((s) => s.profile)
   const { t } = useT()
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [copyFailed, setCopyFailed] = useState(false)
   if (!profile) return null
   const fields = applicantFields(profile)
   if (fields.length === 0) return null
 
   async function copy(key: string, value: string) {
-    await navigator.clipboard.writeText(value)
-    setCopiedKey(key)
-    setTimeout(() => setCopiedKey(null), 1500)
+    // Urklipp kan nekas — utan besked ser ett misslyckat tryck ut exakt
+    // som ett lyckat, och det som klistras in blir fel uppgift.
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopyFailed(false)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 1500)
+    } catch {
+      setCopyFailed(true)
+    }
   }
 
   return (
@@ -56,6 +64,7 @@ function CopyFields() {
           </button>
         ))}
       </div>
+      {copyFailed && <span className="error">{t('copy.failed')}</span>}
     </div>
   )
 }
@@ -146,10 +155,18 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
     jobUrl: job.url || undefined,
   })
 
+  const [copyLetterFailed, setCopyLetterFailed] = useState(false)
   async function copyLetter() {
-    await navigator.clipboard.writeText(letter)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    // Samma regel som alla urklippsanrop: ett nekat anrop får aldrig se ut
+    // som ett lyckat.
+    try {
+      await navigator.clipboard.writeText(letter)
+      setCopyLetterFailed(false)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyLetterFailed(true)
+    }
   }
 
   const channel = job.applicationChannel
@@ -384,6 +401,7 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
               {improving ? t('apply.improving') : t('apply.improveAi')}
             </button>
           </span>
+          {copyLetterFailed && <span className="error">{t('copy.failed')}</span>}
           {aiHint && <span className="muted ai-hint">{aiHint}</span>}
         </label>
       ) : (

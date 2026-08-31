@@ -15,6 +15,7 @@ export function ReportView() {
   const [start, setStart] = useState(initial.start)
   const [end, setEnd] = useState(initial.end)
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const inWindow = isReportingWindow(now)
   const daysLeft = daysUntilDeadline(now)
 
@@ -22,9 +23,16 @@ export function ReportView() {
 
   async function copyText() {
     // The official AF report export stays Swedish regardless of UI language.
-    await navigator.clipboard.writeText(reportToText(rows))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    // Urklipp kan nekas (behörighet, äldre webbläsare) — ett tyst fel såg
+    // exakt ut som ett lyckat kopierande. Säg det och ge en väg framåt.
+    try {
+      await navigator.clipboard.writeText(reportToText(rows))
+      setCopyFailed(false)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopyFailed(true)
+    }
   }
 
   function downloadCsv() {
@@ -57,11 +65,14 @@ export function ReportView() {
         <button type="button" onClick={copyText} disabled={rows.length === 0}>
           {copied ? t('report.copied') : t('report.copy')}
         </button>
-        <button type="button" onClick={downloadCsv} disabled={rows.length === 0}>
+        {/* En primär handling per yta: kopiera är vägen in i AF:s formulär,
+            filformaten är alternativ. */}
+        <button type="button" className="ghost" onClick={downloadCsv} disabled={rows.length === 0}>
           {t('report.downloadCsv')}
         </button>
         <button
           type="button"
+          className="ghost"
           onClick={() => {
             // jsPDF is large; load it only when a PDF is actually requested.
             void import('./reportPdf').then((m) => m.downloadReportPdf(rows, start, end))
@@ -71,6 +82,7 @@ export function ReportView() {
           {t('report.downloadPdf')}
         </button>
       </div>
+      {copyFailed && <p className="error">{t('copy.failed')}</p>}
       {rows.length === 0 ? (
         <p className="muted">{t('report.emptyPeriod')}</p>
       ) : (
@@ -94,7 +106,7 @@ export function ReportView() {
                   <td>{r.jobTitle}</td>
                   <td>{r.employerName}</td>
                   <td>{uiEmploymentTypeLabel(lang, r.employmentType)}</td>
-                  <td>{r.appliedAt}</td>
+                  <td className="nowrap">{r.appliedAt}</td>
                   <td>{uiSurveyLabel(lang, r.surveyAnswered)}</td>
                   <td>{r.municipality}</td>
                 </tr>

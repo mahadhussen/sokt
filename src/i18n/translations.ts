@@ -78,6 +78,8 @@ const sv: Dict = {
   'notice.logged': 'Ansökan loggad ✓ Den kommer med i aktivitetsrapporten.',
   'notice.removed': 'Ansökan borttagen.',
   'notice.undo': 'Ångra',
+  'notice.undone': 'Ångrat.',
+  'copy.failed': 'Kunde inte kopiera — markera texten och kopiera själv.',
   'claim.title': 'Det finns sparade uppgifter på den här enheten',
   'claim.body':
     'Innan du loggade in fanns {n} ansökningar sparade på den här enheten, utan konto. Är de dina — vill du flytta in dem i ditt konto?',
@@ -303,6 +305,8 @@ const ar: Dict = {
   'notice.logged': 'تم تسجيل الطلب ✓ سيظهر في تقرير النشاط.',
   'notice.removed': 'تم حذف الطلب.',
   'notice.undo': 'تراجع',
+  'notice.undone': 'تم التراجع.',
+  'copy.failed': 'تعذّر النسخ — حدِّد النص وانسخه بنفسك.',
   'claim.title': 'توجد بيانات محفوظة على هذا الجهاز',
   'claim.body':
     'قبل تسجيل دخولك كانت هناك {n} طلبات محفوظة على هذا الجهاز بدون حساب. هل هي لك — أتريد نقلها إلى حسابك؟',
@@ -526,6 +530,8 @@ const so: Dict = {
   'notice.logged': 'Codsiga waa la diiwaan geliyay ✓ Wuxuu ku jiri doonaa warbixinta.',
   'notice.removed': 'Codsiga waa la tirtiray.',
   'notice.undo': 'Ka noqo',
+  'notice.undone': 'Waa laga noqday.',
+  'copy.failed': 'Nuqul lama samayn karin — dooro qoraalka oo adigu nuqul samee.',
   'claim.title': 'Qalabkan waxaa ku kaydsan xog',
   'claim.body':
     'Ka hor intaadan gelin waxaa qalabkan ku kaydsanaa {n} codsi, akoon la\'aan. Ma kuwaagii baa — ma rabtaa in aad akoonkaaga u soo guuriso?',
