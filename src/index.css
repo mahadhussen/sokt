@@ -553,6 +553,11 @@ label.checkbox input {
 .simple-toggle {
   margin: 4px 0 16px;
   color: var(--ink);
+  /* Naadirs villkor 1: byggets egen tryckytestandard (44px) gäller även här —
+     raden mätte 28px medan allt annat i appen håller --tap. */
+  min-height: var(--tap, 44px);
+  display: flex;
+  align-items: center;
 }
 
 .new-since {
