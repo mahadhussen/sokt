@@ -162,7 +162,7 @@ export function ApplicationsView() {
                 {a.municipality && ` · ${a.municipality}`}
                 {a.surveyAnswered && ` · ${t('table.survey')}: ${uiSurveyLabel(lang, true)}`}
               </p>
-              <span className="app-card-actions">
+              <div className="app-card-actions">
                 {a.jobUrl && (
                   <a href={a.jobUrl} target="_blank" rel="noreferrer">
                     {t('job.ad')}
@@ -176,7 +176,7 @@ export function ApplicationsView() {
                 >
                   {t('apps.remove')}
                 </button>
-              </span>
+              </div>
             </li>
           ))}
         </ul>

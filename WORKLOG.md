@@ -7,6 +7,55 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-08-31 — UI-omgörning: mobilförst designsystem i befintlig CSS
+
+### Byggt (commit 502c529)
+Mahads uppdrag: "mer användarvänlig med ui-systemet", målgruppen (låg
+digital vana, små telefoner, sv/ar/so) styr allt. Inget ramverksbyte —
+tokenskala i ren handskriven `src/index.css`.
+- **Bottennavigation** med ikon + text på mobil (<640px), topprad med
+  ikoner på desktop. Förut: fem textflikar i scrollrad där två låg
+  utanför skärmen på 375px utan synlig väg dit. Badge visar antal
+  ansökningar. Fliketiketter kortade i alla tre språk (Rapport/التقرير/
+  Warbixin, ملفي) — uppmätt otrunkerade på 375px i alla språk.
+- **Ansökningspanelen**: EN stor primär väg (.cta 52px, full bredd) —
+  direktutskicket eller mejllänken — sekundära vägar nedtonade under.
+  Ny sektionsrubrik "Till aktivitetsrapporten" (nyckel apply.forReport,
+  3 språk) förklarar varför datum/form/ort efterfrågas.
+- **Kvittot är en toast**: stor, grön, fast ovanför navigationen. Förut
+  en rad i sidtoppen som inte syntes när man loggade långt ner i listan.
+  Animationen rör bara transform — en pausad animation (dold flik) fick
+  aldrig lämna kvittot på opacity 0 (uppmätt bugg under bygget, fixad).
+- **Ansökningslistan som kort** i stället för åttakolumnig tabell med
+  sidscroll. Rapportfliken behåller tabellen — den speglar AF-dokumentet.
+- Fokusringar, :active-tryckåterkoppling, 44px-tryckytor, 16px inputs
+  (ingen iOS-zoom), accent-color på checkboxar, tom-läge före första
+  sökningen (search.hint, 3 språk).
+
+### Fel hittade och fixade under bygget (BOB före Heisenberg)
+1. Toast fastnade på opacity 0 när fliken var dold (animation pausad på
+   frame 0) — uppmätt computed opacity 0; opacity borttagen ur keyframes.
+2. Samtyckesgrindens Fortsätt-knapp träffades inte av knappselektorerna
+   och renderades som ostilad grå defaultknapp — `.card > button` tillagd.
+3. "Ansökningar" trunkerades i bottennaven (uppmätt scrollWidth >
+   clientWidth) — etikett 0.68rem med konstant vikt (iOS-standard).
+4. Arabiska "الملف الشخصي" trunkerades (70px > 69px) — fliketikett "ملفي".
+5. p-marginaler dubblades ovanpå panelens flex-gap — `.apply-panel > p`
+   nollställd.
+
+### Övervägda val
+- Rapportflikens tre exportknappar lika i vikt: medvetet — tre format av
+  samma handling, ingen mätbar grund att gissa vilken som dominerar.
+- 320px-enheter (iPhone SE 1): "Ansökningar" (68px) kan trunkeras vid
+  60px flikbredd; ellipsis är skyddsnätet, enheten bedöms marginell.
+- `[dir='rtl'] .tabs { row-reverse }` borttagen: den tvingade LTR-ordning
+  i arabiska; naturlig RTL-ordning verifierad visuellt.
+
+### Kvalitetsgrindar
+typecheck ✅ lint ✅ test ✅ (158) build ✅. Verifierat i webbläsare på
+375px: Jobb, ansökningspanel, Ansökningar, Profil, Rapport, arabiska
+(RTL-spegling uppmätt korrekt). Heisenberg + Naadir återstår före deploy.
+
 ## 2026-08-27 — Deltagarincident: felstavad svarsadress + skydd mot det
 
 ### Vad hände

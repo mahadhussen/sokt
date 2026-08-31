@@ -357,6 +357,8 @@ button:disabled {
   text-align: center;
   text-decoration: none;
   cursor: pointer;
+  /* Mejladresser i knapptexten kan vara ett enda långt ord. */
+  overflow-wrap: anywhere;
 }
 
 .cta:not(:disabled):hover {
