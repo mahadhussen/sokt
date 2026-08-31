@@ -8,6 +8,66 @@ export interface SavedSearch {
   municipalityId: string
   worktimeExtentId: string
   seenJobIds?: string[] // ids seen the last time this search was run
+  lastUsedAt?: number // epoch ms; absent on searches saved before auto-tagging
+}
+
+// The target group should never retype a search: every executed search becomes
+// a tag automatically. The list must stay short and jump-free, so:
+//   - same filters = same tag (touched in place, never duplicated)
+//   - new tags append at the end (chips keep their positions)
+//   - over the cap, the least recently USED tag is evicted — never the one
+//     the participant taps every day just because it was created first.
+export const MAX_SAVED_SEARCHES = 10
+
+export interface SearchInput {
+  q: string
+  municipalityId: string
+  worktimeExtentId: string
+}
+
+// Identity of a search: what you typed (case/space-insensitive) plus the two
+// filters. "Diskare " and "diskare" are the same tag.
+export function searchKey(input: SearchInput): string {
+  return [input.q.trim().toLowerCase(), input.municipalityId, input.worktimeExtentId].join('\u0000')
+}
+
+export function findSavedSearch(list: SavedSearch[], input: SearchInput): SavedSearch | undefined {
+  const key = searchKey(input)
+  return list.find((s) => searchKey(s) === key)
+}
+
+// Evict least-recently-used entries until the list fits. Entries without a
+// lastUsedAt (saved before auto-tagging) count as oldest. Ties evict the
+// earliest-positioned entry, deterministically.
+export function evictOverCap(list: SavedSearch[], max = MAX_SAVED_SEARCHES): SavedSearch[] {
+  const next = [...list]
+  while (next.length > max) {
+    let lru = 0
+    for (let i = 1; i < next.length; i++) {
+      if ((next[i].lastUsedAt ?? 0) < (next[lru].lastUsedAt ?? 0)) lru = i
+    }
+    next.splice(lru, 1)
+  }
+  return next
+}
+
+// Add or touch one search. An existing tag keeps its id and position; a new
+// one appends and the list is capped. `now` is injected so the logic stays
+// deterministic and testable.
+export function upsertSearch(
+  list: SavedSearch[],
+  candidate: SavedSearch,
+  now: number,
+  max = MAX_SAVED_SEARCHES,
+): SavedSearch[] {
+  const key = searchKey(candidate)
+  const existing = list.find((s) => searchKey(s) === key)
+  if (existing) {
+    return list.map((s) =>
+      s === existing ? { ...candidate, id: existing.id, lastUsedAt: now } : s,
+    )
+  }
+  return evictOverCap([...list, { ...candidate, lastUsedAt: now }], max)
 }
 
 // Job ids present now that were not in the previously seen set. This is the
