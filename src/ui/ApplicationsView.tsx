@@ -148,53 +148,38 @@ export function ApplicationsView() {
       {applications.length === 0 ? (
         <p className="muted">{t('apps.empty')}</p>
       ) : (
-        // The wrapper scrolls, not the page: an eight-column table is wider than
-        // a phone, and without this the whole document scrolls sideways.
-        <div className="table-wrap">
-          <table className="report-table">
-            <thead>
-              <tr>
-                <th>{t('table.jobTitle')}</th>
-                <th>{t('table.employer')}</th>
-                <th>{t('table.employmentType')}</th>
-                <th>{t('table.date')}</th>
-                <th>{t('table.survey')}</th>
-                <th>{t('table.ort')}</th>
-                <th>{t('table.link')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.jobTitle}</td>
-                  <td>{a.employerName}</td>
-                  <td>{uiEmploymentTypeLabel(lang, a.employmentType)}</td>
-                  <td>{a.appliedAt}</td>
-                  <td>{uiSurveyLabel(lang, a.surveyAnswered)}</td>
-                  <td>{a.municipality}</td>
-                  <td>
-                    {a.jobUrl && (
-                      <a href={a.jobUrl} target="_blank" rel="noreferrer">
-                        {t('job.ad')}
-                      </a>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="link-button danger-text"
-                      onClick={() => remove(a.id)}
-                      aria-label={t('apps.removeAria', { title: a.jobTitle })}
-                    >
-                      {t('apps.remove')}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // Kort, inte tabell: åtta kolumner tvingade fram sidscroll på mobilen,
+        // och rapportens tabellform finns kvar under Rapport-fliken där den
+        // hör hemma. Samma Application-poster, bara en annan vy.
+        <ul className="app-cards">
+          {applications.map((a) => (
+            <li key={a.id} className="app-card">
+              <p className="app-card-title">{a.jobTitle}</p>
+              <p className="app-card-employer">{a.employerName}</p>
+              <p className="app-card-meta">
+                {a.appliedAt}
+                {` · ${uiEmploymentTypeLabel(lang, a.employmentType)}`}
+                {a.municipality && ` · ${a.municipality}`}
+                {a.surveyAnswered && ` · ${t('table.survey')}: ${uiSurveyLabel(lang, true)}`}
+              </p>
+              <span className="app-card-actions">
+                {a.jobUrl && (
+                  <a href={a.jobUrl} target="_blank" rel="noreferrer">
+                    {t('job.ad')}
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="link-button danger-text"
+                  onClick={() => remove(a.id)}
+                  aria-label={t('apps.removeAria', { title: a.jobTitle })}
+                >
+                  {t('apps.remove')}
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   )

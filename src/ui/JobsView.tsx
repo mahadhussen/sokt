@@ -262,16 +262,24 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </div>
         </div>
       )}
+      {/* En primär väg per jobb — stor och blå. Alternativa vägar ligger
+          nedtonade under den, aldrig bredvid. */}
       <p className="apply-channel">
         {channel.kind === 'url' && (
-          <a href={channel.value} target="_blank" rel="noreferrer" onClick={() => setAwaitingSend(true)}>
+          <a
+            className="cta"
+            href={channel.value}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setAwaitingSend(true)}
+          >
             {t('apply.openUrl')}
           </a>
         )}
         {channel.kind === 'email' && canSendDirect && (
           <span className="direct-send">
             {sendStep === 'idle' && (
-              <button type="button" onClick={() => setSendStep('confirm')}>
+              <button type="button" className="cta" onClick={() => setSendStep('confirm')}>
                 {t('apply.sendWithCv')}
               </button>
             )}
@@ -283,10 +291,10 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
                     fileName: cv?.fileName ?? '',
                     reply: (profile?.email || account?.email || '').trim(),
                   })}
-                </span>{' '}
-                <button type="button" onClick={() => void sendDirect()}>
+                </span>
+                <button type="button" className="cta" onClick={() => void sendDirect()}>
                   {t('apply.sendNow')}
-                </button>{' '}
+                </button>
                 <button type="button" className="ghost" onClick={() => setSendStep('idle')}>
                   {t('apply.sendCancel')}
                 </button>
@@ -307,6 +315,13 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         )}
         {channel.kind === 'email' && !canSendDirect && (
           <span className="mail-links">
+            <a
+              className="cta"
+              href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
+              onClick={() => setAwaitingSend(true)}
+            >
+              {t('apply.email', { email: channel.value ?? '' })}
+            </a>
             {authConfigured && (
               <span className="gmail-draft">
                 <button type="button" onClick={() => void draftInGmail()} disabled={drafting}>
@@ -316,12 +331,6 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
                 {draftErr && <span className="error">{draftErr}</span>}
               </span>
             )}
-            <a
-              href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}
-              onClick={() => setAwaitingSend(true)}
-            >
-              {t('apply.email', { email: channel.value ?? '' })}
-            </a>
             <span className="mail-alt muted">
               {t('apply.mailAlt')}{' '}
               <a
@@ -345,7 +354,13 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </span>
         )}
         {channel.kind === 'unknown' && (
-          <a href={job.url} target="_blank" rel="noreferrer" onClick={() => setAwaitingSend(true)}>
+          <a
+            className="cta"
+            href={job.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setAwaitingSend(true)}
+          >
             {t('apply.instructions')}
           </a>
         )}
@@ -391,6 +406,8 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         <p className="muted">{t('apply.cvTip')}</p>
       )}
       <CopyFields />
+      {/* Varför frågorna finns: de blir rader i aktivitetsrapporten. */}
+      <p className="apply-section-title">{t('apply.forReport')}</p>
       <div className="apply-fields">
         <label>
           {t('apply.date')}
@@ -651,6 +668,12 @@ export function JobsView() {
         </button>
       )}
       {error && <p className="error">{error}</p>}
+      {/* Första besöket ska aldrig vara en tom yta utan nästa steg. */}
+      {!searched && !loading && (
+        <div className="empty-state">
+          <p className="muted">{t('search.hint')}</p>
+        </div>
+      )}
       {newSince !== null && (
         <p className="new-since">
           {newSince > 0 ? t('results.newSince', { n: newSince }) : t('results.newSinceNone')}

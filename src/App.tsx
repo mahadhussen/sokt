@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { JobsView } from './ui/JobsView'
 import { ProfileView } from './ui/ProfileView'
 import { ApplicationsView } from './ui/ApplicationsView'
@@ -14,6 +15,44 @@ import './index.css'
 type Tab = 'jobb' | 'profil' | 'ansokningar' | 'rapport' | 'oversikt'
 
 const TABS: Tab[] = ['jobb', 'profil', 'ansokningar', 'rapport', 'oversikt']
+
+// Ikonerna gör flikarna igenkännbara även för den som läser långsamt eller
+// på ett annat språk — samma mentala modell som apparna målgruppen redan kan.
+const TAB_ICONS: Record<Tab, ReactNode> = {
+  jobb: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
+  profil: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+    </svg>
+  ),
+  ansokningar: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22l-4-9-9-4z" />
+    </svg>
+  ),
+  rapport: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6" />
+      <path d="M9 17h6" />
+    </svg>
+  ),
+  oversikt: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 20V10" />
+      <path d="M12 20V4" />
+      <path d="M6 20v-6" />
+    </svg>
+  ),
+}
 
 // Stored data existed but could not be read. Nothing has been deleted — the
 // raw bytes were set aside before the app started writing over them — so say
@@ -62,8 +101,10 @@ function NoticeBar() {
   }, [notice, setNotice])
 
   if (!notice) return null
+  // Fast nedtill, inte en rad i sidtoppen: den som loggar en ansökan långt ner
+  // i listan ska se kvittot utan att skrolla.
   return (
-    <div className="banner banner-ok" role="status">
+    <div className="toast" role="status">
       <span>{t(notice.key)}</span>
       {notice.undoable && (
         <button type="button" className="ghost" onClick={undo}>
@@ -169,10 +210,16 @@ export default function App() {
             key={id}
             type="button"
             className={tab === id ? 'tab active' : 'tab'}
+            aria-current={tab === id ? 'page' : undefined}
             onClick={() => setTab(id)}
           >
-            {t(`tab.${id}`)}
-            {id === 'ansokningar' && applicationCount > 0 && ` (${applicationCount})`}
+            <span className="tab-icon">
+              {TAB_ICONS[id]}
+              {id === 'ansokningar' && applicationCount > 0 && (
+                <span className="tab-badge">{applicationCount}</span>
+              )}
+            </span>
+            <span className="tab-label">{t(`tab.${id}`)}</span>
           </button>
         ))}
       </nav>

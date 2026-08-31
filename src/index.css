@@ -1,11 +1,51 @@
+/* Sökt — handskriven CSS, inget ramverk.
+   Designsystemet är tokenskalan i :root. Allt nedanför använder skalan —
+   inga lösa hexvärden eller pixeltal utanför den utan skäl.
+   Målgrupp: låg digital vana, små telefoner, en hand. Varje regel ska minska
+   förvirring: stora tryckytor, knappar som ser ut som knappar, en primär
+   handling per yta, bekräftelser som syns. */
+
 :root {
+  /* Färg */
   --ink: #1a1f2b;
-  --muted: #5b6472;
+  --muted: #525b69;
   --line: #e3e6ea;
   --accent: #1d4ed8;
   --accent-dark: #1e40af;
+  --accent-soft: #eef2ff;
   --bg: #f7f8fa;
   --card: #ffffff;
+  --ok: #047857;
+  --ok-ink: #065f46;
+  --ok-bg: #ecfdf5;
+  --ok-border: #6ee7b7;
+  --warn-ink: #7c2d12;
+  --warn-bg: #fff7ed;
+  --warn-border: #fdba74;
+  --warn-strong: #b45309;
+  --warn-soft-bg: #fef3c7;
+  --warn-soft-ink: #92400e;
+  --danger: #b91c1c;
+  --focus-ring: #93c5fd;
+
+  /* Radier */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Typografi */
+  --fs-h1: 1.6rem;
+  --fs-h2: 1.15rem;
+  --fs-body: 1rem;
+  --fs-small: 0.92rem;
+  --fs-meta: 0.85rem;
+
+  /* Tryckytor och skuggor */
+  --tap: 44px;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-pop: 0 8px 24px rgb(16 24 40 / 0.18);
+
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink);
 }
@@ -14,12 +54,51 @@
   box-sizing: border-box;
 }
 
+html {
+  font-size: 16px;
+}
+
 body {
   margin: 0;
   background: var(--bg);
+  font-size: var(--fs-body);
+  line-height: 1.55;
   /* The page itself must never scroll sideways on a phone. Anything wider than
      the screen (tables) scrolls inside its own .table-wrap. */
   overflow-x: hidden;
+}
+
+/* Alla interaktiva element svarar på beröring och visar fokus. */
+button,
+a,
+.chip,
+.copy-chip {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+button {
+  font-family: inherit;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 .app {
@@ -37,17 +116,18 @@ body {
 
 header h1 {
   margin: 0;
-  font-size: 1.9rem;
+  font-size: var(--fs-h1);
   letter-spacing: -0.02em;
 }
 
 .lang-select {
   width: auto;
   padding: 6px 10px;
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
 }
 
-/* RTL: mirror text alignment for Arabic. Flex rows reverse via `dir` already. */
+/* RTL: mirror text alignment for Arabic. Flex rows reverse via `dir` already —
+   ingen extra spegling behövs, den skulle vända tillbaka ordningen. */
 [dir='rtl'] body {
   text-align: right;
 }
@@ -57,50 +137,136 @@ header h1 {
   text-align: right;
 }
 
-[dir='rtl'] .tabs {
-  flex-direction: row-reverse;
-}
-
 .tagline {
   margin: 4px 0 20px;
   color: var(--muted);
+  font-size: var(--fs-small);
 }
+
+/* ---- Navigation ----------------------------------------------------------
+   Mobil: fast bottenrad med ikon + text, som apparna målgruppen redan kan
+   (WhatsApp, Facebook). Fem textflikar i en scrollande topprad gömde två av
+   dem utanför skärmen. Desktop (≥640px): topprad med ikon + text. */
 
 .tabs {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 40;
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 20px;
-  /* Five tabs are wider than a 375px phone. Scroll the strip, never the page —
-     before this, two tabs sat off-screen with no way to reach them. */
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding: 6px max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom))
+    max(6px, env(safe-area-inset-right));
 }
 
 .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   border: none;
   background: none;
-  padding: 12px 14px;
-  min-height: 44px;
-  font-size: 0.95rem;
+  border-radius: 10px;
+  padding: 6px 2px;
+  min-height: 52px;
   color: var(--muted);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+}
+
+.tab-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.tab-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.tab-label {
+  /* iOS-flikstorlek (10pt). Vikten är konstant så den aktiva fliken inte
+     blir bredare och trunkerar sig själv. */
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  scroll-snap-align: start;
 }
 
 .tab.active {
   color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 600;
 }
+
+.tab-badge {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Innehållet får aldrig hamna bakom bottenraden. */
+@media (max-width: 639px) {
+  .app {
+    padding: 16px 12px calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 640px) {
+  .tabs {
+    position: static;
+    border-top: none;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 20px;
+    padding: 0;
+    gap: 4px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 8px;
+    padding: 12px 14px;
+    min-height: var(--tap);
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tab-label {
+    font-size: 0.95rem;
+  }
+
+  .tab.active {
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-badge {
+    position: static;
+    margin-inline-start: 2px;
+  }
+}
+
+/* ---- Knappar -------------------------------------------------------------
+   En knapp ser ut som en knapp: fylld, rundad, minst 44px hög. */
 
 button[type='submit'],
 .period-row button,
@@ -108,16 +274,28 @@ button[type='submit'],
 .search-form button,
 .empty-state button,
 .banner button,
-.button-row button {
+.button-row button,
+.card > button {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 16px;
   /* 44px: the smallest target a thumb hits reliably. */
-  min-height: 44px;
-  font-size: 0.95rem;
+  min-height: var(--tap);
+  font-size: var(--fs-body);
+  font-weight: 600;
   cursor: pointer;
+}
+
+button[type='submit']:not(:disabled):hover,
+.period-row button:not(:disabled):hover,
+.job-actions button:not(:disabled):hover,
+.search-form button:not(:disabled):hover,
+.empty-state button:not(:disabled):hover,
+.card > button:not(:disabled):hover,
+.button-row button:not(.ghost):not(.danger):not(:disabled):hover {
+  background: var(--accent-dark);
 }
 
 button:disabled {
@@ -132,32 +310,70 @@ button:disabled {
   flex-wrap: wrap;
 }
 
-.button-row button.ghost {
+.button-row button.ghost,
+.banner button.ghost {
   background: var(--card);
   color: var(--ink);
   border: 1px solid var(--line);
 }
 
+.button-row button.ghost:not(:disabled):hover {
+  border-color: var(--muted);
+  background: var(--card);
+}
+
 .button-row button.danger {
-  background: #b91c1c;
+  background: var(--danger);
 }
 
 .danger-text {
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .link-button {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
   cursor: pointer;
 }
+
+/* Den primära handlingen på en yta: stor, fyller bredden, omöjlig att missa.
+   Fungerar för både <button> och <a>. */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cta:not(:disabled):hover {
+  background: var(--accent-dark);
+}
+
+a.cta:active {
+  transform: scale(0.97);
+}
+
+/* ---- Kort och ytor ------------------------------------------------------- */
 
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -167,7 +383,7 @@ button:disabled {
 
 .card h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--fs-h2);
 }
 
 .card p {
@@ -195,7 +411,8 @@ button:disabled {
   min-width: 160px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
@@ -206,11 +423,12 @@ button:disabled {
   font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
 }
 
 .bar-list {
@@ -228,12 +446,12 @@ button:disabled {
 }
 
 .bar-label {
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
 }
 
 .bar-track {
   background: var(--bg);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   height: 10px;
   overflow: hidden;
 }
@@ -242,34 +460,43 @@ button:disabled {
   display: block;
   height: 100%;
   background: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   min-width: 3px;
 }
 
 .bar-count {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
   min-width: 1.5em;
   text-align: end;
+  font-variant-numeric: tabular-nums;
 }
+
+/* ---- Formulär ------------------------------------------------------------ */
 
 input,
 select,
 textarea {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
-  font-size: 0.95rem;
+  /* 16px keeps iOS Safari from zooming in on focus. */
+  font-size: var(--fs-body);
   font-family: inherit;
   background: var(--card);
   width: 100%;
+  min-height: var(--tap);
+}
+
+textarea {
+  line-height: 1.5;
 }
 
 label {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 0.9rem;
+  font-size: var(--fs-small);
   color: var(--muted);
 }
 
@@ -278,10 +505,15 @@ label.checkbox {
   align-items: center;
   gap: 8px;
   color: var(--ink);
+  font-size: var(--fs-body);
 }
 
 label.checkbox input {
-  width: auto;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .search-form {
@@ -313,7 +545,7 @@ label.checkbox input {
 .new-since {
   color: var(--accent-dark);
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: var(--fs-small);
   margin: 0 0 4px;
 }
 
@@ -337,10 +569,11 @@ label.checkbox input {
   gap: 2px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 10px;
+  min-height: var(--tap);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: var(--fs-meta);
 }
 
 .copy-chip:hover {
@@ -356,6 +589,8 @@ label.checkbox input {
   color: var(--ink);
 }
 
+/* ---- Jobblistan ---------------------------------------------------------- */
+
 .job-list {
   list-style: none;
   padding: 0;
@@ -368,8 +603,13 @@ label.checkbox input {
 .job-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   padding: 14px 16px;
+}
+
+.job-card > .job-head strong {
+  font-size: 1.05rem;
 }
 
 .job-head {
@@ -386,14 +626,28 @@ label.checkbox input {
   white-space: nowrap;
 }
 
+/* ---- Ansökningspanelen ---------------------------------------------------
+   Viktigaste ytan i appen. En primär väg (stor blå knapp), sekundära vägar
+   nedtonade under den. */
+
 .apply-panel {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-start;
+}
+
+.apply-channel {
+  margin: 0;
+  width: 100%;
+}
+
+/* Flex-gapet äger rytmen i panelen — styckemarginaler skulle dubblas ovanpå. */
+.apply-panel > p {
+  margin: 0;
 }
 
 .apply-fields {
@@ -403,6 +657,80 @@ label.checkbox input {
   width: 100%;
 }
 
+.apply-section-title {
+  margin: 0;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.direct-send,
+.mail-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.send-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+  background: var(--accent-soft);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.send-confirm button {
+  min-height: var(--tap);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.send-confirm button.ghost {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.mail-alt {
+  font-size: var(--fs-meta);
+}
+
+.mail-alt a {
+  font-weight: 600;
+}
+
+.gmail-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.gmail-draft button {
+  background: var(--card);
+  color: var(--accent-dark);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 16px;
+  min-height: var(--tap);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gmail-draft button:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
 .profile-form {
   display: flex;
   flex-direction: column;
@@ -410,7 +738,8 @@ label.checkbox input {
   align-items: flex-start;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   padding: 18px;
 }
 
@@ -430,6 +759,8 @@ label.checkbox input {
   width: auto;
 }
 
+/* ---- Tabeller (rapporten är ett dokument — den förblir tabell) ----------- */
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -442,7 +773,7 @@ label.checkbox input {
   border-collapse: collapse;
   background: var(--card);
   border: 1px solid var(--line);
-  font-size: 0.92rem;
+  font-size: var(--fs-small);
 }
 
 .report-table th,
@@ -458,13 +789,65 @@ label.checkbox input {
   font-weight: 600;
 }
 
+/* ---- Ansökningslistan som kort (tabellen krävde sidscroll på mobil) ------ */
+
+.app-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.app-card-employer {
+  margin: 0;
+}
+
+.app-card-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.app-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+.app-card-actions .link-button {
+  min-height: var(--tap);
+  font-size: var(--fs-small);
+}
+
+/* ---- Taggar och chips ---------------------------------------------------- */
+
 .tag {
   display: inline-block;
   /* Logical, not physical: in Arabic the chip must sit on the other side. */
   margin-inline-start: 8px;
   padding: 1px 8px;
-  border-radius: 999px;
-  background: #eef2ff;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
   color: var(--accent-dark);
   font-size: 0.75rem;
   font-weight: 600;
@@ -472,8 +855,17 @@ label.checkbox input {
 }
 
 .tag-source {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warn-soft-bg);
+  color: var(--warn-soft-ink);
+}
+
+.tag-applied {
+  background: #d1fae5;
+  color: var(--ok-ink);
+}
+
+.job-card-applied {
+  border-color: var(--ok-border);
 }
 
 .external-section {
@@ -497,7 +889,7 @@ label.checkbox input {
   display: inline-flex;
   align-items: stretch;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   overflow: hidden;
   background: var(--card);
 }
@@ -507,7 +899,7 @@ label.checkbox input {
   background: none;
   padding-block: 8px;
   padding-inline: 14px 6px;
-  font-size: 0.85rem;
+  font-size: var(--fs-meta);
   color: var(--ink);
   cursor: pointer;
 }
@@ -531,6 +923,7 @@ label.checkbox input {
 .save-search {
   color: var(--accent);
   margin: -6px 0 14px;
+  min-height: var(--tap);
 }
 
 label.full {
@@ -539,6 +932,7 @@ label.full {
 
 .letter-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
 }
@@ -547,20 +941,25 @@ label.full {
   background: var(--card);
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
-  font-size: 0.9rem;
+  min-height: var(--tap);
+  font-size: var(--fs-small);
   cursor: pointer;
+}
+
+.letter-actions button.ghost:not(:disabled):hover {
+  border-color: var(--muted);
 }
 
 .muted {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: var(--fs-small);
 }
 
 .error {
-  color: #b91c1c;
-  font-size: 0.92rem;
+  color: var(--danger);
+  font-size: var(--fs-small);
 }
 
 a {
@@ -572,11 +971,13 @@ footer {
   padding-top: 16px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-meta);
 }
 
+/* ---- Banners (varningar högst upp — de ska störa) ------------------------ */
+
 .banner {
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 14px 16px;
   margin-bottom: 18px;
   display: flex;
@@ -587,52 +988,85 @@ footer {
 
 .banner p {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-small);
 }
 
 .banner-warning {
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  color: #7c2d12;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-ink);
 }
 
 .banner-warning button {
-  background: #b45309;
+  background: var(--warn-strong);
 }
 
-.banner-ok {
-  background: #ecfdf5;
-  border: 1px solid #6ee7b7;
-  color: #065f46;
-  flex-direction: row;
+/* ---- Toast (bekräftelsen syns var du än är på sidan) ---------------------
+   Låg fast vid sidtoppen förut: den som loggade en ansökan långt ner i listan
+   såg aldrig kvittot. Nu: stor, grön, fast ovanför bottennavigationen. */
+
+.toast {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 60;
+  max-width: 700px;
+  margin-inline: auto;
+  background: var(--ok);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  font-size: 0.92rem;
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  animation: toast-in 0.25s ease;
 }
 
-.banner-ok button.ghost {
-  background: var(--card);
-  color: #065f46;
-  border: 1px solid #6ee7b7;
-  border-radius: 8px;
+.toast button.ghost {
+  background: rgb(255 255 255 / 0.15);
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.5);
+  border-radius: 10px;
   padding: 8px 14px;
-  min-height: 44px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  min-height: var(--tap);
+  font-size: var(--fs-small);
+  font-weight: 700;
   cursor: pointer;
+}
+
+/* Bara transform, aldrig opacity: pausas animationen (dold flik, gammal
+   webbläsare) ska kvittot ändå synas — det är viktigare än en fade-in. */
+@keyframes toast-in {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .toast {
+    bottom: 24px;
+  }
 }
 
 .hidden-file {
   display: none;
 }
 
+/* ---- Konto --------------------------------------------------------------- */
+
 .account-link {
   color: var(--accent);
   font-weight: 600;
   white-space: nowrap;
-  min-height: 44px;
+  min-height: var(--tap);
   padding: 0 4px;
 }
 
@@ -657,45 +1091,36 @@ footer {
 }
 
 .small {
-  font-size: 0.85rem;
+  font-size: var(--fs-meta);
 }
 
 .ok-text {
-  color: #065f46;
-  font-size: 0.92rem;
+  color: var(--ok-ink);
+  font-size: var(--fs-small);
   margin: 0;
 }
 
 .warn {
-  background: #fff7ed;
-  border: 1px solid #fdba74;
-  color: #7c2d12;
-  border-radius: 8px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-ink);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   margin: 0;
-  font-size: 0.9rem;
-}
-
-.tag-applied {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.job-card-applied {
-  border-color: #6ee7b7;
+  font-size: var(--fs-small);
 }
 
 .deadline {
   margin: -6px 0 14px;
   font-weight: 600;
-  font-size: 0.92rem;
-  color: #b45309;
+  font-size: var(--fs-small);
+  color: var(--warn-strong);
 }
 
 .add-manual {
   color: var(--accent);
-  font-size: 0.95rem;
-  min-height: 44px;
+  font-size: var(--fs-body);
+  min-height: var(--tap);
   align-self: flex-start;
   text-align: start;
 }
@@ -723,42 +1148,22 @@ footer {
 
 /* Phones. The app is used standing up, on mobile data, one-handed. */
 @media (max-width: 600px) {
-  .app {
-    padding: 16px 12px 40px;
-  }
-
   header h1 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
   }
 
   .lang-select {
-    min-height: 44px;
-    font-size: 1rem;
+    min-height: var(--tap);
+    font-size: var(--fs-body);
   }
 
   .search-form input,
   .search-form select {
     flex: 1 1 100%;
-    min-height: 44px;
-    /* 16px keeps iOS Safari from zooming in on focus. */
-    font-size: 1rem;
   }
 
   .search-form button {
     flex: 1 1 100%;
-  }
-
-  input,
-  select,
-  textarea {
-    font-size: 1rem;
-    min-height: 44px;
-  }
-
-  label.checkbox input {
-    width: 22px;
-    height: 22px;
-    min-height: 0;
   }
 
   .job-head {
@@ -801,108 +1206,37 @@ footer {
 }
 
 .account-danger button.danger {
-  background: #b91c1c;
+  background: var(--danger);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 16px;
-  min-height: 44px;
-  font-size: 0.95rem;
+  min-height: var(--tap);
+  font-size: var(--fs-body);
+  font-weight: 600;
   cursor: pointer;
 }
 
+/* "Skickade du ansökan?" — frågan efter att mejlappen öppnats. */
 .sent-prompt {
   width: 100%;
-  background: #eff6ff;
+  background: var(--accent-soft);
   border: 1px solid #93c5fd;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: var(--radius);
+  padding: 14px 16px;
 }
 
 .sent-prompt p {
   margin: 0 0 10px;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.05rem;
   color: var(--ink);
 }
 
 .cv-download {
   color: var(--accent);
   font-weight: 600;
-  min-height: 44px;
-}
-
-.mail-links {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.mail-alt {
-  font-size: 0.88rem;
-}
-
-.mail-alt a {
-  font-weight: 600;
-}
-
-.gmail-draft {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-  margin-bottom: 4px;
-}
-
-.gmail-draft button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  min-height: 44px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-/* Direktutskicket: en primär knapp, bekräftelsen under, allt vänsterställt
-   i samma kolumnrytm som mejllänkarna. */
-.direct-send {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.direct-send > button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  min-height: 44px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.send-confirm {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.send-confirm button {
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.send-confirm button:not(.ghost) {
-  background: var(--accent);
-  color: white;
-  border: none;
+  min-height: var(--tap);
 }
 
 /* Mejladress som skiljer sig från inloggningen: varna tydligt men blockera
@@ -910,9 +1244,9 @@ footer {
 .email-warn {
   display: block;
   margin-top: 4px;
-  font-size: 0.88rem;
-  color: #92400e;
-  background: #fef3c7;
-  border-radius: 6px;
+  font-size: var(--fs-meta);
+  color: var(--warn-soft-ink);
+  background: var(--warn-soft-bg);
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
