@@ -488,7 +488,9 @@ export function createSoktStore(
               (id) => MUNICIPALITIES.find((m) => m.id === id)?.name,
               (id) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label,
             ),
-          q,
+          // A retype with different casing ("DISKARE") must not rewrite the
+          // tag — it keeps the q its name was built from. Same identity anyway.
+          q: existing?.q ?? q,
           municipalityId: input.municipalityId,
           worktimeExtentId: input.worktimeExtentId,
           seenJobIds: jobIds,

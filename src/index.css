@@ -970,13 +970,14 @@ label.checkbox input {
 .chip-x {
   border: none;
   background: none;
-  /* Krysset delar chipens fulla 44px-höjd med egen indragen träffbredd —
-     enbart padding gav 33px och feltryck mot chipens huvudknapp. */
+  /* Krysset får hela 44×44: min-width i stället för padding — padding gav
+     32,6px bredd (uppmätt) och en smalare yta än byggets tryckstandard. */
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: var(--tap);
-  padding-block: 0;
-  padding-inline: 8px 14px;
+  min-width: var(--tap);
+  padding: 0;
   color: var(--muted);
   font-size: 1.1rem;
   line-height: 1;
