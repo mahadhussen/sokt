@@ -573,11 +573,15 @@ export function JobsView() {
         // Every search that found something becomes (or refreshes) a tag — the
         // participant never retypes "diskare Göteborg". A search that found
         // nothing (usually a typo) never becomes a chip. "New since last" is
-        // measured against what the tag saw before this run refreshes it.
-        const shownIds = shown.map((j) => j.id)
+        // measured on the RAW result ids, never the displayed subset: the
+        // display filter and page size vary between runs (simple-apply toggle,
+        // limit 100 vs 25), and comparing displayed lists reported dozens of
+        // "new" ads on an unchanged market. Raw against the tag's accumulated
+        // seen set is apples to apples.
+        const rawIds = result.jobs.map((j) => j.id)
         const previous = findSavedSearch(useSoktStore.getState().savedSearches, params)
-        if (previous?.seenJobIds) setNewSince(newJobIds(shownIds, previous.seenJobIds).length)
-        const record = recordSearch(params, shownIds)
+        if (previous?.seenJobIds) setNewSince(newJobIds(rawIds, previous.seenJobIds).length)
+        const record = recordSearch(params, rawIds)
         setActiveSearchId(record?.id ?? null)
       }
       return shown

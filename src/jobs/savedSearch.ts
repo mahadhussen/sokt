@@ -7,7 +7,9 @@ export interface SavedSearch {
   q: string
   municipalityId: string
   worktimeExtentId: string
-  seenJobIds?: string[] // ids seen the last time this search was run
+  // Every ad id this tag has EVER surfaced (accumulated union, capped) —
+  // never just the last run's page. See mergeSeenJobIds.
+  seenJobIds?: string[]
   lastUsedAt?: number // epoch ms; absent on searches saved before auto-tagging
 }
 
@@ -75,6 +77,30 @@ export function upsertSearch(
 export function newJobIds(currentIds: string[], seenIds: string[] = []): string[] {
   const seen = new Set(seenIds)
   return currentIds.filter((id) => !seen.has(id))
+}
+
+// The seen set ACCUMULATES across runs — union, never overwrite. Runs of the
+// same tag differ in page size and display filter (simple-apply fetches 100
+// raw ads, the unfiltered view 25), so "seen = last run's list" compared
+// apples to oranges: toggling the filter reported dozens of "new" ads on an
+// unchanged market. "New" means "never surfaced by this tag", so old ids stay.
+// Capped so localStorage never grows unbounded; the oldest ids (long-expired
+// ads) are dropped first.
+export const MAX_SEEN_JOB_IDS = 1000
+
+export function mergeSeenJobIds(
+  seen: string[] | undefined,
+  currentIds: string[],
+  max = MAX_SEEN_JOB_IDS,
+): string[] {
+  const known = new Set(seen)
+  const merged = [...(seen ?? [])]
+  for (const id of currentIds) {
+    if (known.has(id)) continue
+    known.add(id)
+    merged.push(id)
+  }
+  return merged.length > max ? merged.slice(merged.length - max) : merged
 }
 
 // Merge searches restored from a backup into the current list. Dedupe on id

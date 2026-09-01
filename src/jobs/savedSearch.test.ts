@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_SAVED_SEARCHES,
+  MAX_SEEN_JOB_IDS,
   evictOverCap,
   findSavedSearch,
   mergeRestoredSearches,
+  mergeSeenJobIds,
   newJobIds,
   savedSearchSummary,
   searchKey,
@@ -145,6 +147,50 @@ describe('upsertSearch', () => {
     expect(list).toHaveLength(MAX_SAVED_SEARCHES)
     // The three least recently used (s0..s2) were evicted.
     expect(list[0].id).toBe('s3')
+  })
+})
+
+describe('mergeSeenJobIds', () => {
+  it('accumulates a union — earlier ids survive later, smaller runs', () => {
+    expect(mergeSeenJobIds(['a', 'b', 'c'], ['b', 'd'])).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('starts from the current ids when nothing was seen', () => {
+    expect(mergeSeenJobIds(undefined, ['a', 'b'])).toEqual(['a', 'b'])
+  })
+
+  it('drops duplicates within the current run', () => {
+    expect(mergeSeenJobIds([], ['a', 'a', 'b'])).toEqual(['a', 'b'])
+  })
+
+  it('caps by dropping the OLDEST ids first', () => {
+    expect(mergeSeenJobIds(['a', 'b'], ['c', 'd'], 3)).toEqual(['b', 'c', 'd'])
+  })
+
+  it('defaults the cap to MAX_SEEN_JOB_IDS', () => {
+    const seen = Array.from({ length: MAX_SEEN_JOB_IDS }, (_, i) => `s${i}`)
+    const merged = mergeSeenJobIds(seen, ['fresh'])
+    expect(merged).toHaveLength(MAX_SEEN_JOB_IDS)
+    expect(merged[merged.length - 1]).toBe('fresh')
+    expect(merged[0]).toBe('s1')
+  })
+
+  it('reports zero new on an unchanged market across page-size asymmetry', () => {
+    // Heisenberg's exact failure: run at limit 100 (simple-apply), toggle the
+    // filter, rerun at limit 25 — then toggle back. The market never changed,
+    // so "new since last" must be 0 at every step.
+    const market = Array.from({ length: 100 }, (_, i) => `ad${i}`)
+    const bigRun = market.slice(0, 100)
+    const smallRun = market.slice(0, 25)
+
+    let seen = mergeSeenJobIds(undefined, bigRun)
+    expect(newJobIds(smallRun, seen)).toHaveLength(0)
+    seen = mergeSeenJobIds(seen, smallRun)
+    expect(newJobIds(bigRun, seen)).toHaveLength(0)
+    seen = mergeSeenJobIds(seen, bigRun)
+
+    // One genuinely new ad appears — exactly one is reported.
+    expect(newJobIds(['brand-new', ...smallRun], seen)).toEqual(['brand-new'])
   })
 })
 

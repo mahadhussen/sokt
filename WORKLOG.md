@@ -68,6 +68,35 @@ mouseup (panel dold) — klick verifierade via element.click()/
 requestSubmit i sidan; tangentbordstext och form_input fungerade.
 Heisenberg + Naadir återstår före deploy.
 
+### Heisenberg rond 1 (taggbygget): NOT CLEAN → tre villkor åtgärdade
+1. **"Nya sedan sist" visade falska tal vid filterskifte** (mätt av
+   Heisenberg: 9 resp. 22 "nya" på oförändrat annonsbestånd). Orsak:
+   seenJobIds sparades som de VISADE annonserna (efter enkel ansökan-
+   filtret, limit 100) men jämfördes mot nästa körnings visade
+   (ofiltrerat, limit 25) — äpplen mot päron. Fix i två delar:
+   jämförelse och lagring sker nu på RÅA result.jobs-ids, och seen-
+   mängden ACKUMULERAS (union via `mergeSeenJobIds`, tak 1000, äldsta
+   ryker) så limit-asymmetrin 100/25 aldrig kan fabricera nya.
+   Verifierat live i exakt Heisenbergs scenario: tagg-körning → enkel
+   ansökan AV → omkörning: "Inga nya sedan du senast körde sökningen."
+   (förr 9) → enkel PÅ → omkörning: "Inga nya…" (förr 22). Plus
+   regressionstest i node som speglar scenariot (100→25→100 = 0 nya,
+   en äkta ny annons = exakt 1).
+2. **Granskningsmiljön**: Heisenberg fann seedens 3 ansökningar +
+   samtyckesflagga raderade under/efter mitt pass och bevisade att
+   koden inte var boven. Mina körningar tog bara `sokt.searches.v1` +
+   `sokt.lastsearch.v1` (avsiktligt, för ren verifiering) — jag kan
+   inte förklara modell-/samtyckesraderingen och loggar det ärligt som
+   ouppklarat. Miljön är nu återseedad och uppmätt efter hård
+   omladdning: samtycke PÅ, 3 ansökningar loggade från riktiga
+   annonser i dev (Diskare/Amet in tempore AB/Luleå/heltid, diskare/
+   Rustika Italien AB/Sundbyberg/heltid, Diskare/Backaplan Wok AB/
+   Göteborg/timanställd, alla 2026-09-01), badge "3", två taggar
+   ("lokalvårdare · Göteborg", "diskare").
+3. **Nya taggars visningsnamn normaliseras till gemener** — sökningen
+   "DISKARE" ger taggen "diskare" (namn och q; identiteten var redan
+   case-okänslig). Verifierat i localStorage och chip-DOM.
+
 ## 2026-08-31 — UI-omgörning: mobilförst designsystem i befintlig CSS
 
 ### Byggt (commit 502c529)

@@ -21,6 +21,7 @@ import { mergeRemote } from '../model/sync'
 import {
   findSavedSearch,
   mergeRestoredSearches,
+  mergeSeenJobIds,
   savedSearchSummary,
   upsertSearch,
 } from '../jobs/savedSearch'
@@ -472,7 +473,10 @@ export function createSoktStore(
       },
 
       recordSearch(input, jobIds) {
-        const q = input.q.trim()
+        // New tags are stored and displayed in lowercase: the identity is
+        // case-insensitive anyway, and "DISKARE · Göteborg" next to "diskare"
+        // would look like two different things to the participant.
+        const q = input.q.trim().toLowerCase()
         if (!q && !input.municipalityId && !input.worktimeExtentId) return null
         const prev = get().savedSearches
         const existing = findSavedSearch(prev, input)
@@ -492,7 +496,9 @@ export function createSoktStore(
           q: existing?.q ?? q,
           municipalityId: input.municipalityId,
           worktimeExtentId: input.worktimeExtentId,
-          seenJobIds: jobIds,
+          // Union with everything this tag has surfaced before — never
+          // overwrite with one page. See mergeSeenJobIds for why.
+          seenJobIds: mergeSeenJobIds(existing?.seenJobIds, jobIds),
         }
         const savedSearches = upsertSearch(prev, record, Date.now())
         set({ savedSearches })
