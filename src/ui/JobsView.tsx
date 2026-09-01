@@ -13,7 +13,7 @@ import { searchJobLinks } from '../services/joblinks'
 import { sourceHost } from '../jobs/mapJobLinksAd'
 import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
-import { newJobIds, savedSearchSummary } from '../jobs/savedSearch'
+import { findSavedSearch, newJobIds } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
 import { suggestOccupation } from '../jobs/occupations'
 import { minutesAgo } from '../jobs/freshness'
@@ -27,9 +27,6 @@ import { sendApplicationEmail, sendMailConfigured } from '../services/sendApplic
 import { connectGoogle, createGmailDraft, googleToken } from '../services/gmailDraft'
 import { fileStore } from '../app/store'
 import { blobToBase64 } from '../services/fileStore'
-
-const municipalityName = (id: string) => MUNICIPALITIES.find((m) => m.id === id)?.name
-const worktimeName = (id: string) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label
 
 function CopyFields() {
   const profile = useSoktStore((s) => s.profile)
@@ -473,9 +470,8 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
 export function JobsView() {
   const { jobs, jobsTotal, setJobs } = useSoktStore()
   const savedSearches = useSoktStore((s) => s.savedSearches)
-  const saveSearch = useSoktStore((s) => s.saveSearch)
+  const recordSearch = useSoktStore((s) => s.recordSearch)
   const removeSearch = useSoktStore((s) => s.removeSearch)
-  const markSearchSeen = useSoktStore((s) => s.markSearchSeen)
   const lastSearch = useSoktStore((s) => s.lastSearch)
   const cacheLastSearch = useSoktStore((s) => s.cacheLastSearch)
   const { t } = useT()
@@ -493,6 +489,9 @@ export function JobsView() {
   const [externalJobs, setExternalJobs] = useState<Job[]>([])
   const [showExternal, setShowExternal] = useState(false)
   const [newSince, setNewSince] = useState<number | null>(null)
+  // The tag matching the last executed search — marked in the chip row so the
+  // participant sees which of their searches is on screen right now.
+  const [activeSearchId, setActiveSearchId] = useState<string | null>(null)
   const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
@@ -518,6 +517,8 @@ export function JobsView() {
     )
     setFetchedAt(lastSearch.fetchedAt)
     setSearched(true)
+    // The restored feed came from one of the tags? Mark it, without re-running.
+    setActiveSearchId(findSavedSearch(useSoktStore.getState().savedSearches, lastSearch)?.id ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -528,6 +529,8 @@ export function JobsView() {
   }): Promise<Job[]> {
     setLoading(true)
     setError(null)
+    setNewSince(null)
+    setActiveSearchId(null)
     try {
       // In simple-apply mode we fetch a fuller page (the API max) and then keep
       // only email-channel ads, so the user still sees a useful number of them.
@@ -567,6 +570,15 @@ export function JobsView() {
           total: result.total,
           fetchedAt: now,
         })
+        // Every search that found something becomes (or refreshes) a tag — the
+        // participant never retypes "diskare Göteborg". A search that found
+        // nothing (usually a typo) never becomes a chip. "New since last" is
+        // measured against what the tag saw before this run refreshes it.
+        const shownIds = shown.map((j) => j.id)
+        const previous = findSavedSearch(useSoktStore.getState().savedSearches, params)
+        if (previous?.seenJobIds) setNewSince(newJobIds(shownIds, previous.seenJobIds).length)
+        const record = recordSearch(params, shownIds)
+        setActiveSearchId(record?.id ?? null)
       }
       return shown
     } catch (e) {
@@ -579,30 +591,17 @@ export function JobsView() {
 
   function search(event: FormEvent) {
     event.preventDefault()
-    setNewSince(null)
     void runSearch({ q, municipalityId, worktimeExtentId })
   }
 
-  async function applySaved(s: (typeof savedSearches)[number]) {
+  // Tapping a tag reruns the search. Tagging, "new since last" and the active
+  // mark all happen inside runSearch — one path for typed and tapped searches.
+  function applySaved(s: (typeof savedSearches)[number]) {
     setQ(s.q)
     setMunicipalityId(s.municipalityId)
     setWorktimeExtentId(s.worktimeExtentId)
-    setNewSince(null)
-    const shown = await runSearch(s)
-    const shownIds = shown.map((j) => j.id)
-    // Only surface "new since last" once the search has been seen before.
-    if (s.seenJobIds) setNewSince(newJobIds(shownIds, s.seenJobIds).length)
-    markSearchSeen(s.id, shownIds)
+    void runSearch(s)
   }
-
-  function onSaveSearch() {
-    const summary = savedSearchSummary({ q, municipalityId, worktimeExtentId }, municipalityName, worktimeName)
-    const name = window.prompt(t('search.savePrompt'), summary)
-    if (name === null) return
-    saveSearch({ name: name.trim() || summary, q, municipalityId, worktimeExtentId })
-  }
-
-  const hasQuery = Boolean(q || municipalityId || worktimeExtentId)
 
   // The ads are already here, so flipping the filter is instant and costs no
   // request — and we can say up front how many it hides.
@@ -623,30 +622,42 @@ export function JobsView() {
 
   function runSuggestion(name: string) {
     setQ(name)
-    setNewSince(null)
     void runSearch({ q: name, municipalityId, worktimeExtentId })
   }
 
   return (
     <section>
       {savedSearches.length > 0 && (
-        <div className="saved-searches">
-          {savedSearches.map((s) => (
-            <span key={s.id} className="chip">
-              <button type="button" className="chip-main" onClick={() => applySaved(s)}>
-                {s.name}
-              </button>
-              <button
-                type="button"
-                className="chip-x"
-                aria-label={t('savedSearch.removeAria', { name: s.name })}
-                onClick={() => removeSearch(s.id)}
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
+        <>
+          <p className="muted saved-searches-title" id="saved-searches-title">
+            {t('savedSearch.title')}
+          </p>
+          <div className="saved-searches" role="group" aria-labelledby="saved-searches-title">
+            {savedSearches.map((s) => (
+              <span key={s.id} className={s.id === activeSearchId ? 'chip chip-active' : 'chip'}>
+                <button
+                  type="button"
+                  className="chip-main"
+                  aria-current={s.id === activeSearchId ? 'true' : undefined}
+                  onClick={() => applySaved(s)}
+                >
+                  {s.name}
+                </button>
+                <button
+                  type="button"
+                  className="chip-x"
+                  aria-label={t('savedSearch.removeAria', { name: s.name })}
+                  onClick={() => {
+                    removeSearch(s.id)
+                    if (s.id === activeSearchId) setActiveSearchId(null)
+                  }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </>
       )}
       <form className="search-form" onSubmit={search}>
         <input placeholder={t('search.qPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -680,11 +691,6 @@ export function JobsView() {
           ? t('filter.simpleApplyCount', { shown: simpleCount, fetched: rawJobs.length })
           : t('filter.simpleApply')}
       </label>
-      {searched && hasQuery && (
-        <button type="button" className="link-button save-search" onClick={onSaveSearch}>
-          {t('search.save')}
-        </button>
-      )}
       {error && <p className="error">{error}</p>}
       {/* Första besöket ska aldrig vara en tom yta utan nästa steg. */}
       {!searched && !loading && (

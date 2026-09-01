@@ -18,7 +18,16 @@ import { createSupabaseSync } from '../services/cloudSync'
 import type { CloudSync } from '../services/cloudSync'
 import { getSupabase } from '../services/supabaseClient'
 import { mergeRemote } from '../model/sync'
-import type { SavedSearch } from '../jobs/savedSearch'
+import {
+  evictOverCap,
+  findSavedSearch,
+  savedSearchSummary,
+  searchKey,
+  upsertSearch,
+} from '../jobs/savedSearch'
+import type { SavedSearch, SearchInput } from '../jobs/savedSearch'
+import { MUNICIPALITIES } from '../jobs/municipalities'
+import { WORKTIME_EXTENTS } from '../jobs/filters'
 import type { CachedSearch } from '../jobs/freshness'
 import type { Lang } from '../i18n/translations'
 import type { Command, ModelState } from './commands'
@@ -93,9 +102,12 @@ export interface SoktStore extends ModelState {
   cacheLastSearch(entry: CachedSearch): void
   uploadCv(file: File): Promise<void>
   removeCv(): Promise<void>
-  saveSearch(input: Omit<SavedSearch, 'id'>): void
+  // The ONE way a search becomes (or refreshes) a tag: called after every
+  // executed search. Dedupes on normalized filters, caps the list, and stores
+  // the seen job ids for "new since last". Returns the tag, or null when the
+  // search had no filters at all (an "everything" tag helps no one).
+  recordSearch(input: SearchInput, jobIds: string[]): SavedSearch | null
   removeSearch(id: string): void
-  markSearchSeen(id: string, jobIds: string[]): void
   exportBackup(): Promise<string>
   importBackup(json: string): Promise<ImportResult>
   deleteAll(): Promise<void>
@@ -460,23 +472,35 @@ export function createSoktStore(
         }
       },
 
-      saveSearch(input) {
-        const search: SavedSearch = { id: crypto.randomUUID(), ...input }
-        const savedSearches = [...get().savedSearches, search]
+      recordSearch(input, jobIds) {
+        const q = input.q.trim()
+        if (!q && !input.municipalityId && !input.worktimeExtentId) return null
+        const prev = get().savedSearches
+        const existing = findSavedSearch(prev, input)
+        const record: SavedSearch = {
+          id: existing?.id ?? crypto.randomUUID(),
+          // A name the participant gave the search (old manual flow) survives;
+          // auto-created tags are named from their filters.
+          name:
+            existing?.name ??
+            savedSearchSummary(
+              { q, municipalityId: input.municipalityId, worktimeExtentId: input.worktimeExtentId },
+              (id) => MUNICIPALITIES.find((m) => m.id === id)?.name,
+              (id) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label,
+            ),
+          q,
+          municipalityId: input.municipalityId,
+          worktimeExtentId: input.worktimeExtentId,
+          seenJobIds: jobIds,
+        }
+        const savedSearches = upsertSearch(prev, record, Date.now())
         set({ savedSearches })
         persistSavedSearches(savedSearches)
+        return record
       },
 
       removeSearch(id) {
         const savedSearches = get().savedSearches.filter((s) => s.id !== id)
-        set({ savedSearches })
-        persistSavedSearches(savedSearches)
-      },
-
-      markSearchSeen(id, jobIds) {
-        const savedSearches = get().savedSearches.map((s) =>
-          s.id === id ? { ...s, seenJobIds: jobIds } : s,
-        )
         set({ savedSearches })
         persistSavedSearches(savedSearches)
       },
@@ -539,12 +563,28 @@ export function createSoktStore(
         set({ ...nextModel, history: [], notice: null })
         await storage.save(toPersistedModel(nextModel))
 
-        const known = new Set(get().savedSearches.map((s) => s.id))
-        const restoredSearches = (backup.savedSearches as SavedSearch[]).filter(
-          (s) => s && typeof s.id === 'string' && !known.has(s.id),
-        )
+        // Merge saved searches by id AND by filter identity: the same search
+        // re-created on this device (new id) must not become a second chip.
+        const current = get().savedSearches
+        const knownIds = new Set(current.map((s) => s.id))
+        const knownKeys = new Set(current.map((s) => searchKey(s)))
+        const restoredSearches = (backup.savedSearches as SavedSearch[]).filter((s) => {
+          if (
+            !s ||
+            typeof s.id !== 'string' ||
+            typeof s.q !== 'string' ||
+            typeof s.municipalityId !== 'string' ||
+            typeof s.worktimeExtentId !== 'string'
+          ) {
+            return false
+          }
+          const key = searchKey(s)
+          if (knownIds.has(s.id) || knownKeys.has(key)) return false
+          knownKeys.add(key)
+          return true
+        })
         if (restoredSearches.length > 0) {
-          const savedSearches = [...get().savedSearches, ...restoredSearches]
+          const savedSearches = evictOverCap([...current, ...restoredSearches])
           set({ savedSearches })
           persistSavedSearches(savedSearches)
         }

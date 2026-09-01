@@ -50,8 +50,6 @@ const sv: Dict = {
   'search.allExtent': 'All omfattning',
   'search.submit': 'Sök jobb',
   'search.searching': 'Söker…',
-  'search.save': '+ Spara sökningen',
-  'search.savePrompt': 'Namn på sökningen',
   'search.hint': 'Börja med att skriva ett yrke, till exempel lokalvårdare.',
   'filter.simpleApply': 'Bara enkel ansökan (namn, CV och brev räcker)',
   'filter.simpleApplyCount': 'Bara enkel ansökan — {shown} av {fetched} jobb',
@@ -71,6 +69,7 @@ const sv: Dict = {
   'external.hide': 'Dölj jobb från andra sajter',
   'external.note':
     'Dessa annonser kommer från andra jobbsajter (via Arbetsförmedlingens öppna data) och ansökan sker med formulär på deras sajt — de omfattas inte av enkel ansökan.',
+  'savedSearch.title': 'Dina sökningar — tryck för att söka igen',
   'savedSearch.removeAria': 'Ta bort sparad sökning: {name}',
   'job.alreadyApplied': '✓ Du sökte den {date}',
   'apply.duplicate':
@@ -277,8 +276,6 @@ const ar: Dict = {
   'search.allExtent': 'كل أنواع الدوام',
   'search.submit': 'ابحث عن وظائف',
   'search.searching': 'جارٍ البحث…',
-  'search.save': '+ احفظ البحث',
-  'search.savePrompt': 'اسم البحث',
   'search.hint': 'ابدأ بكتابة مهنة، مثل عامل نظافة.',
   'filter.simpleApply': 'التقديم السهل فقط (يكفي الاسم والسيرة الذاتية والرسالة)',
   'filter.simpleApplyCount': 'التقديم السهل فقط — {shown} من {fetched} وظيفة',
@@ -298,6 +295,7 @@ const ar: Dict = {
   'external.hide': 'إخفاء وظائف المواقع الأخرى',
   'external.note':
     'هذه الإعلانات تأتي من مواقع توظيف أخرى (عبر البيانات المفتوحة لمصلحة التوظيف) ويتم التقديم عبر نموذج على موقعها — لا يشملها التقديم السهل.',
+  'savedSearch.title': 'عمليات بحثك — اضغط للبحث من جديد',
   'savedSearch.removeAria': 'حذف البحث المحفوظ: {name}',
   'job.alreadyApplied': '✓ قدّمت في {date}',
   'apply.duplicate':
@@ -502,8 +500,6 @@ const so: Dict = {
   'search.allExtent': 'Dhammaan noocyada waqtiga',
   'search.submit': 'Raadi shaqo',
   'search.searching': 'Waa la raadinayaa…',
-  'search.save': '+ Kaydi raadinta',
-  'search.savePrompt': 'Magaca raadinta',
   'search.hint': 'Ku bilow inaad qorto shaqo, tusaale ahaan nadiifiye.',
   'filter.simpleApply': 'Kaliya codsi fudud (magac, CV iyo warqad ayaa ku filan)',
   'filter.simpleApplyCount': 'Kaliya codsi fudud — {shown} ka mid ah {fetched} shaqo',
@@ -523,6 +519,7 @@ const so: Dict = {
   'external.hide': 'Qari shaqooyinka bogagga kale',
   'external.note':
     'Xayeysiisyadan waxay ka yimaadeen bogag shaqo oo kale (iyada oo loo marayo xogta furan ee Xafiiska Shaqada), codsigana wuxuu ku dhacaa foom boggooda — kuma jiraan codsiga fudud.',
+  'savedSearch.title': 'Raadintaadii — taabo si aad mar kale u raadiso',
   'savedSearch.removeAria': 'Tirtir raadinta la kaydiyay: {name}',
   'job.alreadyApplied': '✓ Waad codsatay {date}',
   'apply.duplicate':

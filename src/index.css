@@ -933,6 +933,11 @@ label.checkbox input {
   align-items: flex-start;
 }
 
+.saved-searches-title {
+  margin: 0 0 6px;
+  font-size: var(--fs-meta);
+}
+
 .saved-searches {
   display: flex;
   flex-wrap: wrap;
@@ -982,10 +987,16 @@ label.checkbox input {
   border-color: var(--accent);
 }
 
-.save-search {
-  color: var(--accent);
-  margin: -6px 0 14px;
-  min-height: var(--tap);
+/* The tag whose search is on screen right now. Border + tinted background —
+   never color alone — so the mark survives weak eyes and strong sunlight. */
+.chip-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip-active .chip-main {
+  color: var(--accent-dark);
+  font-weight: 600;
 }
 
 label.full {
