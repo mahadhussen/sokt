@@ -77,6 +77,41 @@ export function newJobIds(currentIds: string[], seenIds: string[] = []): string[
   return currentIds.filter((id) => !seen.has(id))
 }
 
+// Merge searches restored from a backup into the current list. Dedupe on id
+// AND on filter identity (the same search re-created on this device has a new
+// id but must not become a second chip), drop malformed entries, and cap the
+// result.
+export function mergeRestoredSearches(
+  current: SavedSearch[],
+  restored: unknown[],
+  max = MAX_SAVED_SEARCHES,
+): SavedSearch[] {
+  const knownIds = new Set(current.map((s) => s.id))
+  const knownKeys = new Set(current.map((s) => searchKey(s)))
+  const added: SavedSearch[] = []
+  for (const item of restored) {
+    const s = item as SavedSearch
+    if (
+      !s ||
+      typeof s.id !== 'string' ||
+      typeof s.q !== 'string' ||
+      typeof s.municipalityId !== 'string' ||
+      typeof s.worktimeExtentId !== 'string'
+    ) {
+      continue
+    }
+    const key = searchKey(s)
+    if (knownIds.has(s.id) || knownKeys.has(key)) continue
+    knownIds.add(s.id)
+    knownKeys.add(key)
+    added.push(s)
+  }
+  if (added.length === 0) return current
+  // Overflow evicts by lastUsedAt as usual — restored entries without one
+  // count as oldest, so what is in use on this device survives first.
+  return evictOverCap([...current, ...added], max)
+}
+
 // A short human label for a saved search, from its filters.
 export function savedSearchSummary(
   search: Pick<SavedSearch, 'q' | 'municipalityId' | 'worktimeExtentId'>,

@@ -19,10 +19,9 @@ import type { CloudSync } from '../services/cloudSync'
 import { getSupabase } from '../services/supabaseClient'
 import { mergeRemote } from '../model/sync'
 import {
-  evictOverCap,
   findSavedSearch,
+  mergeRestoredSearches,
   savedSearchSummary,
-  searchKey,
   upsertSearch,
 } from '../jobs/savedSearch'
 import type { SavedSearch, SearchInput } from '../jobs/savedSearch'
@@ -565,28 +564,9 @@ export function createSoktStore(
         set({ ...nextModel, history: [], notice: null })
         await storage.save(toPersistedModel(nextModel))
 
-        // Merge saved searches by id AND by filter identity: the same search
-        // re-created on this device (new id) must not become a second chip.
         const current = get().savedSearches
-        const knownIds = new Set(current.map((s) => s.id))
-        const knownKeys = new Set(current.map((s) => searchKey(s)))
-        const restoredSearches = (backup.savedSearches as SavedSearch[]).filter((s) => {
-          if (
-            !s ||
-            typeof s.id !== 'string' ||
-            typeof s.q !== 'string' ||
-            typeof s.municipalityId !== 'string' ||
-            typeof s.worktimeExtentId !== 'string'
-          ) {
-            return false
-          }
-          const key = searchKey(s)
-          if (knownIds.has(s.id) || knownKeys.has(key)) return false
-          knownKeys.add(key)
-          return true
-        })
-        if (restoredSearches.length > 0) {
-          const savedSearches = evictOverCap([...current, ...restoredSearches])
+        const savedSearches = mergeRestoredSearches(current, backup.savedSearches)
+        if (savedSearches !== current) {
           set({ savedSearches })
           persistSavedSearches(savedSearches)
         }

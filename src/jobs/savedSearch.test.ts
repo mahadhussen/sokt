@@ -3,6 +3,7 @@ import {
   MAX_SAVED_SEARCHES,
   evictOverCap,
   findSavedSearch,
+  mergeRestoredSearches,
   newJobIds,
   savedSearchSummary,
   searchKey,
@@ -144,6 +145,56 @@ describe('upsertSearch', () => {
     expect(list).toHaveLength(MAX_SAVED_SEARCHES)
     // The three least recently used (s0..s2) were evicted.
     expect(list[0].id).toBe('s3')
+  })
+})
+
+describe('mergeRestoredSearches', () => {
+  const current = [saved({ id: 'a', q: 'diskare', lastUsedAt: 100 })]
+
+  it('adds restored searches that are genuinely new', () => {
+    const next = mergeRestoredSearches(current, [saved({ id: 'b', q: 'lokalvårdare' })])
+    expect(next.map((s) => s.id)).toEqual(['a', 'b'])
+  })
+
+  it('drops restored entries matching an existing id or filter identity', () => {
+    const next = mergeRestoredSearches(current, [
+      saved({ id: 'a', q: 'something-else' }),
+      saved({ id: 'other-id', q: ' Diskare ' }),
+    ])
+    expect(next).toBe(current)
+  })
+
+  it('drops duplicates within the restored list itself', () => {
+    const next = mergeRestoredSearches(current, [
+      saved({ id: 'b', q: 'lokalvårdare' }),
+      saved({ id: 'c', q: 'LOKALVÅRDARE' }),
+    ])
+    expect(next.map((s) => s.id)).toEqual(['a', 'b'])
+  })
+
+  it('drops malformed entries instead of crashing', () => {
+    const next = mergeRestoredSearches(current, [
+      null,
+      42,
+      { id: 'x' },
+      { id: 'y', q: 'ok', municipalityId: 'm', worktimeExtentId: null },
+    ])
+    expect(next).toBe(current)
+  })
+
+  it('caps the merged list, evicting restored (unused) entries first', () => {
+    const inUse = [
+      saved({ id: 'a', q: 'q-a', lastUsedAt: 100 }),
+      saved({ id: 'b', q: 'q-b', lastUsedAt: 200 }),
+    ]
+    const next = mergeRestoredSearches(
+      inUse,
+      [saved({ id: 'r1', q: 'q-r1' }), saved({ id: 'r2', q: 'q-r2' })],
+      3,
+    )
+    expect(next).toHaveLength(3)
+    expect(next.map((s) => s.id)).toContain('a')
+    expect(next.map((s) => s.id)).toContain('b')
   })
 })
 
