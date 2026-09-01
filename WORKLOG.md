@@ -7,6 +7,67 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-09-01 — Sökningar blir taggar automatiskt (M12)
+
+### Byggt (commits f5580bf, d5ee335, 3398694, 09997e5)
+Mahads uppdrag: "jag klickar i diskare så sparas det … lägger till
+lokalvårdare och det sparas också." Varje körd sökning (yrke + ev. ort
++ ev. omfattning) blir automatiskt en tryckbar tagg under sökfältet —
+deltagaren skriver aldrig om en sökning.
+- **Ren modul** (`jobs/savedSearch.ts`): `searchKey` (case/space-
+  okänslig identitet), `findSavedSearch`, `upsertSearch` (befintlig
+  tagg behåller id/namn/position — chips hoppar aldrig), tak
+  `MAX_SAVED_SEARCHES = 10` med **LRU-utrymning** (minst nyligen ANVÄND
+  ryker, aldrig den som trycks varje dag), `mergeRestoredSearches` för
+  backupimport. 24 tester i node.
+- **Store**: `recordSearch(input, jobIds)` är ENDA vägen in — ersätter
+  `saveSearch` + `markSearchSeen` (borttagna). Sparar seenJobIds så
+  "nya sedan sist" nu fungerar för varje upprepad sökning, inte bara
+  chip-tryck. `lastUsedAt` följer med i GDPR-exporten (SavedSearch-fält).
+- **UI**: taggning sker i `runSearch` — skriven sökning och taggtryck
+  går exakt samma väg. Aktiv tagg markerad (ram + tonad bakgrund + fet
+  blå text + `aria-current`), rubrik "Dina sökningar — tryck för att
+  söka igen" (sv/ar/so). Kryss tar bort. "+ Spara sökningen"-knappen
+  och `window.prompt`-flödet borttagna (färre knappar).
+
+### Övervägda val
+- **Sökning utan träffar taggas inte** — felstavningar ("diskarre")
+  ska inte fylla listan med skräpchips. Rättstavad sökning i liten ort
+  med 0 träffar taggas alltså inte heller förrän den ger träff — bedömt
+  som rätt byte. Samma villkor som freshness-cachen.
+- **Tom sökning (alla fält tomma) taggas inte** — en "Alla jobb"-tagg
+  hjälper ingen.
+- Ordning: nya taggar läggs sist, befintliga behåller plats (ingen
+  MRU-sortering) — chips som hoppar förvirrar målgruppen.
+- seenJobIds sparar de VISADE annonserna (efter enkel ansökan-filtret),
+  samma semantik som förut.
+
+### Fel hittade och fixade under bygget (BOB före Heisenberg)
+1. En rå NUL-byte hamnade i källkoden i stället för escapesekvensen
+   `'\u0000'` i searchKey — osynlig i editorer, upptäckt med `od -c`.
+2. Sökte man "  DISKARE " på befintlig "diskare"-tagg skrevs taggens q
+   om till versalversionen medan namnet bestod — taggen behåller nu
+   sitt ursprungliga q (uppmätt i localStorage före/efter).
+3. Kryssets tryckyta mätte 32,6×44 px — nu `min-width: var(--tap)`,
+   uppmätt 44,0×44,0 i både LTR och RTL.
+4. Backupimportens dedup låg otestad i storen och missade dubbletter
+   inom själva backupfilen — utlyft till ren testad modul.
+
+### Kvalitetsgrindar
+typecheck ✅ lint ✅ test ✅ (176, +18) build ✅. Verifierat i webb-
+läsarpanelen på 375×812, hård omladdning: sökning → tagg dyker upp
+aktiv; andra sökningen → två taggar, aktiv flyttar; tryck på tagg →
+filtren återställs, sökningen körs om, "Inga nya sedan sist" visas,
+dedup håller (2 taggar efter "  DISKARE "); kryss → borta ur DOM och
+localStorage; persistens över hård omladdning inkl. aktiv-återställning
+via lastSearch-matchning; extremlång tagg radbryts inuti chipet utan
+sidscroll (scrollWidth 375 = clientWidth 375); arabiska RTL speglad
+(dir=rtl, chips från höger, kryss på vänster sida i chipet); somaliska
+rubrik/aria verifierade. OBS: webbläsarpanelens klickverktyg tappade
+mouseup (panel dold) — klick verifierade via element.click()/
+requestSubmit i sidan; tangentbordstext och form_input fungerade.
+Heisenberg + Naadir återstår före deploy.
+
 ## 2026-08-31 — UI-omgörning: mobilförst designsystem i befintlig CSS
 
 ### Byggt (commit 502c529)
