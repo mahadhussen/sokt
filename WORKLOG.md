@@ -7,6 +7,66 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-09-08 — Heisenberg NOT CLEAN på comboboxen åtgärdad (finalize före submit)
+
+### Fixat (alla fyra villkoren)
+1. **(Blockerande) Finalize före submit.** Uppmätt hål: Enter fångades
+   bara när listan var öppen MED valbar träff — felstavning ("göteborj")
+   + Enter, eller Escape + Enter, lät formuläret skicka medan fältet
+   fortfarande visade text som inte filtrerade: sökningen körde ALLA
+   orter (ingen municipality-parameter) bakom en ort i fältet. Fix i
+   submit-vägen: `MunicipalityCombobox` exponerar ett imperativt
+   `finalize(): string` (React 19 ref-prop + useImperativeHandle) och
+   `JobsView.search()` kör det FÖRE `runSearch` — returvärdet används
+   direkt i anropet, så submit aldrig racear en state-uppdatering eller
+   väntar på en blur (Enter blurar aldrig; dold-panel-artefakten utan
+   focusout är också irrelevant nu). Entydig text löses (malmo ⇒
+   Malmö-id), otydlig töms före sökningen.
+   **Före** (nya testerna körda mot ofixad kod, 2/2 röda): felstavning
+   +Enter ⇒ municipality saknas MEN fältet står kvar på "göteborj";
+   Escape+Enter "malmo" ⇒ municipality **null** i stället för
+   `oYPt_yRA_Smm`. **Efter** (live mot dev-servern, fetch-instrumenterad):
+   felstavning+Enter ⇒ `?q=lokalvårdare&limit=25` (ingen municipality)
+   och fältet tömt FÖRE sökningen; Escape+Enter "malmo" ⇒
+   `municipality=oYPt_yRA_Smm` och fältet visar "Malmö".
+   **Testlås**: `src/ui/JobsView.search.test.tsx` (jsdom +
+   testing-library, nya devdeps) renderar RIKTIGA JobsView-formuläret
+   och mäter fetch-parametern i båda scenarierna — bevisat rött mot
+   ofixad kod, grönt efter.
+2. **`.ort-list`-formeln glömde ramen** (border-box): max-height
+   `8*44+8=360` < innehåll 360+2px ram ⇒ clientHeight 358 <
+   scrollHeight 360, intern 2px-scroll vid exakt 8 träffar. Ny formel
+   `calc(8 * var(--tap) + 2 * 4px + 2 * 1px)`. **Efter, uppmätt**: 8
+   rader ⇒ clientHeight 360 = scrollHeight 360, max-height 362px,
+   ingen intern scroll.
+3. **Tomlägets ARIA-kontraktsbrott**: "Ingen ort matchar"-diven
+   (role=status) bar listbox-id:t och pekades av aria-controls. Nu:
+   listboxen finns i DOM bara vid träffar (`listOpen`), aria-expanded
+   och aria-controls sätts bara då, statusdiven har inget id.
+   **Uppmätt i tomläget**: aria-controls null, aria-expanded "false",
+   0 listboxar i DOM, status role=status utan id.
+4. **Dokumentationsrättelse, mätt mot verkligheten**: omfattnings-
+   selecten har **3 alternativ** — All omfattning, Heltid, Deltid
+   (uppmätt live: `select.options.length === 3`; källa
+   `WORKTIME_EXTENTS` = 2 poster + "alla"-raden). Heisenbergs citerade
+   formulering "omfattnings-selecten har 4 alternativ" återfinns inte
+   ordagrant i WORKLOG:en vid HEAD (grep-verifierat över alla
+   .md-filer och git-historiken) — rätta mätvärdet är härmed det som
+   står dokumenterat.
+
+### Miljö och grindar
+typecheck ✅ oxlint ✅ test ✅ (234 = 232 + 2 nya) build ✅. Nya
+devdeps: jsdom, @testing-library/react, @testing-library/user-event,
+@testing-library/dom; vitest-include utökad till `*.test.{ts,tsx}`
+(node förblir default, jsdom väljs per fil). Miljön lämnad seedad och
+återställd efter mätningen: 3 ansökningar, samtycke, exakt de 3
+taggarna (Malmö-taggen som verifieringssökningen skapade borttagen via
+UI:t), lastsearch q=lokalvårdare utan ort — enda avvikelsen är
+färskare fetchedAt/jobs, som förut. Dold panel levererar inga riktiga
+tangenttryck; live-mätningen använde riktig keydown + requestSubmit
+bara när keydown inte preventDefaultats (spec-trogen implicit
+submission), medan jsdom-testerna kör user-events äkta tangentväg.
+
 ## 2026-09-08 — Skrivbar stadssökning ersätter ortsrullistan (combobox)
 
 ### Byggt (commits acb36f3, 0f7b69f)
