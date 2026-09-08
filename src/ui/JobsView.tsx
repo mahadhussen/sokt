@@ -11,7 +11,7 @@ import { canonicalOccupation } from '../jobs/taxonomy'
 import { searchJobs } from '../services/jobtech'
 import { searchJobLinks } from '../services/joblinks'
 import { sourceHost } from '../jobs/mapJobLinksAd'
-import { MUNICIPALITIES } from '../jobs/municipalities'
+import { MunicipalityCombobox } from './MunicipalityCombobox'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { findSavedSearch, newJobIds } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
@@ -549,11 +549,6 @@ export function JobsView() {
   const [error, setError] = useState<string | null>(null)
   const [openJobId, setOpenJobId] = useState<string | null>(null)
 
-  const municipalityOptions = useMemo(
-    () => MUNICIPALITIES.map((m) => ({ id: m.id, name: m.name })),
-    [],
-  )
-
   // Restore the last search (results + filters) on first mount, so the feed is
   // there instantly on reopen — offline included — with a "last fetched" stamp.
   useEffect(() => {
@@ -755,14 +750,7 @@ export function JobsView() {
       )}
       <form className="search-form" onSubmit={search}>
         <input placeholder={t('search.qPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <select value={municipalityId} onChange={(e) => setMunicipalityId(e.target.value)}>
-          <option value="">{t('search.allOrter')}</option>
-          {municipalityOptions.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
+        <MunicipalityCombobox value={municipalityId} onChange={setMunicipalityId} />
         <select value={worktimeExtentId} onChange={(e) => setWorktimeExtentId(e.target.value)}>
           <option value="">{t('search.allExtent')}</option>
           {WORKTIME_EXTENTS.map((w) => (

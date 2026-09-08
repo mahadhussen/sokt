@@ -554,6 +554,96 @@ label.checkbox input {
   white-space: nowrap;
 }
 
+/* ---- Skrivbar ortssökning (combobox över kommun-taxonomin) ---------------
+   Texten filtrerar listan; värdet är alltid ett kommun-id. Rader och kryss
+   håller --tap, allt positioneras logiskt så arabiskan speglas rätt. */
+
+.search-form .ort-combobox {
+  flex: 0 1 220px;
+  min-width: 160px;
+}
+
+.ort-combobox {
+  position: relative;
+}
+
+.ort-combobox .ort-input {
+  /* Plats för rensa-krysset — logisk sida, speglas i RTL. */
+  padding-inline-end: var(--tap);
+}
+
+.ort-input.ort-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+/* Dubbel klass slår .search-form button-regeln som annars målar krysset
+   som en blå primärknapp (uppmätt). */
+.ort-combobox .ort-clear {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  height: 100%;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.ort-combobox .ort-clear:hover {
+  color: var(--ink);
+  background: transparent;
+}
+
+.ort-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  inset-inline: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  /* Max 8 rader à --tap; fler scrollar inuti listan, aldrig sidan. */
+  max-height: calc(8 * var(--tap) + 8px);
+  overflow-y: auto;
+}
+
+.ort-option {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ort-option-active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+.ort-empty {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 12px;
+  color: var(--muted);
+}
+
 .simple-toggle {
   margin: 4px 0 16px;
   color: var(--ink);
@@ -1329,7 +1419,8 @@ footer {
   }
 
   .search-form input,
-  .search-form select {
+  .search-form select,
+  .search-form .ort-combobox {
     flex: 1 1 100%;
   }
 
