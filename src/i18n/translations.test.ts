@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { dirFor, translate, uiEmploymentTypeLabel, uiSurveyLabel } from './translations'
+import { DICTS, dirFor, translate, uiEmploymentTypeLabel, uiSurveyLabel } from './translations'
+
+describe('key parity', () => {
+  it('every language carries exactly the Swedish key set — nothing ships Swedish-only', () => {
+    const sv = Object.keys(DICTS.sv).sort()
+    expect(Object.keys(DICTS.ar).sort()).toEqual(sv)
+    expect(Object.keys(DICTS.so).sort()).toEqual(sv)
+  })
+})
 
 describe('translate', () => {
   it('returns the string for the language', () => {

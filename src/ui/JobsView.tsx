@@ -15,6 +15,10 @@ import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { findSavedSearch, newJobIds } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
+import { filterCallable, telHref } from '../jobs/callable'
+import { filterSupportMentions } from '../jobs/supportMentions'
+import { applyJobFilters } from '../jobs/viewFilter'
+import type { JobViewFilter } from '../jobs/viewFilter'
 import { suggestOccupation } from '../jobs/occupations'
 import { minutesAgo } from '../jobs/freshness'
 import { todayIso } from '../report/periods'
@@ -276,6 +280,27 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           </div>
         </div>
       )}
+      {/* Går att ringa: kontaktperson + STOR ring-knapp. Målgruppen (Rusta
+          och matcha) vill kunna ringa arbetsgivaren med ett tryck — namn och
+          titel kommer rakt ur annonsens application_contacts. */}
+      {job.contact && telHref(job.contact.telephone) && (
+        <div className="call-block">
+          <p className="call-contact">
+            <span className="call-name">{job.contact.name || job.employer}</span>
+            {job.contact.title && <span className="muted"> · {job.contact.title}</span>}
+          </p>
+          <a className="cta cta-call" href={telHref(job.contact.telephone)}>
+            ☎ {t('apply.call', { phone: job.contact.telephone })}
+          </a>
+        </div>
+      )}
+      {(job.supportMentions ?? []).length > 0 && (
+        <p className="support-note">
+          {t('apply.supportNote', {
+            forms: (job.supportMentions ?? []).map((form) => t(`support.${form}`)).join(', '),
+          })}
+        </p>
+      )}
       {/* En primär väg per jobb — stor och blå. Alternativa vägar ligger
           nedtonade under den, aldrig bredvid. */}
       <p className="apply-channel">
@@ -482,6 +507,14 @@ export function JobsView() {
   const [searched, setSearched] = useState(false)
   const [simpleOnly, setSimpleOnly] = useState(true)
   const [resultSimple, setResultSimple] = useState(true)
+  // Query-side filter (sent to the API — changes the result set) …
+  const [openForAll, setOpenForAll] = useState(false)
+  // … and the two new display filters (reshape the fetched page locally).
+  const [callableOnly, setCallableOnly] = useState(false)
+  const [supportOnly, setSupportOnly] = useState(false)
+  // The rare filters live behind one small disclosure so the row never
+  // becomes a filter wall on 375px.
+  const [moreOpen, setMoreOpen] = useState(false)
   // Everything the search returned, before the simple-apply filter. Keeping it
   // lets us say honestly how many ads were hidden, and flip the filter without
   // a second round trip.
@@ -510,11 +543,20 @@ export function JobsView() {
     setWorktimeExtentId(lastSearch.worktimeExtentId)
     setSimpleOnly(lastSearch.simpleOnly)
     setResultSimple(lastSearch.simpleOnly)
+    // Caches written before these filters existed restore with them off.
+    const restoredView: JobViewFilter = {
+      simpleOnly: lastSearch.simpleOnly,
+      callableOnly: lastSearch.callableOnly ?? false,
+      supportOnly: lastSearch.supportOnly ?? false,
+    }
+    setOpenForAll(lastSearch.openForAll ?? false)
+    setCallableOnly(restoredView.callableOnly)
+    setSupportOnly(restoredView.supportOnly)
+    // The disclosure holds support + öppen för alla; open it when one of them
+    // was active so a restored, effective filter is never invisible.
+    if (restoredView.supportOnly || (lastSearch.openForAll ?? false)) setMoreOpen(true)
     setRawJobs(lastSearch.jobs)
-    setJobs(
-      lastSearch.simpleOnly ? filterSimpleApply(lastSearch.jobs) : lastSearch.jobs,
-      lastSearch.total,
-    )
+    setJobs(applyJobFilters(lastSearch.jobs, restoredView), lastSearch.total)
     setFetchedAt(lastSearch.fetchedAt)
     setSearched(true)
     // The restored feed came from one of the tags? Mark it, without re-running.
@@ -526,34 +568,40 @@ export function JobsView() {
     q: string
     municipalityId: string
     worktimeExtentId: string
+    openForAll?: boolean
   }): Promise<Job[]> {
     setLoading(true)
     setError(null)
     setNewSince(null)
     setActiveSearchId(null)
+    const wantOpenForAll = Boolean(params.openForAll)
+    const view: JobViewFilter = { simpleOnly, callableOnly, supportOnly }
     try {
-      // In simple-apply mode we fetch a fuller page (the API max) and then keep
-      // only email-channel ads, so the user still sees a useful number of them.
+      // With any display filter on we fetch a fuller page (the API max) and
+      // then filter locally, so the user still sees a useful number of ads —
+      // "går att ringa" keeps ~1 in 7, "nämner stöd" ~1 in 90 (measured).
       // The second source (JobAd Links) runs in parallel; its failure must
       // never break the main Platsbanken search — degrade to an empty extra
       // section instead.
+      const anyDisplayFilter = view.simpleOnly || view.callableOnly || view.supportOnly
       const [result, external] = await Promise.all([
         searchJobs({
           q: params.q,
           municipalityId: params.municipalityId || undefined,
           worktimeExtentId: params.worktimeExtentId || undefined,
-          limit: simpleOnly ? 100 : 25,
+          openForAll: wantOpenForAll || undefined,
+          limit: anyDisplayFilter ? 100 : 25,
         }),
         searchJobLinks({
           q: params.q,
           municipalityId: params.municipalityId || undefined,
         }).catch(() => []),
       ])
-      const shown = simpleOnly ? filterSimpleApply(result.jobs) : result.jobs
+      const shown = applyJobFilters(result.jobs, view)
       setRawJobs(result.jobs)
       setExternalJobs(external)
       setJobs(shown, result.total)
-      setResultSimple(simpleOnly)
+      setResultSimple(view.simpleOnly)
       setSearched(true)
       const now = Date.now()
       setFetchedAt(now)
@@ -565,7 +613,10 @@ export function JobsView() {
           q: params.q,
           municipalityId: params.municipalityId,
           worktimeExtentId: params.worktimeExtentId,
-          simpleOnly,
+          simpleOnly: view.simpleOnly,
+          ...(wantOpenForAll ? { openForAll: true } : {}),
+          ...(view.callableOnly ? { callableOnly: true } : {}),
+          ...(view.supportOnly ? { supportOnly: true } : {}),
           jobs: result.jobs,
           total: result.total,
           fetchedAt: now,
@@ -595,7 +646,7 @@ export function JobsView() {
 
   function search(event: FormEvent) {
     event.preventDefault()
-    void runSearch({ q, municipalityId, worktimeExtentId })
+    void runSearch({ q, municipalityId, worktimeExtentId, openForAll })
   }
 
   // Tapping a tag reruns the search. Tagging, "new since last" and the active
@@ -604,19 +655,38 @@ export function JobsView() {
     setQ(s.q)
     setMunicipalityId(s.municipalityId)
     setWorktimeExtentId(s.worktimeExtentId)
+    setOpenForAll(Boolean(s.openForAll))
     void runSearch(s)
   }
 
-  // The ads are already here, so flipping the filter is instant and costs no
-  // request — and we can say up front how many it hides.
+  // The ads are already here, so flipping a display filter is instant and
+  // costs no request — and we can say up front how many each one keeps.
   const simpleCount = useMemo(() => filterSimpleApply(rawJobs).length, [rawJobs])
+  const callableCount = useMemo(() => filterCallable(rawJobs).length, [rawJobs])
+  const supportCount = useMemo(() => filterSupportMentions(rawJobs).length, [rawJobs])
 
-  function applySimpleOnly(next: boolean) {
-    setSimpleOnly(next)
+  // One path for every display-filter flip: merge, re-derive, show.
+  function applyView(next: Partial<JobViewFilter>) {
+    const merged: JobViewFilter = { simpleOnly, callableOnly, supportOnly, ...next }
+    if (next.simpleOnly !== undefined) setSimpleOnly(next.simpleOnly)
+    if (next.callableOnly !== undefined) setCallableOnly(next.callableOnly)
+    if (next.supportOnly !== undefined) setSupportOnly(next.supportOnly)
     if (!searched || rawJobs.length === 0) return
-    setResultSimple(next)
-    setJobs(next ? filterSimpleApply(rawJobs) : rawJobs, jobsTotal)
+    setResultSimple(merged.simpleOnly)
+    setJobs(applyJobFilters(rawJobs, merged), jobsTotal)
   }
+
+  // öppen för alla is a query parameter, not a display filter: flipping it
+  // needs fresh data, so with a result on screen the search reruns directly —
+  // one mental model for the participant: tap a filter, the list updates.
+  function applyOpenForAll(next: boolean) {
+    setOpenForAll(next)
+    if (searched && !loading) {
+      void runSearch({ q, municipalityId, worktimeExtentId, openForAll: next })
+    }
+  }
+
+  const activeMoreFilters = (supportOnly ? 1 : 0) + (openForAll ? 1 : 0)
 
   // The JobTech API does no diacritic folding: `stadare` returns nothing while
   // `städare` returns hundreds. Offer the spelling the participant meant rather
@@ -626,7 +696,7 @@ export function JobsView() {
 
   function runSuggestion(name: string) {
     setQ(name)
-    void runSearch({ q: name, municipalityId, worktimeExtentId })
+    void runSearch({ q: name, municipalityId, worktimeExtentId, openForAll })
   }
 
   return (
@@ -685,16 +755,67 @@ export function JobsView() {
           {loading ? t('search.searching') : t('search.submit')}
         </button>
       </form>
-      <label className="checkbox simple-toggle">
-        <input
-          type="checkbox"
-          checked={simpleOnly}
-          onChange={(e) => applySimpleOnly(e.target.checked)}
-        />
-        {rawJobs.length > 0
-          ? t('filter.simpleApplyCount', { shown: simpleCount, fetched: rawJobs.length })
-          : t('filter.simpleApply')}
-      </label>
+      {/* Två filter i dagsljus (enkel ansökan + går att ringa — målgruppens
+          två huvudvägar till arbetsgivaren), resten bakom en diskret
+          utfällning så raden aldrig blir en filtervägg på 375px. */}
+      <div className="filter-group">
+        <label className="checkbox simple-toggle">
+          <input
+            type="checkbox"
+            checked={simpleOnly}
+            onChange={(e) => applyView({ simpleOnly: e.target.checked })}
+          />
+          {rawJobs.length > 0
+            ? t('filter.simpleApplyCount', { shown: simpleCount, fetched: rawJobs.length })
+            : t('filter.simpleApply')}
+        </label>
+        <label className="checkbox simple-toggle">
+          <input
+            type="checkbox"
+            checked={callableOnly}
+            onChange={(e) => applyView({ callableOnly: e.target.checked })}
+          />
+          {rawJobs.length > 0
+            ? t('filter.callableCount', { shown: callableCount, fetched: rawJobs.length })
+            : t('filter.callable')}
+        </label>
+        <button
+          type="button"
+          className="link-button more-filters-toggle"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((v) => !v)}
+        >
+          {moreOpen
+            ? t('filters.hide')
+            : activeMoreFilters > 0
+              ? t('filters.moreActive', { n: activeMoreFilters })
+              : t('filters.more')}{' '}
+          {moreOpen ? '▴' : '▾'}
+        </button>
+        {moreOpen && (
+          <div className="more-filters">
+            <label className="checkbox simple-toggle">
+              <input
+                type="checkbox"
+                checked={supportOnly}
+                onChange={(e) => applyView({ supportOnly: e.target.checked })}
+              />
+              {rawJobs.length > 0
+                ? t('filter.supportCount', { shown: supportCount, fetched: rawJobs.length })
+                : t('filter.support')}
+            </label>
+            <label className="checkbox simple-toggle">
+              <input
+                type="checkbox"
+                checked={openForAll}
+                disabled={loading}
+                onChange={(e) => applyOpenForAll(e.target.checked)}
+              />
+              {t('filter.openForAll')}
+            </label>
+          </div>
+        )}
+      </div>
       {error && <p className="error">{error}</p>}
       {/* Första besöket ska aldrig vara en tom yta utan nästa steg. */}
       {!searched && !loading && (
@@ -709,7 +830,10 @@ export function JobsView() {
       )}
       {searched && rawJobs.length > 0 && (
         <p className="muted">
-          {resultSimple
+          {/* "X jobb med enkel ansökan" är bara sant när enkel ansökan är det
+              ENDA aktiva filtret — med ring-/stödfiltret på är den siffran
+              snittet av flera filter, så då gäller den generiska raden. */}
+          {resultSimple && !callableOnly && !supportOnly
             ? t('results.simpleCount', { total: jobsTotal, shown: jobs.length })
             : t('results.count', { total: jobsTotal, shown: jobs.length })}
           {fetchedAt !== null &&
@@ -737,10 +861,29 @@ export function JobsView() {
       )}
       {searched && !loading && !error && rawJobs.length > 0 && jobs.length === 0 && (
         <div className="empty-state">
-          <p className="muted">{t('results.noneSimple', { fetched: rawJobs.length })}</p>
-          <button type="button" onClick={() => applySimpleOnly(false)}>
-            {t('results.showAllChannels', { n: rawJobs.length })}
-          </button>
+          {/* En återvändsgränd får aldrig sakna nästa steg. Bara enkel ansökan
+              på: den beprövade texten. Fler filter inblandade: säg det ärligt
+              och erbjud att släppa alla visningsfilter i ett tryck. */}
+          {simpleOnly && !callableOnly && !supportOnly ? (
+            <>
+              <p className="muted">{t('results.noneSimple', { fetched: rawJobs.length })}</p>
+              <button type="button" onClick={() => applyView({ simpleOnly: false })}>
+                {t('results.showAllChannels', { n: rawJobs.length })}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="muted">{t('results.noneFiltered', { fetched: rawJobs.length })}</p>
+              <button
+                type="button"
+                onClick={() =>
+                  applyView({ simpleOnly: false, callableOnly: false, supportOnly: false })
+                }
+              >
+                {t('results.clearFilters', { n: rawJobs.length })}
+              </button>
+            </>
+          )}
         </div>
       )}
       <ul className="job-list">
@@ -812,6 +955,13 @@ function JobCard({
           <strong>{job.title}</strong>
           {showTag && <span className="tag">{occupation}</span>}
           {host && <span className="tag tag-source">{host}</span>}
+          {job.contact?.telephone && <span className="tag tag-callable">☎ {t('job.callable')}</span>}
+          {(job.supportMentions ?? []).map((form) => (
+            // Alltid "nämner X" — textträff i annonsen, aldrig ett verifierat faktum.
+            <span key={form} className="tag tag-support">
+              {t('job.mentions', { form: t(`support.${form}`) })}
+            </span>
+          ))}
           {already && (
             <span className="tag tag-applied">
               {t('job.alreadyApplied', { date: already.appliedAt })}

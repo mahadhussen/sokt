@@ -53,6 +53,14 @@ const sv: Dict = {
   'search.hint': 'Börja med att skriva ett yrke, till exempel lokalvårdare.',
   'filter.simpleApply': 'Bara enkel ansökan (namn, CV och brev räcker)',
   'filter.simpleApplyCount': 'Bara enkel ansökan — {shown} av {fetched} jobb',
+  'filter.callable': 'Går att ringa (telefonnummer i annonsen)',
+  'filter.callableCount': 'Går att ringa — {shown} av {fetched} jobb',
+  'filter.support': 'Nämner anställningsstöd (nystartsjobb m.m.)',
+  'filter.supportCount': 'Nämner anställningsstöd — {shown} av {fetched} jobb',
+  'filter.openForAll': 'Öppen för alla — arbetsgivaren fokuserar på kompetens, inte förutsättningar',
+  'filters.more': 'Fler filter',
+  'filters.moreActive': 'Fler filter ({n} på)',
+  'filters.hide': 'Dölj fler filter',
   'search.didYouMean': 'Menade du {name}?',
   'results.count': '{total} annonser hittade, visar {shown}.',
   'results.simpleCount': '{shown} jobb med enkel ansökan. {total} annonser finns totalt.',
@@ -65,6 +73,8 @@ const sv: Dict = {
   'results.none': 'Inga annonser matchade sökningen. Prova ett annat yrke eller en annan ort.',
   'results.noneSimple':
     'Inget av de {fetched} jobben går att söka med bara namn, CV och brev — arbetsgivarna kräver mer.',
+  'results.noneFiltered': 'Inget av de {fetched} hämtade jobben matchar filtren du valt.',
+  'results.clearFilters': 'Visa alla {n} hämtade jobb',
   'external.show': 'Visa {n} jobb från andra sajter',
   'external.hide': 'Dölj jobb från andra sajter',
   'external.note':
@@ -89,6 +99,17 @@ const sv: Dict = {
   'job.ad': 'Annons ↗',
   'job.apply': 'Ansök',
   'job.close': 'Stäng',
+  'job.callable': 'Går att ringa',
+  // Alltid "nämner" — härlett ur annonsens fritext, aldrig ett verifierat faktum.
+  'job.mentions': 'nämner {form}',
+  'support.nystartsjobb': 'nystartsjobb',
+  'support.utvecklingsgarantin': 'jobb- och utvecklingsgarantin',
+  'support.introduktionsjobb': 'introduktionsjobb',
+  'support.lonebidrag': 'lönebidrag',
+  'support.stod': 'anställningsstöd',
+  'apply.callTitle': 'Ring arbetsgivaren direkt',
+  'apply.call': 'Ring {phone}',
+  'apply.supportNote': 'Arbetsgivaren nämner {forms} i annonstexten — nämn det när du hör av dig.',
 
   'apply.openUrl': 'Öppna ansökningssidan ↗',
   'apply.email': 'Skicka ansökan via e-post ({email})',
@@ -279,6 +300,14 @@ const ar: Dict = {
   'search.hint': 'ابدأ بكتابة مهنة، مثل عامل نظافة.',
   'filter.simpleApply': 'التقديم السهل فقط (يكفي الاسم والسيرة الذاتية والرسالة)',
   'filter.simpleApplyCount': 'التقديم السهل فقط — {shown} من {fetched} وظيفة',
+  'filter.callable': 'يمكن الاتصال (رقم هاتف في الإعلان)',
+  'filter.callableCount': 'يمكن الاتصال — {shown} من {fetched} وظيفة',
+  'filter.support': 'يذكر دعم التوظيف (nystartsjobb وغيره)',
+  'filter.supportCount': 'يذكر دعم التوظيف — {shown} من {fetched} وظيفة',
+  'filter.openForAll': 'Öppen för alla — صاحب العمل يركّز على كفاءتك، لا على ظروفك',
+  'filters.more': 'مرشّحات إضافية',
+  'filters.moreActive': 'مرشّحات إضافية ({n} مفعّلة)',
+  'filters.hide': 'إخفاء المرشّحات الإضافية',
   'search.didYouMean': 'هل تقصد {name}؟',
   'results.count': 'تم العثور على {total} إعلانًا، عرض {shown}.',
   'results.simpleCount': '{shown} وظيفة بتقديم سهل. يوجد {total} إعلانًا إجمالًا.',
@@ -291,6 +320,8 @@ const ar: Dict = {
   'results.none': 'لا توجد إعلانات مطابقة. جرّب مهنة أخرى أو مدينة أخرى.',
   'results.noneSimple':
     'لا يمكن التقديم على أي من الوظائف الـ{fetched} بالاسم والسيرة الذاتية والرسالة فقط — يطلب أصحاب العمل أكثر من ذلك.',
+  'results.noneFiltered': 'لا تطابق أي وظيفة من الوظائف الـ{fetched} المرشّحات التي اخترتها.',
+  'results.clearFilters': 'اعرض كل الوظائف الـ{n}',
   'external.show': 'عرض {n} وظائف من مواقع أخرى',
   'external.hide': 'إخفاء وظائف المواقع الأخرى',
   'external.note':
@@ -315,6 +346,18 @@ const ar: Dict = {
   'job.ad': 'الإعلان ↗',
   'job.apply': 'تقديم',
   'job.close': 'إغلاق',
+  'job.callable': 'يمكن الاتصال',
+  'job.mentions': 'يذكر {form}',
+  // أسماء برامج الدعم تبقى بالسويدية — فهي الأسماء الرسمية التي يعرفها
+  // صاحب العمل ومكتب العمل.
+  'support.nystartsjobb': 'nystartsjobb',
+  'support.utvecklingsgarantin': 'jobb- och utvecklingsgarantin',
+  'support.introduktionsjobb': 'introduktionsjobb',
+  'support.lonebidrag': 'lönebidrag',
+  'support.stod': 'anställningsstöd',
+  'apply.callTitle': 'اتصل بصاحب العمل مباشرة',
+  'apply.call': 'اتصل {phone}',
+  'apply.supportNote': 'يذكر صاحب العمل {forms} في نص الإعلان — اذكر ذلك عند التواصل.',
 
   'apply.openUrl': 'افتح صفحة التقديم ↗',
   'apply.email': 'أرسل الطلب عبر البريد الإلكتروني ({email})',
@@ -503,6 +546,14 @@ const so: Dict = {
   'search.hint': 'Ku bilow inaad qorto shaqo, tusaale ahaan nadiifiye.',
   'filter.simpleApply': 'Kaliya codsi fudud (magac, CV iyo warqad ayaa ku filan)',
   'filter.simpleApplyCount': 'Kaliya codsi fudud — {shown} ka mid ah {fetched} shaqo',
+  'filter.callable': 'Waa la wici karaa (lambar telefoon ayaa xayeysiiska ku jira)',
+  'filter.callableCount': 'Waa la wici karaa — {shown} ka mid ah {fetched} shaqo',
+  'filter.support': 'Wuxuu sheegayaa kaalmo shaqo (nystartsjobb iwm)',
+  'filter.supportCount': 'Wuxuu sheegayaa kaalmo shaqo — {shown} ka mid ah {fetched} shaqo',
+  'filter.openForAll': 'Öppen för alla — shaqo-bixiyuhu wuxuu eegayaa kartidaada, ma aha duruufahaaga',
+  'filters.more': 'Filtaro dheeraad ah',
+  'filters.moreActive': 'Filtaro dheeraad ah ({n} shid)',
+  'filters.hide': 'Qari filtarada dheeraadka ah',
   'search.didYouMean': 'Ma waxaad ula jeeday {name}?',
   'results.count': '{total} xayeysiis ayaa la helay, waxaa la tusayaa {shown}.',
   'results.simpleCount': '{shown} shaqo oo codsi fudud leh. Wadarta guud waa {total} xayeysiis.',
@@ -515,6 +566,8 @@ const so: Dict = {
   'results.none': 'Ma jiraan xayeysiisyo ku habboon. Isku day xirfad kale ama magaalo kale.',
   'results.noneSimple':
     'Midna ka mid ah {fetched} shaqo laguma codsan karo magac, CV iyo warqad oo keliya — shaqo bixiyayaashu waxay dalbanayaan wax ka badan.',
+  'results.noneFiltered': 'Midna ka mid ah {fetched} shaqo lama waafaqsana filtarada aad dooratay.',
+  'results.clearFilters': 'Tus dhammaan {n} shaqo',
   'external.show': 'Tus {n} shaqo oo ka yimid bogag kale',
   'external.hide': 'Qari shaqooyinka bogagga kale',
   'external.note':
@@ -539,6 +592,18 @@ const so: Dict = {
   'job.ad': 'Xayeysiis ↗',
   'job.apply': 'Codso',
   'job.close': 'Xir',
+  'job.callable': 'Waa la wici karaa',
+  'job.mentions': 'wuxuu sheegayaa {form}',
+  // Magacyada barnaamijyada kaalmada waxay ku hadhayaan af-iswiidhish —
+  // waa magacyada rasmiga ah ee shaqo-bixiyaha iyo AF ay isticmaalaan.
+  'support.nystartsjobb': 'nystartsjobb',
+  'support.utvecklingsgarantin': 'jobb- och utvecklingsgarantin',
+  'support.introduktionsjobb': 'introduktionsjobb',
+  'support.lonebidrag': 'lönebidrag',
+  'support.stod': 'anställningsstöd',
+  'apply.callTitle': 'Toos ugu wac shaqo-bixiyaha',
+  'apply.call': 'Wac {phone}',
+  'apply.supportNote': 'Shaqo-bixiyuhu wuxuu qoraalka xayeysiiska ku sheegay {forms} — sheeg markaad la xiriirto.',
 
   'apply.openUrl': 'Fur bogga codsiga ↗',
   'apply.email': 'Ku dir codsiga iimayl ({email})',
@@ -699,7 +764,9 @@ const so: Dict = {
   'table.link': 'Xiriiriye',
 }
 
-const DICTS: Record<Lang, Dict> = { sv, ar, so }
+// Exported for the parity test: every key must exist in every language, so a
+// new feature can never ship Swedish-only by accident.
+export const DICTS: Record<Lang, Dict> = { sv, ar, so }
 
 export function translate(lang: Lang, key: string, params?: Record<string, string | number>): string {
   const template = DICTS[lang][key] ?? sv[key] ?? key
