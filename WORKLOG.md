@@ -7,6 +7,97 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-09-08 — Ringfilter, stödformsfilter och Öppen för alla
+
+### Byggt (commits a210876, 8536056)
+Mahads uppdrag: filtrera fram annonser där rekryterarens nummer finns
+("ringa arbetsgivare jag gillar") och filter för nystartsjobb/
+utvecklingsgarantin m.m. Allt mätt mot riktiga JobSearch-svar INNAN
+kod skrevs (365 annonser över fyra sökningar).
+- **Går att ringa** (`jobs/callable.ts` + `mapContact` i mappningen):
+  klientfilter på annonser vars `application_contacts` bär telefon.
+  Uppmätt täckning: 51/365 (14 %); lokalvårdare 27/100, städare 12/100,
+  lagerarbetare 8/100, diskare 4/65. Kortet får ☎-tagg; panelen ett
+  grönt block med kontaktnamn, titel och STOR `tel:`-knapp (52px hög).
+  `telHref` normaliserar ("070-123 45 67"→tel:0701234567, "+46 (0)70…"
+  utan felslå-nollan).
+- **Stödformsfilter** (`jobs/supportMentions.ts`): deterministisk
+  textmatchning mot headline+description. API:t har INGET strukturerat
+  fält (verifierat) — träffar deklareras alltid "nämner X i annonsen",
+  aldrig som faktum (lila märken + ärlighetsrad i panelen). Uppmätt
+  täckning: 4/365 (1,1 %) — därför ETT filter med specifika märken, inte
+  fyra chips som nästan alltid ger 0.
+- **Öppen för alla** via API-parametern `open_for_all` — äkta serverfilter,
+  verifierat live (lokalvårdare 981→49; diskare 65→3). Flippen kör om
+  sökningen direkt (samma mentala modell: tryck → listan uppdateras) och
+  blir egen tagg ("diskare · öppen för alla").
+- **UI:t**: enkel ansökan + Går att ringa i dagsljus (målgruppens två
+  vägar till arbetsgivaren), stöd + Öppen för alla bakom "Fler filter"-
+  utfällning med aktiv-räknare — ingen filtervägg på 375px. Utfällningen
+  öppnas automatiskt vid restore om ett filter i den är aktivt.
+  Vyfiltret härleds i EN ren funktion (`jobs/viewFilter.ts`) för sök,
+  restore och varje kryss. i18n sv/ar/so + paritetstest (210 nycklar ×3).
+
+### Ordlistan (motivering)
+Matchare: nystartsjobb; utvecklingsgaranti (täcker "jobb- och utvecklings-
+garantin"); introduktionsjobb; lönebidrag; gruppen "stöd" = anställnings-
+stöd, etableringsjobb, subventionerad anställning, trygghetsanställning.
+**Strukna efter mätning mot riktiga annonser:** "extratjänst" — i annons-
+språk betyder det extrajobb/behovspass ("Omfattning: extratjänst på
+timmar", uppmätt), inte AF-stödet; att matcha det vore ett fabricerat
+stödpåstående. "nystart" ensamt matchar "nystartat företag". praktik/
+arbetsträning: inte anställningar, för brusigt. AF-programnamnen behålls
+på svenska i ar/so — det är namnen arbetsgivaren och AF använder.
+
+### Övervägda val
+- **Taggidentitet**: openForAll ingår i `searchKey` (annan träffmängd
+  från API:t = annan sökning; får inte skriva över ren taggs seen-set).
+  Visningsfiltren (enkel/ringa/stöd) ingår INTE — de omformar samma
+  resultatsida och skulle splittra en sökning i nästan identiska chips.
+  Gamla taggar utan fältet == openForAll false (testat).
+- **Kontaktval**: rollen bor i `contact_type` (26/26 mätta kontakter;
+  `description` var null). Offentliga annonser listar fackliga
+  företrädare — deterministisk prioritering: telefon+roll+ej facklig >
+  telefon+ej facklig > första med telefon (facket visas om det är enda
+  numret; ett nummer slår inget).
+- **Sidstorlek**: valfritt aktivt visningsfilter ⇒ limit 100 (som enkel
+  ansökan förut). En filterflip på hämtad sida gör ingen ny hämtning
+  (27/100 blir t.ex. 1/25 om sidan hämtades ofiltrerad) — självläkande
+  vid nästa körning, ingen överraskande nätverkstrafik vid kryss.
+- **"Öppen för alla" ensamt taggas** (till skillnad från helt tom
+  sökning) — det är AF:s egen märkning och en meningsfull sökning.
+
+### Fel hittade och fixade under bygget (BOB före Heisenberg)
+1. Samordnarens rekognosering pekade på `description` som kontaktens
+   titel — verkligheten (26 mätta kontakter) lägger rollen i
+   `contact_type`. Fixad före första commit.
+2. Ordlistans "extratjänst" hade fabricerat stödpåståenden — struken
+   efter kontextmätning av riktiga träffar.
+3. Räknarraden ljög: "6 jobb med enkel ansökan" när ringfiltret också
+   var på (6 = snittet av två filter). Nu visas den enkla-texten bara
+   när enkel ansökan är enda aktiva filtret.
+4. API:t ignorerar okända parametrar tyst — `open-for-all` gav 981
+   träffar som om inget filter fanns. Exakta namnet `open_for_all`
+   låst i test så en stavningsdrift aldrig kan bli ett tyst nollfilter.
+
+### Avvikelse i miljön
+Dev-miljön skulle vara seedad (3 ansökningar, samtycke, 2 taggar) men
+localStorage var HELT tom vid start. Omseedad manuellt (3 ansökningar,
+samtycke, taggarna lokalvårdare + diskare) och lämnad seedad (plus
+taggen "diskare · öppen för alla" från verifieringen).
+
+### Kvalitetsgrindar och mätvärden
+typecheck ✅ lint ✅ test ✅ (212, +30) build ✅. Verifierat live i
+webbläsarpanelen 375×812 mot riktiga API:t: ringfilter 27/100 →
+kryss+enkel ⇒ 6 kort; ringknapp 291×52px, chip-kryss 44×44, filterrader
+≥44px (uppmätt), scrollWidth 375=375 (ingen sidscroll); hård omladdning
+återställer sökning, filter och aktiv tagg; arabiska RTL speglad
+(dir=rtl, kryss höger, ringblock speglat, nummer läsbart LTR);
+stödmärken "nämner nystartsjobb/introduktionsjobb/lönebidrag" på riktig
+annons (Le Pain Français-mönstret). Panelen tappar fortfarande klick
+när den är dold — verifierat via element.click()/form_input som förra
+passet. Heisenberg + Naadir återstår före deploy.
+
 ## 2026-09-01 — Sökningar blir taggar automatiskt (M12)
 
 ### Byggt (commits f5580bf, d5ee335, 3398694, 09997e5)
