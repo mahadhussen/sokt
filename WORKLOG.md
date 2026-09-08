@@ -7,6 +7,75 @@ Hela produkten kör lokalt utan backend. Följande återstående punkter kan int
 - **AI-brev utan egen nyckel.** M8 kör deterministiskt som default + äkta AI via användarens egen Anthropic-nyckel. En delad nyckel kräver backend-proxy (annars exponeras nyckeln).
 - **Kryptering i vila på appnivå.** Lokalt skyddas data av OS/webbläsare; äkta app-kryptering kräver en backend-nyckel.
 
+## 2026-09-08 — Skrivbar stadssökning ersätter ortsrullistan (combobox)
+
+### Byggt (commits acb36f3, 0f7b69f)
+Mahads uppdrag: 290 kommuner i en <select> är en jättelista att bläddra
+i på telefon — ersätt med skrivbar sökning. **M0-beslutet "Ort som
+kontroll, inte fritext" står orört**: texten filtrerar LISTAN, värdet
+som väljs är alltid ett kommun-concept-id ur MUNICIPALITIES. Fritext
+når aldrig API:t.
+- **Ren modul** `jobs/municipalitySearch.ts` (19 tester): återanvänder
+  yrkessökningens `fold()` (ingen parallell normalisering), viker även
+  bindestreck ("malung salen" ⇒ Malung-Sälen). Rankning exakt > prefix
+  > substräng: "göte" ⇒ [Göteborg, Götene]; "goteborg"/"malmo"/"MALMÖ"
+  löser via diakritvikning; "berg" ⇒ Berg först, inte Åtvidaberg.
+  `resolveMunicipality` löser entydig text och vägrar gissa vid
+  kollision (habo ⇒ Habo bara vid bokstavstrogen skrivning). Max 8
+  träffar (8×44px ≈ halva 375-skärmen med tangentbord uppe).
+- **`ui/MunicipalityCombobox.tsx`**: fullt combobox-aria med
+  aria-activedescendant (valt framför knapplista för att fokus ska
+  ligga kvar i inputen — telefontangentbordet får inte fällas ihop
+  medan man tittar i listan). Pil ner/upp + Enter + Escape. Val sker
+  på mousedown+preventDefault (Safari-fällan: click-baserade val hinner
+  stängas av inputens blur). Blur med entydig text väljer själv
+  ("malmo" + tryck Sök direkt ⇒ Malmö-filter); otydlig rest ("göte")
+  töms hellre än står kvar och ser vald ut fast sökningen kör alla
+  orter. Rensa-kryss 44×44. autocomplete/autocorrect av, inputMode
+  text. i18n sv/ar/so; "Ingen ort matchar" vid felstavning.
+
+### Mätvärden (live mot dev-servern, 375px)
+- "göte" ⇒ Göteborg (aktiv) + Götene, radhöjd 44px, kryss 44×44,
+  scrollWidth 375 = viewport (sv och ar).
+- Vald ort + Sök ⇒ API-anropet fick `municipalityId: PVZL_BQT_XtL`,
+  985 ⇒ 44 annonser (serverfiltret exakt som förut), taggen
+  "lokalvårdare · Göteborg" skapades identiskt.
+- Restore efter hård omladdning med sparad ort ⇒ fältet visar
+  "Göteborg" ifyllt; tagg utan ort ⇒ fältet töms. RTL verifierat
+  visuellt: kryss speglat vänster, högerställda rader.
+
+### Egenfångade fel (BOB före Heisenberg)
+1. `.search-form button`-regeln målade rensa-krysset som blå
+   primärknapp — dubbelklass-specificitet + padding/font-reset.
+2. `choose()` blurade inputen och blur-finalize körde synkront på
+   texten FÖRE valet ("göte" löste inte ⇒ fältet tömdes fast Göteborg
+   just valts) — skipBlur-vakt runt den programmatiska bluren.
+3. Eget testfel: "berg"-testet antog att substrängar syns inom taket;
+   prefixträffarna fyller de 8 raderna först (rättade testet, inte
+   modulen).
+
+### Övervägda val
+- **`search.allOrter` borttagen** (död nyckel): betydelsen "tomt =
+  alla orter" bor nu i platshållaren ("Alla orter — skriv t.ex.
+  Göteborg") så den syns där beslutet fattas.
+- **Tom fokus öppnar ingen lista**: 8 rader från A (Ale, Alingsås…) är
+  brus, platshållaren pekar rätt. Listan öppnas första tecknet.
+- **Ansökans ortfält (apply.ort i ApplyPanel + ManualApplyForm) behåller
+  fritext, medvetet**: annat värdesemantik — de lagrar ett ORTNAMN i
+  ansökan/rapporten (grupperingssträng), inte ett API-filter, så
+  M0-beslutet gäller inte där; fältet är förifyllt från annonsens
+  kommunnamn; och en deltagare kan ärligt skriva en ort som inte är en
+  kommun ("Kista"). Att tvinga in 290 kommuner där vore fel data, inte
+  bättre data. Framtida förbättring: namnläges-combobox som FÖRESLÅR
+  stavning utan att tvinga taxonomin.
+- **Testmiljöartefakt, ingen bugg**: med dold webbläsarpanel har
+  dokumentet inte fokus och Chrome avfyrar inga native focusout alls
+  (uppmätt `sawFocusout: false`); manuellt dispatchad focusout kör
+  finalize korrekt. På riktig enhet fyrar blur alltid.
+- Seedad miljö verifierad (3 ansökningar, samtycke, 3 taggar) och
+  lämnad exakt så; enda avvikelsen är att lastsearch-cachens
+  `fetchedAt` är färskare efter verifieringssökningarna.
+
 ## 2026-09-08 — Ringfilter, stödformsfilter och Öppen för alla
 
 ### Byggt (commits a210876, 8536056)
