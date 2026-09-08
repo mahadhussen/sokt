@@ -7,6 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // .tsx-tester (komponenttester) väljer jsdom per fil via
+    // "@vitest-environment jsdom" — node förblir default för rena moduler.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })

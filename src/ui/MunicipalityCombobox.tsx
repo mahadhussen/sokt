@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import type { FocusEvent, KeyboardEvent } from 'react'
+import { useEffect, useId, useImperativeHandle, useRef, useState } from 'react'
+import type { FocusEvent, KeyboardEvent, Ref } from 'react'
 import {
   matchMunicipalities,
   municipalityById,
@@ -23,9 +23,19 @@ import { useT } from '../i18n/useT'
 interface Props {
   value: string
   onChange: (id: string) => void
+  /** Imperativt handtag så formulärets submit-väg kan köra finalize FÖRE
+      sökningen (React 19: ref som vanlig prop). */
+  ref?: Ref<MunicipalityComboboxHandle>
 }
 
-export function MunicipalityCombobox({ value, onChange }: Props) {
+export interface MunicipalityComboboxHandle {
+  /** Löser fältets text till ett kommun-id ('' = alla orter) och städar
+      fältet. Returvärdet är id:t sökningen SKA använda — synkront, så att
+      submit aldrig behöver vänta på en state-uppdatering eller en blur. */
+  finalize: () => string
+}
+
+export function MunicipalityCombobox({ value, onChange, ref }: Props) {
   const { t } = useT()
   const listId = useId()
   const selected = value ? municipalityById(value) : null
@@ -54,7 +64,12 @@ export function MunicipalityCombobox({ value, onChange }: Props) {
 
   const matches = open ? matchMunicipalities(text) : []
   const expanded = open && text.trim().length > 0
-  const activeId = expanded && matches[active] ? `${listId}-${matches[active].id}` : undefined
+  // Listboxen finns i DOM bara när det finns träffar — aria-expanded och
+  // aria-controls får bara peka på den då. "Ingen ort matchar"-läget är en
+  // role=status-region UTAN listbox-id: en combobox som pekar på ett id som
+  // inte är en listbox är ett ARIA-kontraktsbrott.
+  const listOpen = expanded && matches.length > 0
+  const activeId = listOpen && matches[active] ? `${listId}-${matches[active].id}` : undefined
 
   function commit(id: string) {
     if (id !== value) {
@@ -78,21 +93,27 @@ export function MunicipalityCombobox({ value, onChange }: Props) {
     setOpen(false)
   }
 
-  // Fältet lämnas: entydig text väljer sig själv ("malmo" ⇒ Malmö — även när
-  // man skriver hela namnet och trycker Sök direkt utan att röra listan).
-  // Otydlig rest ("göte") töms hellre än står kvar och ser vald ut fast
-  // sökningen kör alla orter.
-  function finalize() {
+  // Fältet lämnas eller formuläret skickas: entydig text väljer sig själv
+  // ("malmo" ⇒ Malmö — även när man skriver hela namnet och trycker Sök
+  // direkt utan att röra listan). Otydlig rest ("göteborj") töms hellre än
+  // står kvar och ser vald ut fast sökningen kör alla orter. Returnerar id:t
+  // synkront så submit-vägen kan använda det direkt — uppmätt hål innan:
+  // felstavning+Enter och Escape+Enter nådde submit UTAN finalize (blur fyrar
+  // aldrig vid Enter) och sökningen körde alla orter bakom en ort i fältet.
+  function finalize(): string {
     setOpen(false)
     const resolved = resolveMunicipality(text)
     if (resolved) {
       commit(resolved.id)
       setText(resolved.name)
-      return
+      return resolved.id
     }
     commit('')
     setText('')
+    return ''
   }
+
+  useImperativeHandle(ref, () => ({ finalize }))
 
   function onBlur(event: FocusEvent) {
     if (skipBlur.current) {
@@ -117,8 +138,10 @@ export function MunicipalityCombobox({ value, onChange }: Props) {
       )
       return
     }
-    if (event.key === 'Enter' && expanded && matches[active]) {
-      // Väljer träffen i stället för att skicka formuläret.
+    if (event.key === 'Enter' && listOpen && matches[active]) {
+      // Väljer träffen i stället för att skicka formuläret. Alla andra
+      // Enter-fall (felstavning utan träff, stängd lista efter Escape) går
+      // vidare till formulärets submit, som kör finalize() före sökningen.
       event.preventDefault()
       choose(matches[active].id, matches[active].name)
       return
@@ -140,8 +163,8 @@ export function MunicipalityCombobox({ value, onChange }: Props) {
         autoCapitalize="words"
         spellCheck={false}
         role="combobox"
-        aria-expanded={expanded}
-        aria-controls={listId}
+        aria-expanded={listOpen}
+        aria-controls={listOpen ? listId : undefined}
         aria-autocomplete="list"
         aria-activedescendant={activeId}
         aria-label={t('search.ortLabel')}
@@ -169,31 +192,34 @@ export function MunicipalityCombobox({ value, onChange }: Props) {
           ×
         </button>
       )}
-      {expanded &&
-        (matches.length > 0 ? (
-          <ul className="ort-list" role="listbox" id={listId} aria-label={t('search.ortLabel')}>
-            {matches.map((m, i) => (
-              <li
-                key={m.id}
-                id={`${listId}-${m.id}`}
-                role="option"
-                aria-selected={i === active}
-                className={i === active ? 'ort-option ort-option-active' : 'ort-option'}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  choose(m.id, m.name)
-                }}
-                onMouseEnter={() => setActive(i)}
-              >
-                {m.name}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="ort-list ort-empty" id={listId} role="status">
-            {t('search.ortNoMatch')}
-          </div>
-        ))}
+      {listOpen && (
+        <ul className="ort-list" role="listbox" id={listId} aria-label={t('search.ortLabel')}>
+          {matches.map((m, i) => (
+            <li
+              key={m.id}
+              id={`${listId}-${m.id}`}
+              role="option"
+              aria-selected={i === active}
+              className={i === active ? 'ort-option ort-option-active' : 'ort-option'}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                choose(m.id, m.name)
+              }}
+              onMouseEnter={() => setActive(i)}
+            >
+              {m.name}
+            </li>
+          ))}
+        </ul>
+      )}
+      {expanded && matches.length === 0 && (
+        // Ingen listbox i tomläget — statusen bär medvetet INTE listbox-id:t
+        // (aria-controls från inputen pekar då på ingenting, vilket är rätt:
+        // det finns ingen popup att kontrollera).
+        <div className="ort-list ort-empty" role="status">
+          {t('search.ortNoMatch')}
+        </div>
+      )}
     </div>
   )
 }

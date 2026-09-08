@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { EmploymentType, Job } from '../model/types'
 import { buildApplication } from '../apply/buildApplication'
@@ -12,6 +12,7 @@ import { searchJobs } from '../services/jobtech'
 import { searchJobLinks } from '../services/joblinks'
 import { sourceHost } from '../jobs/mapJobLinksAd'
 import { MunicipalityCombobox } from './MunicipalityCombobox'
+import type { MunicipalityComboboxHandle } from './MunicipalityCombobox'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { findSavedSearch, newJobIds } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
@@ -522,6 +523,8 @@ export function JobsView() {
   const { t } = useT()
   const [q, setQ] = useState('')
   const [municipalityId, setMunicipalityId] = useState('')
+  // Submit-vägen måste kunna finalisera ortfältet synkront (se search()).
+  const ortRef = useRef<MunicipalityComboboxHandle>(null)
   const [worktimeExtentId, setWorktimeExtentId] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -661,7 +664,14 @@ export function JobsView() {
 
   function search(event: FormEvent) {
     event.preventDefault()
-    void runSearch({ q, municipalityId, worktimeExtentId, openForAll })
+    // Finalisera ortfältet FÖRE sökningen: entydig text löses till sitt
+    // kommun-id ("malmo" ⇒ Malmö), felstavad/otydlig text töms. Utan detta
+    // kunde Enter på en felstavning ("göteborj") eller Escape+Enter skicka
+    // sökningen mot ALLA orter medan fältet fortfarande visade en ort som
+    // inte filtrerade. Returvärdet används direkt i anropet — state-
+    // uppdateringen från finalize hinner inte in i denna render.
+    const finalizedMunicipalityId = ortRef.current?.finalize() ?? municipalityId
+    void runSearch({ q, municipalityId: finalizedMunicipalityId, worktimeExtentId, openForAll })
   }
 
   // Tapping a tag reruns the search. Tagging, "new since last" and the active
@@ -750,7 +760,7 @@ export function JobsView() {
       )}
       <form className="search-form" onSubmit={search}>
         <input placeholder={t('search.qPlaceholder')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <MunicipalityCombobox value={municipalityId} onChange={setMunicipalityId} />
+        <MunicipalityCombobox ref={ortRef} value={municipalityId} onChange={setMunicipalityId} />
         <select value={worktimeExtentId} onChange={(e) => setWorktimeExtentId(e.target.value)}>
           <option value="">{t('search.allExtent')}</option>
           {WORKTIME_EXTENTS.map((w) => (
