@@ -23,7 +23,18 @@ describe('buildSearchUrl', () => {
     expect(url.searchParams.get('q')).toBe('diskare')
     expect(url.searchParams.has('municipality')).toBe(false)
     expect(url.searchParams.has('worktime-extent')).toBe(false)
+    expect(url.searchParams.has('open_for_all')).toBe(false)
     expect(url.searchParams.get('limit')).toBe('25')
+  })
+
+  it('sends open_for_all with exactly that name — the API silently ignores unknown params', () => {
+    // Verified live 2026-09-08: open_for_all=true cut lokalvårdare from 981
+    // to 49 hits, while a misspelled open-for-all changed nothing at all.
+    const url = new URL(buildSearchUrl({ q: 'lokalvårdare', openForAll: true }))
+    expect(url.searchParams.get('open_for_all')).toBe('true')
+    expect(
+      new URL(buildSearchUrl({ q: 'x', openForAll: false })).searchParams.has('open_for_all'),
+    ).toBe(false)
   })
 
   it('defaults to the jobsearch host', () => {

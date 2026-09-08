@@ -7,6 +7,10 @@ export interface SavedSearch {
   q: string
   municipalityId: string
   worktimeExtentId: string
+  // Part of the tag's identity: it is a server-side query parameter, so
+  // "lokalvårdare" and "lokalvårdare · öppen för alla" return different
+  // result sets and must be different tags. Absent (old tags) means false.
+  openForAll?: boolean
   // Every ad id this tag has EVER surfaced (accumulated union, capped) —
   // never just the last run's page. See mergeSeenJobIds.
   seenJobIds?: string[]
@@ -25,12 +29,23 @@ export interface SearchInput {
   q: string
   municipalityId: string
   worktimeExtentId: string
+  openForAll?: boolean
 }
 
-// Identity of a search: what you typed (case/space-insensitive) plus the two
-// filters. "Diskare " and "diskare" are the same tag.
+// Identity of a search: what you typed (case/space-insensitive) plus the
+// query filters sent to the API. "Diskare " and "diskare" are the same tag.
+// The client-side display filters (enkel ansökan, går att ringa, nämner stöd)
+// are deliberately NOT identity: they reshape the same result page, so they
+// would split one search into many near-duplicate chips. openForAll IS
+// identity — it is sent to the API and returns a different result set, so it
+// must not be able to overwrite a plain tag's seen set.
 export function searchKey(input: SearchInput): string {
-  return [input.q.trim().toLowerCase(), input.municipalityId, input.worktimeExtentId].join('\u0000')
+  return [
+    input.q.trim().toLowerCase(),
+    input.municipalityId,
+    input.worktimeExtentId,
+    input.openForAll ? 'ofa' : '',
+  ].join('\u0000')
 }
 
 export function findSavedSearch(list: SavedSearch[], input: SearchInput): SavedSearch | undefined {
@@ -140,7 +155,7 @@ export function mergeRestoredSearches(
 
 // A short human label for a saved search, from its filters.
 export function savedSearchSummary(
-  search: Pick<SavedSearch, 'q' | 'municipalityId' | 'worktimeExtentId'>,
+  search: Pick<SavedSearch, 'q' | 'municipalityId' | 'worktimeExtentId' | 'openForAll'>,
   municipalityName: (id: string) => string | undefined,
   worktimeName: (id: string) => string | undefined,
 ): string {
@@ -148,6 +163,9 @@ export function savedSearchSummary(
     search.q,
     search.municipalityId ? municipalityName(search.municipalityId) : undefined,
     search.worktimeExtentId ? worktimeName(search.worktimeExtentId) : undefined,
+    // AF's own mark, kept in Swedish like the municipality names — the tag's
+    // name is written once, at creation, in the data's language.
+    search.openForAll ? 'öppen för alla' : undefined,
   ].filter(Boolean)
   return parts.length ? parts.join(' · ') : 'Alla jobb'
 }

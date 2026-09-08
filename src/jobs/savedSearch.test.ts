@@ -48,6 +48,19 @@ describe('savedSearchSummary', () => {
       'Alla jobb',
     )
   })
+
+  it('names öppen för alla so two otherwise equal tags can be told apart', () => {
+    expect(
+      savedSearchSummary(
+        { q: 'lokalvårdare', municipalityId: '', worktimeExtentId: '', openForAll: true },
+        muni,
+        work,
+      ),
+    ).toBe('lokalvårdare · öppen för alla')
+    expect(
+      savedSearchSummary({ q: '', municipalityId: '', worktimeExtentId: '', openForAll: true }, muni, work),
+    ).toBe('öppen för alla')
+  })
 })
 
 function saved(partial: Partial<SavedSearch> & { id: string }): SavedSearch {
@@ -70,6 +83,18 @@ describe('searchKey', () => {
   it('distinguishes different filters', () => {
     expect(searchKey({ q: 'diskare', municipalityId: 'm1', worktimeExtentId: '' })).not.toBe(
       searchKey({ q: 'diskare', municipalityId: 'm2', worktimeExtentId: '' }),
+    )
+  })
+
+  it('makes öppen för alla part of the identity — a different API result set', () => {
+    expect(
+      searchKey({ q: 'diskare', municipalityId: '', worktimeExtentId: '', openForAll: true }),
+    ).not.toBe(searchKey({ q: 'diskare', municipalityId: '', worktimeExtentId: '' }))
+  })
+
+  it('treats an old tag without the field exactly as openForAll false', () => {
+    expect(searchKey({ q: 'diskare', municipalityId: 'm1', worktimeExtentId: '' })).toBe(
+      searchKey({ q: 'diskare', municipalityId: 'm1', worktimeExtentId: '', openForAll: false }),
     )
   })
 })

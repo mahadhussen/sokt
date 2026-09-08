@@ -11,6 +11,12 @@ export interface JobSearchParams {
   q?: string
   municipalityId?: string // JobTech municipality concept id
   worktimeExtentId?: string // JobTech worktime-extent concept id
+  // AF's "Öppen för alla" mark: employers who focus on competence over
+  // circumstances. A real server-side filter, verified against the live API
+  // 2026-09-08 (981 → 49 hits). NOTE: the exact name open_for_all matters —
+  // the API silently ignores unknown parameters (open-for-all changed
+  // nothing), so this is asserted by test.
+  openForAll?: boolean
   limit?: number
   offset?: number
 }
@@ -26,6 +32,7 @@ export function buildSearchUrl(params: JobSearchParams): string {
   if (params.q) url.searchParams.set('q', params.q)
   if (params.municipalityId) url.searchParams.set('municipality', params.municipalityId)
   if (params.worktimeExtentId) url.searchParams.set('worktime-extent', params.worktimeExtentId)
+  if (params.openForAll) url.searchParams.set('open_for_all', 'true')
   url.searchParams.set('limit', String(params.limit ?? 25))
   if (params.offset) url.searchParams.set('offset', String(params.offset))
   return url.toString()

@@ -477,7 +477,9 @@ export function createSoktStore(
         // case-insensitive anyway, and "DISKARE · Göteborg" next to "diskare"
         // would look like two different things to the participant.
         const q = input.q.trim().toLowerCase()
-        if (!q && !input.municipalityId && !input.worktimeExtentId) return null
+        // "Öppen för alla" alone is a real, useful search (AF's own mark) —
+        // unlike a fully empty one, which would make an "Alla jobb" chip.
+        if (!q && !input.municipalityId && !input.worktimeExtentId && !input.openForAll) return null
         const prev = get().savedSearches
         const existing = findSavedSearch(prev, input)
         const record: SavedSearch = {
@@ -487,7 +489,12 @@ export function createSoktStore(
           name:
             existing?.name ??
             savedSearchSummary(
-              { q, municipalityId: input.municipalityId, worktimeExtentId: input.worktimeExtentId },
+              {
+                q,
+                municipalityId: input.municipalityId,
+                worktimeExtentId: input.worktimeExtentId,
+                openForAll: input.openForAll,
+              },
               (id) => MUNICIPALITIES.find((m) => m.id === id)?.name,
               (id) => WORKTIME_EXTENTS.find((w) => w.id === id)?.label,
             ),
@@ -496,6 +503,8 @@ export function createSoktStore(
           q: existing?.q ?? q,
           municipalityId: input.municipalityId,
           worktimeExtentId: input.worktimeExtentId,
+          // Stored only when set, so pre-existing tags keep their exact shape.
+          ...(input.openForAll ? { openForAll: true } : {}),
           // Union with everything this tag has surfaced before — never
           // overwrite with one page. See mergeSeenJobIds for why.
           seenJobIds: mergeSeenJobIds(existing?.seenJobIds, jobIds),

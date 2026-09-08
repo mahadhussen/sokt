@@ -13,6 +13,12 @@ export interface CachedSearch {
   municipalityId: string
   worktimeExtentId: string
   simpleOnly: boolean
+  // Optional so caches written before these filters existed restore cleanly
+  // (absent = off). openForAll belongs to the query the jobs came from; the
+  // other two are the display filters that were active when it was cached.
+  openForAll?: boolean
+  callableOnly?: boolean
+  supportOnly?: boolean
   jobs: Job[]
   total: number
   fetchedAt: number // ms since epoch
