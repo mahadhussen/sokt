@@ -716,6 +716,13 @@ label.checkbox input {
   border-radius: var(--radius);
 }
 
+.call-title {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ok-ink);
+}
+
 .call-contact {
   margin: 0;
   font-size: var(--fs-body);

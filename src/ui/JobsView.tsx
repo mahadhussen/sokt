@@ -15,7 +15,7 @@ import { MUNICIPALITIES } from '../jobs/municipalities'
 import { WORKTIME_EXTENTS } from '../jobs/filters'
 import { findSavedSearch, newJobIds } from '../jobs/savedSearch'
 import { filterSimpleApply } from '../jobs/simpleApply'
-import { filterCallable, telHref } from '../jobs/callable'
+import { filterCallable, isCallable, telHref } from '../jobs/callable'
 import { filterSupportMentions } from '../jobs/supportMentions'
 import { applyJobFilters } from '../jobs/viewFilter'
 import type { JobViewFilter } from '../jobs/viewFilter'
@@ -31,6 +31,22 @@ import { sendApplicationEmail, sendMailConfigured } from '../services/sendApplic
 import { connectGoogle, createGmailDraft, googleToken } from '../services/gmailDraft'
 import { fileStore } from '../app/store'
 import { blobToBase64 } from '../services/fileStore'
+
+// A phone number inside translated text, bidi-isolated. In Arabic (RTL) the
+// bidi algorithm reorders "054-5409920" so the segments swap around the dash
+// and the reader dials a reversed number — tel: dials right, eyes read wrong.
+// <bdi dir="ltr"> forces the digits to render left-to-right in every language.
+// `template` is the raw translation string with a literal {phone} placeholder.
+function PhoneText({ template, phone }: { template: string; phone: string }) {
+  const [before, after = ''] = template.split('{phone}')
+  return (
+    <>
+      {before}
+      <bdi dir="ltr">{phone}</bdi>
+      {after}
+    </>
+  )
+}
 
 function CopyFields() {
   const profile = useSoktStore((s) => s.profile)
@@ -282,15 +298,18 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
       )}
       {/* Går att ringa: kontaktperson + STOR ring-knapp. Målgruppen (Rusta
           och matcha) vill kunna ringa arbetsgivaren med ett tryck — namn och
-          titel kommer rakt ur annonsens application_contacts. */}
-      {job.contact && telHref(job.contact.telephone) && (
+          titel kommer rakt ur annonsens application_contacts. Samma predikat
+          (isCallable) som ☎-taggen och filtret, så en tagg utan knapp kan
+          inte uppstå. Numret bidi-isoleras — se PhoneText. */}
+      {job.contact && isCallable(job) && (
         <div className="call-block">
+          <p className="call-title">{t('apply.callTitle')}</p>
           <p className="call-contact">
             <span className="call-name">{job.contact.name || job.employer}</span>
             {job.contact.title && <span className="muted"> · {job.contact.title}</span>}
           </p>
           <a className="cta cta-call" href={telHref(job.contact.telephone)}>
-            ☎ {t('apply.call', { phone: job.contact.telephone })}
+            ☎ <PhoneText template={t('apply.call')} phone={job.contact.telephone} />
           </a>
         </div>
       )}
@@ -301,8 +320,9 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
           })}
         </p>
       )}
-      {/* En primär väg per jobb — stor och blå. Alternativa vägar ligger
-          nedtonade under den, aldrig bredvid. */}
+      {/* Ansökningsvägen — stor och blå. Ringvägen (grönt block ovanför)
+          visas när annonsen bär ett ringbart nummer; övriga alternativ
+          ligger nedtonade under, aldrig bredvid. */}
       <p className="apply-channel">
         {channel.kind === 'url' && (
           <a
@@ -783,6 +803,7 @@ export function JobsView() {
           type="button"
           className="link-button more-filters-toggle"
           aria-expanded={moreOpen}
+          aria-controls="more-filters-panel"
           onClick={() => setMoreOpen((v) => !v)}
         >
           {moreOpen
@@ -790,10 +811,10 @@ export function JobsView() {
             : activeMoreFilters > 0
               ? t('filters.moreActive', { n: activeMoreFilters })
               : t('filters.more')}{' '}
-          {moreOpen ? '▴' : '▾'}
+          <span aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
         </button>
         {moreOpen && (
-          <div className="more-filters">
+          <div className="more-filters" id="more-filters-panel">
             <label className="checkbox simple-toggle">
               <input
                 type="checkbox"
@@ -955,7 +976,9 @@ function JobCard({
           <strong>{job.title}</strong>
           {showTag && <span className="tag">{occupation}</span>}
           {host && <span className="tag tag-source">{host}</span>}
-          {job.contact?.telephone && <span className="tag tag-callable">☎ {t('job.callable')}</span>}
+          {/* Samma predikat som filtret och panelens ringblock — taggen
+              lovar en ringknapp, så den kräver ett ringbart nummer. */}
+          {isCallable(job) && <span className="tag tag-callable">☎ {t('job.callable')}</span>}
           {(job.supportMentions ?? []).map((form) => (
             // Alltid "nämner X" — textträff i annonsen, aldrig ett verifierat faktum.
             <span key={form} className="tag tag-support">
