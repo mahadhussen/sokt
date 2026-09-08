@@ -616,8 +616,11 @@ label.checkbox input {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-pop);
-  /* Max 8 rader à --tap; fler scrollar inuti listan, aldrig sidan. */
-  max-height: calc(8 * var(--tap) + 8px);
+  /* Max 8 rader à --tap; fler scrollar inuti listan, aldrig sidan.
+     border-box: taket måste rymma padding (2×4px) OCH ramen (2×1px) —
+     utan ramtillägget blev clientHeight 358 < scrollHeight 360 och exakt
+     8 träffar fick en intern 2px-scroll. */
+  max-height: calc(8 * var(--tap) + 2 * 4px + 2 * 1px);
   overflow-y: auto;
 }
 
