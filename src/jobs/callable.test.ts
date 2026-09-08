@@ -19,12 +19,18 @@ function job(partial: Partial<Job>): Job {
 }
 
 describe('isCallable / filterCallable', () => {
-  it('requires a contact with a non-blank telephone', () => {
+  it('requires a contact with a dialable telephone', () => {
     expect(isCallable(job({}))).toBe(false)
     expect(isCallable(job({ contact: { name: 'Anna', title: '', telephone: '  ' } }))).toBe(false)
     expect(
       isCallable(job({ contact: { name: 'Anna', title: 'Chef', telephone: '070-123 45 67' } })),
     ).toBe(true)
+  })
+
+  it('rejects digit-free telephone text — no dialable number, no ☎ tag, no filter pass', () => {
+    expect(
+      isCallable(job({ contact: { name: 'Anna', title: '', telephone: 'ring växeln' } })),
+    ).toBe(false)
   })
 
   it('keeps only callable jobs', () => {

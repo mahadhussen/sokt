@@ -3,8 +3,13 @@
 
 import type { Job } from '../model/types'
 
+// THE callability predicate — the card's ☎ tag, the "Går att ringa" filter
+// and the panel's call block all use this one. It requires a dialable number
+// (telHref !== ''), not just non-blank text: an ad whose "telephone" says
+// "ring växeln" must neither be tagged ☎ nor pass the filter, because the
+// panel would have no call button to offer.
 export function isCallable(job: Job): boolean {
-  return Boolean(job.contact?.telephone.trim())
+  return job.contact !== undefined && telHref(job.contact.telephone) !== ''
 }
 
 export function filterCallable(jobs: Job[]): Job[] {
