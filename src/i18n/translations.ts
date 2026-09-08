@@ -297,7 +297,7 @@ const ar: Dict = {
 
   'search.qPlaceholder': 'المهنة أو كلمة بحث، مثل عامل نظافة',
   'search.ortLabel': 'المدينة',
-  'search.ortPlaceholder': 'كل المدن — اكتب مثلا Göteborg',
+  'search.ortPlaceholder': 'كل المدن — اكتب مثل Göteborg',
   'search.ortClearAria': 'مسح المدينة المختارة',
   'search.ortNoMatch': 'لا توجد مدينة مطابقة',
   'search.allExtent': 'كل أنواع الدوام',
