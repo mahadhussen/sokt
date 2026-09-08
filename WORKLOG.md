@@ -98,6 +98,46 @@ annons (Le Pain Français-mönstret). Panelen tappar fortfarande klick
 när den är dold — verifierat via element.click()/form_input som förra
 passet. Heisenberg + Naadir återstår före deploy.
 
+## 2026-09-08 — Heisenberg rond 2 åtgärdad (RTL-nummer, callTitle, predikat)
+
+### Fixat (commits ace341b, 0429860)
+Heisenberg dömde NOT CLEAN: två blockerande + efterlista. Allt åtgärdat.
+1. **Telefonnummer lästes baklänges i arabisk RTL** (blockerande).
+   Bindestreckade nummer kastades om visuellt: UAX#9 W2 gör EN→AN när
+   arabisk text föregår siffrorna, och segmenten byter plats kring
+   bindestrecket. `PhoneText` (JobsView) renderar numret i
+   `<bdi dir="ltr">` inuti den översatta strängen — enda stället
+   `contact.telephone` visas är ringknappen (grep-verifierat).
+   **Fientligt uppmätt** på glyfpositioner (Range.getBoundingClientRect
+   per tecken) mot riktig annons Karlstads kommun 31436583, arabiska:
+   FÖRE (utan isolering) visuell ordning `5409920-054` — exakt
+   Heisenbergs mätning; EFTER `054-5409920`, monotont stigande x
+   (0@549 … 0@655). Pixelbevis även i headless Chrome (panelen ritar
+   inte dold — känd lärdom). Inte mätt mot det bekväma 0702279867.
+2. **Död nyckel `apply.callTitle` används nu** (blockerande) som rubrik
+   i gröna ringblocket. Val: ANVÄND, inte stryk — blocket saknade
+   rubrik som förklarar ringvägen och nyckeln fanns färdigöversatt i
+   alla tre språken ("Ring arbetsgivaren direkt"); det var uppenbart
+   avsikten när blocket byggdes. `.call-title` 700/var(--ok-ink),
+   verifierad i DOM (renderas "اتصل بصاحب العمل مباشرة" i ar).
+3. **ETT ringbarhets-predikat**: `isCallable` kräver nu
+   `telHref !== ''` och återanvänds av kortets ☎-tagg, filtret
+   (`filterCallable`/`viewFilter`) och panelens ringblock. Tidigare
+   kunde sifferfri telefontext ("ring växeln") taggas ☎ + passera
+   filtret utan ringknapp. Nytt test låser fallet.
+4. **Kommentaren "En primär väg per jobb"** rättad (ringblocket står
+   ovanför den blå vägen). `aria-controls="more-filters-panel"` + `id`
+   på Fler filter-utfällningen (DOM-verifierat: controls==id, expanded
+   togglar) och `aria-hidden="true"` på ▾/▴.
+
+Samordnarens beslut fört vidare: `open_for_all` bor kvar i
+`services/jobtech.ts` (URL-byggaren, testlåst) — orörd.
+
+### Kvalitetsgrindar och miljö
+typecheck ✅ lint ✅ test ✅ (213, +1) build ✅. Miljön lämnad seedad
+och återställd efter mätningen: sv, senaste sökning diskare utan
+filter, 3 ansökningar, samtycke, 3 taggar (mätt i localStorage).
+
 ## 2026-09-01 — Sökningar blir taggar automatiskt (M12)
 
 ### Byggt (commits f5580bf, d5ee335, 3398694, 09997e5)
