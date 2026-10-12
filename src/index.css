@@ -50,7 +50,12 @@
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.05);
   --shadow-pop: 0 8px 24px rgb(16 24 40 / 0.18);
 
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   color: var(--ink);
 }
 
@@ -113,22 +118,6 @@ button:not(:disabled):active {
   padding: 24px 24px 48px;
 }
 
-/* Breda skärmar: jobbkorten läggs i kolumner i stället för en lång smal
-   remsa mitt på en tom sida. */
-@media (min-width: 1100px) {
-  .job-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-    gap: 12px;
-    align-items: start;
-  }
-  /* Ett öppnat kort behöver hela bredden — ansökningspanelen är ett formulär,
-     inte en listrad. */
-  .job-list > li:has(.apply-panel) {
-    grid-column: 1 / -1;
-  }
-}
-
 .header-row {
   display: flex;
   justify-content: space-between;
@@ -150,18 +139,18 @@ header h1 {
 
 /* RTL: mirror text alignment for Arabic. Flex rows reverse via `dir` already —
    ingen extra spegling behövs, den skulle vända tillbaka ordningen. */
-[dir='rtl'] body {
+[dir="rtl"] body {
   text-align: right;
 }
 
-[dir='rtl'] .report-table th,
-[dir='rtl'] .report-table td {
+[dir="rtl"] .report-table th,
+[dir="rtl"] .report-table td {
   text-align: right;
 }
 
 /* Riktningsikoner (pappersflygplanet) pekar i läsriktningen — samma
    konvention som apparna målgruppen redan kan. */
-[dir='rtl'] .rtl-flip {
+[dir="rtl"] .rtl-flip {
   transform: scaleX(-1);
 }
 
@@ -184,8 +173,8 @@ header h1 {
   display: flex;
   background: var(--card);
   border-top: 1px solid var(--line);
-  padding: 6px max(6px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom))
-    max(6px, env(safe-area-inset-right));
+  padding: 6px max(6px, env(safe-area-inset-left))
+    max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-right));
 }
 
 .tab {
@@ -296,7 +285,7 @@ header h1 {
 /* ---- Knappar -------------------------------------------------------------
    En knapp ser ut som en knapp: fylld, rundad, minst 44px hög. */
 
-button[type='submit'],
+button[type="submit"],
 .period-row button,
 .job-actions button,
 .search-form button,
@@ -316,7 +305,7 @@ button[type='submit'],
   cursor: pointer;
 }
 
-button[type='submit']:not(:disabled):hover,
+button[type="submit"]:not(:disabled):hover,
 .period-row button:not(:disabled):hover,
 .job-actions button:not(:disabled):hover,
 .search-form button:not(:disabled):hover,
@@ -425,7 +414,7 @@ a.cta:active {
   margin: 0;
 }
 
-.card input[type='file'] {
+.card input[type="file"] {
   width: auto;
 }
 
@@ -761,12 +750,39 @@ label.checkbox input {
   gap: 10px;
 }
 
+/* Breda skärmar: lika breda kort i kolumner i stället för en lång smal remsa
+   mitt på en tom sida. Reglerna måste stå EFTER basregeln ovan — en media-
+   query ger ingen extra specificitet, så en senare basregel vinner annars.
+   (Det hände: `align-items: start` blev kvar i flex-kolumnen medan
+   `display: grid` tappades, och varje kort krympte till sitt innehåll.) */
+@media (min-width: 900px) {
+  .job-list {
+    display: grid;
+    /* min() så en smal spalt aldrig tvingar fram vågrät scroll. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
+    gap: 12px;
+    /* stretch, inte start: korten i samma rad blir lika höga och radens
+       underkant blir en rak linje. */
+    align-items: stretch;
+  }
+  /* Ett öppnat kort behöver hela bredden — ansökningspanelen är ett formulär,
+     inte en listrad. */
+  .job-list > li:has(.apply-panel) {
+    grid-column: 1 / -1;
+  }
+}
+
 .job-card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   padding: 14px 16px;
+  /* Kolumn så innehållet får samma ordning i varje kort och knappraden kan
+     pressas till botten — annars flyter den dit texten råkar sluta. */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .job-card > .job-head strong {
@@ -776,8 +792,31 @@ label.checkbox input {
 .job-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  /* Fyller kortet så knappraden hamnar i nederkant även i ett kort som
+     sträckts till radens höjd. */
+  flex: 1;
+}
+
+/* Textsidan måste få krympa (min-width: 0) — annars pressar en lång rubrik
+   ut knapparna och korten blir olika breda igen. */
+.job-head > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Taggarna på egen rad under rubriken: inline-taggar gjorde rubrikraden
+   olika hög i varje kort. */
+.job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.job-tags .tag {
+  margin-inline-start: 0;
 }
 
 .job-actions {
@@ -785,6 +824,8 @@ label.checkbox input {
   align-items: center;
   gap: 12px;
   white-space: nowrap;
+  /* Aldrig krympa: knappen är kortets syfte. */
+  flex-shrink: 0;
 }
 
 .job-actions a {
@@ -1565,7 +1606,7 @@ footer {
   font-weight: 600;
 }
 
-.date-field input[type='date'] {
+.date-field input[type="date"] {
   min-height: var(--tap);
   /* 16px: allt mindre får iOS att zooma in vid fokus. */
   font-size: var(--fs-body);
