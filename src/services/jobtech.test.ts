@@ -41,3 +41,52 @@ describe('buildSearchUrl', () => {
     expect(buildSearchUrl({}).startsWith('https://jobsearch.api.jobtechdev.se/search')).toBe(true)
   })
 })
+
+describe('datumsökning', () => {
+  it('frågar levande annonser om de som publicerats senast den dagen', () => {
+    // published-before är exklusiv hos Platsbanken: "ute den 31:a" kräver
+    // gränsen den 1:a, annars tappas allt som publicerades just den 31:a.
+    const url = new URL(buildSearchUrl({ q: 'diskare', onDate: '2026-08-31' }))
+    expect(url.origin).toBe('https://jobsearch.api.jobtechdev.se')
+    expect(url.searchParams.get('published-before')).toBe('2026-09-01T00:00:00')
+    expect(url.searchParams.get('historical-from')).toBeNull()
+  })
+
+  it('frågar arkivet om annonser vars period spände över hela dygnet', () => {
+    const url = new URL(buildSearchUrl({ q: 'diskare', onDate: '2026-08-31' }, true))
+    expect(url.origin).toBe('https://historical.api.jobtechdev.se')
+    expect(url.searchParams.get('historical-from')).toBe('2026-08-31T00:00:00')
+    expect(url.searchParams.get('historical-to')).toBe('2026-08-31T23:59:59')
+  })
+
+  it('månadsskifte och skottdag räknas rätt', () => {
+    const feb = new URL(buildSearchUrl({ onDate: '2024-02-29' }))
+    expect(feb.searchParams.get('published-before')).toBe('2024-03-01T00:00:00')
+    const dec = new URL(buildSearchUrl({ onDate: '2026-12-31' }))
+    expect(dec.searchParams.get('published-before')).toBe('2027-01-01T00:00:00')
+  })
+
+  it('utan datum rörs varken arkiv eller datumgränser', () => {
+    const url = new URL(buildSearchUrl({ q: 'diskare' }))
+    expect(url.origin).toBe('https://jobsearch.api.jobtechdev.se')
+    expect(url.searchParams.get('published-before')).toBeNull()
+  })
+})
+
+describe('ort mot arkivet', () => {
+  it('skickar kommunkod till arkivet, concept-id till Platsbanken', () => {
+    // Arkivet svarar 500 på concept-id (verifierat mot live-API:t). Utan
+    // översättningen tappades alla borttagna annonser tyst så fort en ort
+    // valdes — resultatet såg komplett ut men var halvt.
+    const malmo = 'oYPt_yRA_Smm'
+    const live = new URL(buildSearchUrl({ municipalityId: malmo, onDate: '2026-08-31' }))
+    expect(live.searchParams.get('municipality')).toBe(malmo)
+    const archive = new URL(buildSearchUrl({ municipalityId: malmo, onDate: '2026-08-31' }, true))
+    expect(archive.searchParams.get('municipality')).toBe('1280')
+  })
+
+  it('utelämnar ortsfiltret i arkivet hellre än att skicka något ogiltigt', () => {
+    const url = new URL(buildSearchUrl({ municipalityId: 'finns-inte' }, true))
+    expect(url.searchParams.get('municipality')).toBeNull()
+  })
+})

@@ -103,6 +103,13 @@ const sv: Dict = {
   'job.apply': 'Ansök',
   'job.close': 'Stäng',
   'job.callable': 'Går att ringa',
+  'search.onDateLabel': 'Visa jobb som fanns ute ett visst datum (valfritt)',
+  'search.onDateHelp': 'Lämna tomt för jobb som är ute nu. Väljer du ett datum visas även annonser som tagits bort sedan dess.',
+  'search.onDateClear': 'Visa jobb som är ute nu',
+  'results.onDate': 'Visar jobb som fanns ute {date}. Annonser märkta "Borttagen" går inte längre att söka.',
+  'job.archived': 'Borttagen annons',
+  'job.published': 'Annonserad {date}',
+  'job.deadline': 'Sök senast {date}',
   // Alltid "nämner" — härlett ur annonsens fritext, aldrig ett verifierat faktum.
   'job.mentions': 'nämner {form}',
   'support.nystartsjobb': 'nystartsjobb',
@@ -353,6 +360,13 @@ const ar: Dict = {
   'job.apply': 'تقديم',
   'job.close': 'إغلاق',
   'job.callable': 'يمكن الاتصال',
+  'search.onDateLabel': 'اعرض الوظائف التي كانت متاحة في تاريخ معيّن (اختياري)',
+  'search.onDateHelp': 'اتركه فارغًا للوظائف المتاحة الآن. إذا اخترت تاريخًا تظهر أيضًا إعلانات أُزيلت منذ ذلك الحين.',
+  'search.onDateClear': 'اعرض الوظائف المتاحة الآن',
+  'results.onDate': 'يتم عرض الوظائف التي كانت متاحة في {date}. الإعلانات المعلَّمة بـ"مُزال" لم يعد التقديم عليها ممكنًا.',
+  'job.archived': 'إعلان مُزال',
+  'job.published': 'نُشر {date}',
+  'job.deadline': 'آخر موعد للتقديم {date}',
   'job.mentions': 'يذكر {form}',
   // أسماء برامج الدعم تبقى بالسويدية — فهي الأسماء الرسمية التي يعرفها
   // صاحب العمل ومكتب العمل.
@@ -602,6 +616,13 @@ const so: Dict = {
   'job.apply': 'Codso',
   'job.close': 'Xir',
   'job.callable': 'Waa la wici karaa',
+  'search.onDateLabel': 'Tus shaqooyinkii taariikh gaar ah la heli jiray (ikhtiyaari)',
+  'search.onDateHelp': 'Ka tag madhan shaqooyinka hadda bannaan. Haddii aad taariikh dooratid waxaa sidoo kale muuqday xayeysiisyo tan iyo markaas la saaray.',
+  'search.onDateClear': 'Tus shaqooyinka hadda bannaan',
+  'results.onDate': 'Waxaa la tusayaa shaqooyinkii bannaanaa {date}. Xayeysiisyada lagu calaamadeeyay "La saaray" lama codsan karo.',
+  'job.archived': 'Xayeysiis la saaray',
+  'job.published': 'La xayeysiiyay {date}',
+  'job.deadline': 'Codso ugu dambeyn {date}',
   'job.mentions': 'wuxuu sheegayaa {form}',
   // Magacyada barnaamijyada kaalmada waxay ku hadhayaan af-iswiidhish —
   // waa magacyada rasmiga ah ee shaqo-bixiyaha iyo AF ay isticmaalaan.

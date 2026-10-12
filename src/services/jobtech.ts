@@ -2,10 +2,17 @@
 // Data license: CC-BY-SA, attribute Arbetsförmedlingen. Never scrape.
 
 import type { Job } from '../model/types'
+import { MUNICIPALITIES } from '../jobs/municipalities'
 import { mapJobTechAd } from '../jobs/mapJobTechAd'
 import type { JobTechAd } from '../jobs/mapJobTechAd'
 
 const BASE_URL = 'https://jobsearch.api.jobtechdev.se'
+// Arkivet: samma öppna data, men BORTTAGNA annonser. Verifierat 2026-10-12 —
+// historical-from/-to filtrerar på annonsens publiceringsperiod (en annons
+// vars period spänner över dagen kommer med), och arkivet innehåller INGA
+// annonser som fortfarande är ute (0 träffar för dagens datum). Därför måste
+// "vilka jobb fanns ute den dagen" fråga BÅDA källorna och slå ihop svaren.
+const HISTORICAL_URL = 'https://historical.api.jobtechdev.se'
 
 export interface JobSearchParams {
   q?: string
@@ -17,6 +24,10 @@ export interface JobSearchParams {
   // the API silently ignores unknown parameters (open-for-all changed
   // nothing), so this is asserted by test.
   openForAll?: boolean
+  // Ett datum (YYYY-MM-DD) i stället för "just nu": vilka annonser var ute
+  // den dagen. Sätts det hämtas både levande annonser publicerade senast den
+  // dagen och arkiverade annonser vars period spände över den.
+  onDate?: string
   limit?: number
   offset?: number
 }
@@ -26,20 +37,47 @@ export interface JobSearchResult {
   jobs: Job[]
 }
 
+// Dagen efter, som ISO-datum. Platsbankens published-before är exklusiv, så
+// "publicerad senast den 31:a" kräver gränsen 1:a.
+function dayAfter(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 // Exposed for testing: builds the request URL from the filter params.
-export function buildSearchUrl(params: JobSearchParams): string {
-  const url = new URL('/search', BASE_URL)
+// `archive` bygger mot arkivet i stället för de levande annonserna.
+export function buildSearchUrl(params: JobSearchParams, archive = false): string {
+  const url = new URL('/search', archive ? HISTORICAL_URL : BASE_URL)
   if (params.q) url.searchParams.set('q', params.q)
-  if (params.municipalityId) url.searchParams.set('municipality', params.municipalityId)
+  if (params.municipalityId) {
+    // Arkivet svarar 500 på concept-id och vill ha kommunkoden (verifierat
+    // 2026-10-12: Malmö som concept-id ⇒ 500, som 1280 ⇒ 200). Saknas koden
+    // utelämnas ortsfiltret hellre än att hela arkivfrågan dör.
+    const code = archive
+      ? MUNICIPALITIES.find((m) => m.id === params.municipalityId)?.code
+      : params.municipalityId
+    if (code) url.searchParams.set('municipality', code)
+  }
   if (params.worktimeExtentId) url.searchParams.set('worktime-extent', params.worktimeExtentId)
   if (params.openForAll) url.searchParams.set('open_for_all', 'true')
+  if (params.onDate) {
+    if (archive) {
+      // Annonsens period ska spänna över dagen — hela dygnet.
+      url.searchParams.set('historical-from', `${params.onDate}T00:00:00`)
+      url.searchParams.set('historical-to', `${params.onDate}T23:59:59`)
+    } else {
+      // Levande annons publicerad senast den dagen var ute den dagen.
+      url.searchParams.set('published-before', `${dayAfter(params.onDate)}T00:00:00`)
+    }
+  }
   url.searchParams.set('limit', String(params.limit ?? 25))
   if (params.offset) url.searchParams.set('offset', String(params.offset))
   return url.toString()
 }
 
-export async function searchJobs(params: JobSearchParams): Promise<JobSearchResult> {
-  const response = await fetch(buildSearchUrl(params), {
+async function fetchPage(params: JobSearchParams, archive: boolean): Promise<JobSearchResult> {
+  const response = await fetch(buildSearchUrl(params, archive), {
     headers: { accept: 'application/json' },
   })
   if (!response.ok) {
@@ -53,4 +91,17 @@ export async function searchJobs(params: JobSearchParams): Promise<JobSearchResu
     total: body.total?.value ?? 0,
     jobs: (body.hits ?? []).map(mapJobTechAd),
   }
+}
+
+export async function searchJobs(params: JobSearchParams): Promise<JobSearchResult> {
+  if (!params.onDate) return fetchPage(params, false)
+  // Ett datum frågar båda källorna. Arkivets fel får aldrig dölja de levande
+  // annonserna — och tvärtom: halva svaret är bättre än inget.
+  const [live, archived] = await Promise.all([
+    fetchPage(params, false).catch(() => ({ total: 0, jobs: [] }) as JobSearchResult),
+    fetchPage(params, true).catch(() => ({ total: 0, jobs: [] }) as JobSearchResult),
+  ])
+  const seen = new Set(live.jobs.map((j) => j.id))
+  const jobs = [...live.jobs, ...archived.jobs.filter((j) => !seen.has(j.id))]
+  return { total: live.total + archived.total, jobs }
 }

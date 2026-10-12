@@ -526,6 +526,10 @@ export function JobsView() {
   // Submit-vägen måste kunna finalisera ortfältet synkront (se search()).
   const ortRef = useRef<MunicipalityComboboxHandle>(null)
   const [worktimeExtentId, setWorktimeExtentId] = useState('')
+  // Tomt = jobb som är ute nu. Ett datum = jobb som fanns ute den dagen,
+  // inklusive annonser som hunnit tas bort sedan dess.
+  const [onDate, setOnDate] = useState('')
+  const [resultOnDate, setResultOnDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [simpleOnly, setSimpleOnly] = useState(true)
@@ -587,6 +591,7 @@ export function JobsView() {
     municipalityId: string
     worktimeExtentId: string
     openForAll?: boolean
+    onDate?: string
   }): Promise<Job[]> {
     setLoading(true)
     setError(null)
@@ -608,6 +613,7 @@ export function JobsView() {
           municipalityId: params.municipalityId || undefined,
           worktimeExtentId: params.worktimeExtentId || undefined,
           openForAll: wantOpenForAll || undefined,
+          onDate: params.onDate || undefined,
           limit: anyDisplayFilter ? 100 : 25,
         }),
         searchJobLinks({
@@ -620,6 +626,7 @@ export function JobsView() {
       setExternalJobs(external)
       setJobs(shown, result.total)
       setResultSimple(view.simpleOnly)
+      setResultOnDate(params.onDate ?? '')
       setSearched(true)
       const now = Date.now()
       setFetchedAt(now)
@@ -648,6 +655,9 @@ export function JobsView() {
         // "new" ads on an unchanged market. Raw against the tag's accumulated
         // seen set is apples to apples.
         const rawIds = result.jobs.map((j) => j.id)
+        // En datumsökning tittar bakåt — den får aldrig räknas som "nya sedan
+        // sist" eller skriva över en levande tagg med ett historiskt urval.
+        if (params.onDate) return shown
         const previous = findSavedSearch(useSoktStore.getState().savedSearches, params)
         if (previous?.seenJobIds) setNewSince(newJobIds(rawIds, previous.seenJobIds).length)
         const record = recordSearch(params, rawIds)
@@ -671,7 +681,13 @@ export function JobsView() {
     // inte filtrerade. Returvärdet används direkt i anropet — state-
     // uppdateringen från finalize hinner inte in i denna render.
     const finalizedMunicipalityId = ortRef.current?.finalize() ?? municipalityId
-    void runSearch({ q, municipalityId: finalizedMunicipalityId, worktimeExtentId, openForAll })
+    void runSearch({
+      q,
+      municipalityId: finalizedMunicipalityId,
+      worktimeExtentId,
+      openForAll,
+      onDate,
+    })
   }
 
   // Tapping a tag reruns the search. Tagging, "new since last" and the active
@@ -711,7 +727,7 @@ export function JobsView() {
     }
   }
 
-  const activeMoreFilters = (supportOnly ? 1 : 0) + (openForAll ? 1 : 0)
+  const activeMoreFilters = (supportOnly ? 1 : 0) + (openForAll ? 1 : 0) + (onDate ? 1 : 0)
 
   // The JobTech API does no diacritic folding: `stadare` returns nothing while
   // `städare` returns hundreds. Offer the spelling the participant meant rather
@@ -832,6 +848,21 @@ export function JobsView() {
               />
               {t('filter.openForAll')}
             </label>
+            <label className="date-field">
+              <span className="date-label">{t('search.onDateLabel')}</span>
+              <input
+                type="date"
+                value={onDate}
+                max={todayIso(new Date())}
+                onChange={(e) => setOnDate(e.target.value)}
+              />
+              <span className="muted date-help">{t('search.onDateHelp')}</span>
+              {onDate && (
+                <button type="button" className="link-button" onClick={() => setOnDate('')}>
+                  {t('search.onDateClear')}
+                </button>
+              )}
+            </label>
           </div>
         )}
       </div>
@@ -845,6 +876,11 @@ export function JobsView() {
       {newSince !== null && (
         <p className="new-since">
           {newSince > 0 ? t('results.newSince', { n: newSince }) : t('results.newSinceNone')}
+        </p>
+      )}
+      {resultOnDate && !loading && (
+        <p className="banner banner-warning date-banner" role="status">
+          {t('results.onDate', { date: resultOnDate })}
         </p>
       )}
       {searched && rawJobs.length > 0 && (
@@ -988,12 +1024,29 @@ function JobCard({
               {t('job.alreadyApplied', { date: already.appliedAt })}
             </span>
           )}
+          {/* Annonsen finns inte kvar i Platsbanken — måste synas innan någon
+              lägger tid på att söka ett jobb som är borta. */}
+          {job.archived && <span className="tag tag-archived">{t('job.archived')}</span>}
           <div className="muted">
             {job.employer}
             {job.municipality && ` · ${job.municipality}`}
             {job.employmentType !== 'unknown' &&
               ` · ${uiEmploymentTypeLabel(lang, job.employmentType)}`}
           </div>
+          {/* Datum visas bara när annonsen bär dem — ett tomt datum är värre
+              än inget datum. */}
+          {(job.publishedAt || job.deadline) && (
+            <div className="muted job-dates">
+              {job.publishedAt && (
+                <span>{t('job.published', { date: job.publishedAt.slice(0, 10) })}</span>
+              )}
+              {job.deadline && (
+                <span className="job-deadline">
+                  {t('job.deadline', { date: job.deadline.slice(0, 10) })}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="job-actions">
           <a href={job.url} target="_blank" rel="noreferrer">

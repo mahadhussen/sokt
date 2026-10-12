@@ -55,6 +55,12 @@ export interface Job {
   // boards, link-only ads). Both are official Arbetsförmedlingen open data.
   source: 'platsbanken' | 'joblinks'
   publishedAt: string
+  // Sista ansökningsdag när annonsen anger en. Optional: äldre cachade jobb
+  // saknar fältet, och läsare måste tåla att datumet inte finns.
+  deadline?: string
+  // Annonsen är borttagen ur Platsbanken (kommer ur det historiska arkivet).
+  // Måste synas i UI:t — ingen ska söka ett jobb som inte finns kvar.
+  archived?: boolean
   url: string
 }
 

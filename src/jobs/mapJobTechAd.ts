@@ -43,6 +43,8 @@ export interface JobTechAd extends TaxonomyAd {
   occupation_field?: RawConcept | null
   webpage_url?: string | null
   publication_date?: string | null
+  application_deadline?: string | null
+  removed?: boolean | null
 }
 
 // AF anställningsform: heltid, deltid eller timanställd.
@@ -117,6 +119,8 @@ export function mapJobTechAd(ad: JobTechAd): Job {
     employmentType: mapEmploymentType(ad),
     applicationChannel: mapApplicationChannel(ad),
     taxonomy: mapTaxonomy(ad),
+    ...(ad.application_deadline ? { deadline: ad.application_deadline } : {}),
+    ...(ad.removed ? { archived: true } : {}),
     source: 'platsbanken',
     publishedAt: ad.publication_date ?? '',
     url: ad.webpage_url ?? '',

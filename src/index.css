@@ -105,10 +105,28 @@ button:not(:disabled):active {
   }
 }
 
+/* Hela skärmen, kant till kant: ingen centrerad spalt, bara en smal
+   sidmarginal. Bredden används i stället till fler kolumner i listorna. */
 .app {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
+  width: 100%;
+  margin: 0;
+  padding: 24px 24px 48px;
+}
+
+/* Breda skärmar: jobbkorten läggs i kolumner i stället för en lång smal
+   remsa mitt på en tom sida. */
+@media (min-width: 1100px) {
+  .job-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  /* Ett öppnat kort behöver hela bredden — ansökningspanelen är ett formulär,
+     inte en listrad. */
+  .job-list > li:has(.apply-panel) {
+    grid-column: 1 / -1;
+  }
 }
 
 .header-row {
@@ -1514,4 +1532,55 @@ footer {
   background: var(--warn-soft-bg);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
+}
+
+/* ---- Datum och arkiv ----------------------------------------------------- */
+
+.job-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 2px;
+  font-size: var(--fs-meta);
+}
+
+.job-deadline {
+  font-weight: 600;
+}
+
+.tag-archived {
+  background: var(--warn-soft-bg);
+  color: var(--warn-soft-ink);
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.date-label {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.date-field input[type='date'] {
+  min-height: var(--tap);
+  /* 16px: allt mindre får iOS att zooma in vid fokus. */
+  font-size: var(--fs-body);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.date-help {
+  font-size: var(--fs-meta);
+}
+
+.date-banner {
+  margin: 12px 0 0;
 }
