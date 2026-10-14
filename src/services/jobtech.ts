@@ -37,6 +37,12 @@ export interface JobSearchResult {
   jobs: Job[]
 }
 
+// API:ts tak, verifierat 2026-10-14: limit max 100 (200 ⇒ 400), offset upp
+// till 2000. Appen hämtade förut 25 — en sökning på lagerarbetare har 889
+// annonser, så 864 av dem fanns helt enkelt inte i appen.
+export const PAGE_SIZE = 100
+export const MAX_OFFSET = 2000
+
 // Dagen efter, som ISO-datum. Platsbankens published-before är exklusiv, så
 // "publicerad senast den 31:a" kräver gränsen 1:a.
 function dayAfter(isoDate: string): string {
@@ -71,7 +77,7 @@ export function buildSearchUrl(params: JobSearchParams, archive = false): string
       url.searchParams.set('published-before', `${dayAfter(params.onDate)}T00:00:00`)
     }
   }
-  url.searchParams.set('limit', String(params.limit ?? 25))
+  url.searchParams.set('limit', String(params.limit ?? PAGE_SIZE))
   if (params.offset) url.searchParams.set('offset', String(params.offset))
   return url.toString()
 }

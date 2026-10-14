@@ -69,6 +69,8 @@ const sv: Dict = {
   "filters.hide": "Dölj fler filter",
   "search.didYouMean": "Menade du {name}?",
   "results.count": "{total} annonser hittade, visar {shown}.",
+  "results.loadMore": "Visa fler jobb ({n} kvar)",
+  "results.loadingMore": "Hämtar fler jobb…",
   "results.simpleCount":
     "{shown} jobb med enkel ansökan. {total} annonser finns totalt.",
   "results.showAllChannels": "Visa alla ansökningssätt ({n} jobb)",
@@ -149,6 +151,8 @@ const sv: Dict = {
   "apply.noProfileTip":
     "Tips: fyll i din profil och ditt grundbrev så anpassas brevet per jobb.",
   "apply.sendWithCv": "Skicka ansökan med CV",
+  "apply.quickSend": "Skicka ansökan",
+  "apply.quickEdit": "Ändra brev",
   "apply.sendConfirm":
     "Skickas till {email} med {fileName} bifogat. Arbetsgivarens svar går till {reply}, och du får en kopia i din mejl.",
   "apply.sendNow": "Skicka nu",
@@ -351,6 +355,8 @@ const ar: Dict = {
   "filters.hide": "إخفاء المرشّحات الإضافية",
   "search.didYouMean": "هل تقصد {name}؟",
   "results.count": "تم العثور على {total} إعلانًا، عرض {shown}.",
+  "results.loadMore": "اعرض وظائف أخرى (بقي {n})",
+  "results.loadingMore": "يتم تحميل وظائف أخرى…",
   "results.simpleCount":
     "{shown} وظيفة بتقديم سهل. يوجد {total} إعلانًا إجمالًا.",
   "results.showAllChannels": "اعرض كل طرق التقديم ({n} وظيفة)",
@@ -431,6 +437,8 @@ const ar: Dict = {
   "apply.noProfileTip":
     "نصيحة: املأ ملفك الشخصي ورسالتك الأساسية لتُخصَّص الرسالة لكل وظيفة.",
   "apply.sendWithCv": "أرسل الطلب مع السيرة الذاتية",
+  "apply.quickSend": "أرسل الطلب",
+  "apply.quickEdit": "عدّل الرسالة",
   "apply.sendConfirm":
     "سيُرسل إلى {email} مع إرفاق {fileName}. يصل رد صاحب العمل إلى {reply}، وستصلك نسخة إلى بريدك.",
   "apply.sendNow": "أرسل الآن",
@@ -630,6 +638,8 @@ const so: Dict = {
   "filters.hide": "Qari filtarada dheeraadka ah",
   "search.didYouMean": "Ma waxaad ula jeeday {name}?",
   "results.count": "{total} xayeysiis ayaa la helay, waxaa la tusayaa {shown}.",
+  "results.loadMore": "Tus shaqooyin dheeraad ah ({n} ka hadhay)",
+  "results.loadingMore": "Shaqooyin dheeraad ah waa la soo dejinayaa…",
   "results.simpleCount":
     "{shown} shaqo oo codsi fudud leh. Wadarta guud waa {total} xayeysiis.",
   "results.showAllChannels": "Tus dhammaan siyaabaha codsiga ({n} shaqo)",
@@ -715,6 +725,8 @@ const so: Dict = {
   "apply.noProfileTip":
     "Talo: buuxi astaantaada iyo warqaddaada aasaasiga ah si warqaddu ugu habboonaato shaqo kasta.",
   "apply.sendWithCv": "Dir codsiga oo CV-gu ku lifaaqan yahay",
+  "apply.quickSend": "Dir codsiga",
+  "apply.quickEdit": "Beddel warqadda",
   "apply.sendConfirm":
     "Waxaa loo dirayaa {email} iyadoo {fileName} ku lifaaqan yahay. Jawaabta shaqo-bixiyuhu waxay tagtaa {reply}, adigana nuqul ayaa kuugu imanaya emailkaaga.",
   "apply.sendNow": "Hadda dir",

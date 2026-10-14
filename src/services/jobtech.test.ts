@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSearchUrl } from './jobtech'
+import { PAGE_SIZE, buildSearchUrl } from './jobtech'
 
 describe('buildSearchUrl', () => {
   it('sends q, municipality and worktime-extent as JobTech params', () => {
@@ -24,7 +24,9 @@ describe('buildSearchUrl', () => {
     expect(url.searchParams.has('municipality')).toBe(false)
     expect(url.searchParams.has('worktime-extent')).toBe(false)
     expect(url.searchParams.has('open_for_all')).toBe(false)
-    expect(url.searchParams.get('limit')).toBe('25')
+    // Standardsidan är API:ts max. Den var 25, vilket betydde att en sökning
+    // på lagerarbetare (889 träffar) visade 25 jobb och tappade resten tyst.
+    expect(url.searchParams.get('limit')).toBe('100')
   })
 
   it('sends open_for_all with exactly that name — the API silently ignores unknown params', () => {
@@ -88,5 +90,16 @@ describe('ort mot arkivet', () => {
   it('utelämnar ortsfiltret i arkivet hellre än att skicka något ogiltigt', () => {
     const url = new URL(buildSearchUrl({ municipalityId: 'finns-inte' }, true))
     expect(url.searchParams.get('municipality')).toBeNull()
+  })
+})
+
+describe('sidhämtning', () => {
+  it('standardsidan är API:ts max och offset skickas när det finns', () => {
+    expect(PAGE_SIZE).toBe(100)
+    const first = new URL(buildSearchUrl({ q: 'lagerarbetare' }))
+    expect(first.searchParams.get('limit')).toBe('100')
+    expect(first.searchParams.has('offset')).toBe(false)
+    const second = new URL(buildSearchUrl({ q: 'lagerarbetare', offset: 100 }))
+    expect(second.searchParams.get('offset')).toBe('100')
   })
 })

@@ -8,7 +8,7 @@ import { applicantFields } from "../apply/applicantFields";
 import { chooseProvider } from "../apply/letterProvider";
 import { improveLetterWithAi } from "../services/letterAi";
 import { canonicalOccupation } from "../jobs/taxonomy";
-import { searchJobs } from "../services/jobtech";
+import { searchJobs, PAGE_SIZE, MAX_OFFSET } from "../services/jobtech";
 import { searchJobLinks } from "../services/joblinks";
 import { sourceHost } from "../jobs/mapJobLinksAd";
 import { MunicipalityCombobox } from "./MunicipalityCombobox";
@@ -593,6 +593,16 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
   );
 }
 
+// Vad en sökning frågar efter. Namngiven så "Visa fler" kan upprepa exakt
+// samma fråga med nästa offset.
+interface SearchParams {
+  q: string;
+  municipalityId: string;
+  worktimeExtentId: string;
+  openForAll?: boolean;
+  onDate?: string;
+}
+
 export function JobsView() {
   const { jobs, jobsTotal, setJobs } = useSoktStore();
   const savedSearches = useSoktStore((s) => s.savedSearches);
@@ -629,6 +639,10 @@ export function JobsView() {
   // lets us say honestly how many ads were hidden, and flip the filter without
   // a second round trip.
   const [rawJobs, setRawJobs] = useState<Job[]>([]);
+  // Vad senaste sökningen frågade efter, så "Visa fler" kan hämta nästa sida
+  // med exakt samma filter. Null = ingen sökning att bygga vidare på.
+  const [lastParams, setLastParams] = useState<SearchParams | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [externalJobs, setExternalJobs] = useState<Job[]>([]);
   const [showExternal, setShowExternal] = useState(false);
   const [newSince, setNewSince] = useState<number | null>(null);
@@ -673,13 +687,7 @@ export function JobsView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function runSearch(params: {
-    q: string;
-    municipalityId: string;
-    worktimeExtentId: string;
-    openForAll?: boolean;
-    onDate?: string;
-  }): Promise<Job[]> {
+  async function runSearch(params: SearchParams): Promise<Job[]> {
     setLoading(true);
     setError(null);
     setNewSince(null);
@@ -687,14 +695,10 @@ export function JobsView() {
     const wantOpenForAll = Boolean(params.openForAll);
     const view: JobViewFilter = { simpleOnly, callableOnly, supportOnly };
     try {
-      // With any display filter on we fetch a fuller page (the API max) and
-      // then filter locally, so the user still sees a useful number of ads —
-      // "går att ringa" keeps ~1 in 7, "nämner stöd" ~1 in 90 (measured).
-      // The second source (JobAd Links) runs in parallel; its failure must
-      // never break the main Platsbanken search — degrade to an empty extra
-      // section instead.
-      const anyDisplayFilter =
-        view.simpleOnly || view.callableOnly || view.supportOnly;
+      // Alltid full sida (API:ts max 100), aldrig 25: visningsfiltren filtrerar
+      // lokalt, och resten av annonserna hämtas med "Visa fler".
+      // Andra källan (JobAd Links) körs parallellt; dess fel får aldrig sänka
+      // huvudsökningen — degradera till en tom extrasektion i stället.
       const [result, external] = await Promise.all([
         searchJobs({
           q: params.q,
@@ -702,7 +706,7 @@ export function JobsView() {
           worktimeExtentId: params.worktimeExtentId || undefined,
           openForAll: wantOpenForAll || undefined,
           onDate: params.onDate || undefined,
-          limit: anyDisplayFilter ? 100 : 25,
+          limit: PAGE_SIZE,
         }),
         searchJobLinks({
           q: params.q,
@@ -714,6 +718,7 @@ export function JobsView() {
       setExternalJobs(external);
       setJobs(shown, result.total);
       setResultSimple(view.simpleOnly);
+      setLastParams(params);
       setResultOnDate(params.onDate ?? "");
       setSearched(true);
       const now = Date.now();
@@ -761,6 +766,48 @@ export function JobsView() {
       return [];
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Platsbanken ger max 100 per anrop. Utan den här knappen fanns resten av
+  // annonserna helt enkelt inte i appen — en sökning på lagerarbetare har 889
+  // träffar. Hämtar nästa sida och lägger till; dubbletter kan aldrig uppstå
+  // eftersom id:n filtreras.
+  const nextOffset = rawJobs.length;
+  const moreAvailable =
+    searched &&
+    lastParams !== null &&
+    rawJobs.length < jobsTotal &&
+    nextOffset <= MAX_OFFSET;
+
+  async function loadMore() {
+    if (!lastParams || loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const result = await searchJobs({
+        q: lastParams.q,
+        municipalityId: lastParams.municipalityId || undefined,
+        worktimeExtentId: lastParams.worktimeExtentId || undefined,
+        openForAll: lastParams.openForAll || undefined,
+        onDate: lastParams.onDate || undefined,
+        limit: PAGE_SIZE,
+        offset: nextOffset,
+      });
+      const seen = new Set(rawJobs.map((j) => j.id));
+      const merged = [
+        ...rawJobs,
+        ...result.jobs.filter((j) => !seen.has(j.id)),
+      ];
+      setRawJobs(merged);
+      setJobs(
+        applyJobFilters(merged, { simpleOnly, callableOnly, supportOnly }),
+        result.total,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -1112,6 +1159,19 @@ export function JobsView() {
           />
         ))}
       </ul>
+      {moreAvailable && (
+        <div className="load-more">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+          >
+            {loadingMore
+              ? t("results.loadingMore")
+              : t("results.loadMore", { n: jobsTotal - rawJobs.length })}
+          </button>
+        </div>
+      )}
       {searched && externalJobs.length > 0 && (
         <div className="external-section">
           <button
@@ -1147,6 +1207,76 @@ export function JobsView() {
   );
 }
 
+// Ettklicksansökan. Visas BARA när ett enda tryck kan göra hela jobbet:
+// skicka mejlet med CV:t OCH logga ansökan till aktivitetsrapporten. Saknar
+// annonsen anställningsform eller ort kan den inte loggas (buildApplication
+// kastar), och då vore ett klick en halv ansökan — där visas vanliga Ansök
+// i stället så deltagaren får fylla i det som fattas.
+//
+// Mejlet går inte att ångra. Skyddet ligger i att knappen kräver att ALLT
+// redan är verifierat (konto, CV i molnet, mejlkanal, profil) och att ett
+// redan sökt jobb visar sin ansökta status i stället för knappen.
+function QuickApply({
+  job,
+  onOpenPanel,
+}: {
+  job: Job;
+  onOpenPanel: () => void;
+}) {
+  const { t } = useT();
+  const execute = useSoktStore((s) => s.execute);
+  const setNotice = useSoktStore((s) => s.setNotice);
+  const profile = useSoktStore((s) => s.profile);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send() {
+    const channel = job.applicationChannel;
+    if (!channel.value || !profile) return;
+    setSending(true);
+    setError(null);
+    try {
+      await sendApplicationEmail({
+        to: channel.value,
+        subject: `Ansökan: ${job.title}`,
+        text: tailorLetter({ job, profile }),
+      });
+      // Skickat på riktigt = loggat direkt, annars når ansökan aldrig AF.
+      execute(
+        addApplicationCommand(
+          buildApplication(job, {
+            id: crypto.randomUUID(),
+            appliedAt: todayIso(new Date()),
+            surveyAnswered: false,
+          }),
+        ),
+      );
+      setNotice({ key: "notice.sentLogged", undoable: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="quick-apply"
+        onClick={() => void send()}
+        disabled={sending}
+      >
+        {sending ? t("apply.sending") : t("apply.quickSend")}
+      </button>
+      <button type="button" className="link-button" onClick={onOpenPanel}>
+        {t("apply.quickEdit")}
+      </button>
+      {error && <span className="error">{error}</span>}
+    </>
+  );
+}
+
 function JobCard({
   job,
   open,
@@ -1165,6 +1295,26 @@ function JobCard({
   const host = job.source === "joblinks" ? sourceHost(job) : "";
   // Same ad next week should not look untouched.
   const already = appliedTo(applications, job);
+  const account = useSoktStore((s) => s.account);
+  const cv = useSoktStore((s) => s.cv);
+  const profile = useSoktStore((s) => s.profile);
+  const [mailReady, setMailReady] = useState(false);
+  useEffect(() => {
+    if (account) void sendMailConfigured().then(setMailReady);
+  }, [account]);
+  // Ett klick får bara erbjudas när det räcker hela vägen: mejlet skickas
+  // OCH ansökan kan loggas. Saknar annonsen anställningsform eller ort
+  // kastar buildApplication, så där behövs panelen.
+  const canQuickApply =
+    mailReady &&
+    Boolean(account) &&
+    Boolean(cv) &&
+    Boolean(profile) &&
+    !already &&
+    job.applicationChannel.kind === "email" &&
+    Boolean(job.applicationChannel.value) &&
+    job.employmentType !== "unknown" &&
+    Boolean(job.municipality);
   return (
     <li className={already ? "job-card job-card-applied" : "job-card"}>
       <div className="job-head">
@@ -1224,9 +1374,13 @@ function JobCard({
           <a href={job.url} target="_blank" rel="noreferrer">
             {t("job.ad")}
           </a>
-          <button type="button" onClick={onToggle}>
-            {open ? t("job.close") : t("job.apply")}
-          </button>
+          {canQuickApply && !open ? (
+            <QuickApply job={job} onOpenPanel={onToggle} />
+          ) : (
+            <button type="button" onClick={onToggle}>
+              {open ? t("job.close") : t("job.apply")}
+            </button>
+          )}
         </div>
       </div>
       {open && <ApplyPanel job={job} onDone={onDone} />}

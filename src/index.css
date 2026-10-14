@@ -1625,3 +1625,53 @@ footer {
 .date-banner {
   margin: 12px 0 0;
 }
+
+/* "Visa fler jobb": Platsbanken ger max 100 per anrop, så resten måste gå
+   att hämta. Egen rad, centrerad — den är ett avslut på listan, inte en
+   åtgärd på ett kort. */
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.load-more button {
+  background: var(--card);
+  color: var(--accent-dark);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  min-height: var(--tap);
+  padding: 10px 20px;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.load-more button:not(:disabled):hover {
+  background: var(--accent-soft);
+}
+
+/* Ettklicksansökan på kortet: samma vikt som skickaknappen i panelen, för
+   det är samma handling. Grön (inte blå) så den skiljs från "öppna/läs" —
+   den SKICKAR, och det går inte att ångra. */
+.quick-apply {
+  background: var(--ok);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  min-height: var(--tap);
+  padding: 10px 16px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.quick-apply:not(:disabled):hover {
+  background: var(--ok-ink);
+}
+
+.job-actions .link-button {
+  font-size: var(--fs-meta);
+}
