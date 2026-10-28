@@ -100,6 +100,7 @@ const sv: Dict = {
   "notice.undo": "Ångra",
   "notice.undone": "Ångrat.",
   "copy.failed": "Kunde inte kopiera — markera texten och kopiera själv.",
+  "copy.aria": "Kopiera {value}",
   "claim.title": "Det finns sparade uppgifter på den här enheten",
   "claim.body":
     "Innan du loggade in fanns {n} ansökningar sparade på den här enheten, utan konto. Är de dina — vill du flytta in dem i ditt konto?",
@@ -385,6 +386,7 @@ const ar: Dict = {
   "notice.undo": "تراجع",
   "notice.undone": "تم التراجع.",
   "copy.failed": "تعذّر النسخ — حدِّد النص وانسخه بنفسك.",
+  "copy.aria": "انسخ {value}",
   "claim.title": "توجد بيانات محفوظة على هذا الجهاز",
   "claim.body":
     "قبل تسجيل دخولك كانت هناك {n} طلبات محفوظة على هذا الجهاز بدون حساب. هل هي لك — أتريد نقلها إلى حسابك؟",
@@ -672,6 +674,7 @@ const so: Dict = {
   "notice.undone": "Waa laga noqday.",
   "copy.failed":
     "Nuqul lama samayn karin — dooro qoraalka oo adigu nuqul samee.",
+  "copy.aria": "Koobi garee {value}",
   "claim.title": "Qalabkan waxaa ku kaydsan xog",
   "claim.body":
     "Ka hor intaadan gelin waxaa qalabkan ku kaydsanaa {n} codsi, akoon la'aan. Ma kuwaagii baa — ma rabtaa in aad akoonkaaga u soo guuriso?",

@@ -2,6 +2,7 @@
 // records. It never reads anything but Application records, and no field is
 // invented here. Pure module: no imports from ui, render, services, or app.
 
+import { cleanJobTitle } from './jobTitle'
 import type { Application, EmploymentType } from '../model/types'
 
 export interface ReportRow {
@@ -27,7 +28,9 @@ export function activityReport(
     )
     .sort((a, b) => a.appliedAt.localeCompare(b.appliedAt))
     .map((a) => ({
-      jobTitle: a.jobTitle,
+      // Städas även här: ansökningar som loggades innan titeln rensades vid
+      // källan ligger kvar med hela annonsrubriken.
+      jobTitle: cleanJobTitle(a.jobTitle),
       employerName: a.employerName,
       employmentType: a.employmentType,
       appliedAt: a.appliedAt,

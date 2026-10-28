@@ -3,6 +3,8 @@
 // never from a language model. Pure module: no imports from ui, render,
 // services, or app.
 
+import { canonicalOccupation } from '../jobs/taxonomy'
+import { cleanJobTitle } from '../report/jobTitle'
 import type { Application, EmploymentType, Id, Job } from '../model/types'
 
 export interface ApplyInput {
@@ -36,7 +38,9 @@ export function buildApplication(job: Job, input: ApplyInput): Application {
   }
   return {
     id: input.id,
-    jobTitle: job.title,
+    // AF:s egen yrkesetikett ur annonsens taxonomi, inte marknadsförings-
+    // rubriken. Saknar annonsen taxonomi städas rubriken försiktigt.
+    jobTitle: canonicalOccupation(job.taxonomy, cleanJobTitle(job.title)),
     employerName: job.employer,
     employmentType,
     appliedAt: input.appliedAt,
