@@ -40,6 +40,7 @@ import {
 } from "../services/gmailDraft";
 import { fileStore } from "../app/store";
 import { blobToBase64 } from "../services/fileStore";
+import { CopyCell } from "./CopyCell";
 
 // A phone number inside translated text, bidi-isolated. In Arabic (RTL) the
 // bidi algorithm reorders "054-5409920" so the segments swap around the dash
@@ -350,6 +351,9 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
               phone={job.contact.telephone}
             />
           </a>
+          {/* Alla ringer inte från samma enhet som de söker på — numret ska
+              gå att kopiera och slå på en annan telefon. */}
+          <CopyCell value={job.contact.telephone} />
         </div>
       )}
       {(job.supportMentions ?? []).length > 0 && (
@@ -429,6 +433,9 @@ function ApplyPanel({ job, onDone }: { job: Job; onDone: () => void }) {
         )}
         {channel.kind === "email" && !canSendDirect && (
           <span className="mail-links">
+            {/* Adressen kopierbar: en del arbetsgivare vill ha ansökan via
+                sitt eget formulär, och då ska mejlet gå att klistra in. */}
+            <CopyCell value={channel.value ?? ""} />
             <a
               className="cta"
               href={`mailto:${channel.value}?subject=${encodeURIComponent(`Ansökan: ${job.title}`)}${mailtoBody}`}

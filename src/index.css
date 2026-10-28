@@ -1736,3 +1736,25 @@ footer {
 .report-table td:has(.copy-cell) {
   padding: 2px;
 }
+
+/* Kopieringsytan i kort (inte tabell): ramen får synas alltid så den ser
+   tryckbar ut utan att man måste hovra — på telefon finns ingen hovring. */
+.app-card .copy-cell,
+.call-block .copy-cell,
+.mail-links > .copy-cell {
+  border-color: var(--line);
+  background: var(--card);
+}
+
+.app-card-title .copy-cell-value {
+  font-weight: 700;
+}
+
+.call-block .copy-cell {
+  margin-top: 8px;
+  background: transparent;
+}
+
+.mail-links > .copy-cell {
+  margin-bottom: 6px;
+}
